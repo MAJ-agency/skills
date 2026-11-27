@@ -10,7 +10,7 @@ Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le p
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
 Dépôts: `MAJ-agency/skills` (skills `relecture`, `relecteur`, `fusionner`, `architecte`, `chantier`, `socle-chaine-de-production`, glossaire `CONTEXT.md`) ; `MAJ-agency/essai-relecture-8` (l'essai réel) ; les projets reçoivent la règle par la mise à jour du plugin et la repose des scripts.
 Source: le prompt d'ouverture de cette session (2026-11-27), résumé dans `## Source` — entrée brute, ni spec ni décision.
-Capitaines: `skills` : absent — à lancer par l'architecte à la première PR prête (celui du programme « définitions d'agents » est archivé)
+Capitaines: `skills` : session_012xRpgZd6cEEptHdS4amcfr (lancé le 2026-11-27, procédure d'un dépôt sans la chaîne)
 Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 ## Chantiers
@@ -42,6 +42,7 @@ Décisions de l'architecte : A-1 à A-12, écrites avec leur raison dans la spec
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 | architecte | — | session_01BxuG31gJXv41A7jRRFEAWi | — | — | — |
 | architecte (suite) | — | session_012xRpgZFExW5jmAkFg9zCdF | opus | — | — |
+| capitaine `skills` | — | session_012xRpgZd6cEEptHdS4amcfr | sonnet | — | — |
 
 ## Passation
 
@@ -64,6 +65,7 @@ Décisions de l'architecte : A-1 à A-12, écrites avec leur raison dans la spec
 - 2026-11-27 — Le produit tranche `Q-1` et `Q-2` (`P-2`, `P-3`) : spec validée. Le produit n'a pas archivé la session : la passation ci-dessus reste écrite, l'architecte continue. Tickets confiés à un sous-agent.
 - 2026-11-27 — Quatre tickets écrits par un sous-agent, commités, non relus. Son rapport : versions mineures 8.6.0, 8.7.0, 8.8.0 (le README dit « majeure quand un skill existant change de contrat » : l'usage des notes 8.4.0 et 8.5.0 est la mineure, retenue) ; `chantier/SKILL.md` ne porte pas l'ancienne règle du plafond (A-5 corrigée) ; un bloquant nomme le lieu de l'écart et non celui de la correction (A-10) ; deux lectures de « PR de documentation » (A-11) ; l'axe Tickets ne reçoit pas la criticité (A-12) ; le critère `D9` casse un banc d'égalité avec le régime 7, que le ticket 3 borne à `D1`–`D8` ; `relecteur/SKILL.md` dit que le Relecteur ne lit pas le corps d'un verdict, alors que le script le lira pour lui (ticket 2). Avant le ticket 4 : accord du produit sur le chemin sensible, Relecteur et capitaine à lancer sur `essai-relecture-8` ; le « relevé tardif » ne se provoque pas à coup sûr, le ticket 4 traite les trois issues.
 - 2026-11-27 21 h 40 UTC — Session de suite ouverte par le produit (session_012xRpgZFExW5jmAkFg9zCdF), sans message de la précédente. Plugin chargé 8.4.0, marketplace 8.5.0 : le fichier du marketplace fait foi. Branche remise à jour avec `main` (#167). Suite de la passation : relecture des quatre tickets par un agent neuf.
+- 2026-11-27 21 h 42 UTC — Capitaine de `skills` lancé (session_012xRpgZd6cEEptHdS4amcfr), procédure d'un dépôt sans la chaîne, entière dans son prompt. Relecture des quatre tickets en cours par un agent neuf.
 
 ## Source
 
