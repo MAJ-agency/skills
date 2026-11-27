@@ -15,7 +15,12 @@
 //   - la décision de plafond : première ligne `Décision de plafond — <texte>` ;
 //   - l'arbitrage : chaque ligne non vide est `Arbitrage — <lieu> — maintenu[ — <raison>]` ou
 //     `Arbitrage — <lieu> — écarté — <raison>` ;
-//   - la trace d'illisible : première ligne `Lecture illisible — <cause>`.
+//   - la trace d'illisible : première ligne `Lecture illisible — <cause>` ;
+//   - la note de même contenu : `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha> — <raison>`,
+//     sur une ligne, écrite quand « même contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant (A-224).
+// Deux traces vivent hors de `dernier` : la trace d'illisible, et la note de même contenu, qui n'est pas une marque qui
+// décide : elle ne change ni la ligne qui repart à la pose d'une étiquette, ni « déjà signalé » ; sa forme abîmée est une
+// lecture illisible (un verdict gardé ne disparaît pas sans bruit).
 // Un commentaire qui porte le préfixe d'une marque sans en avoir la forme n'est jamais ignoré : c'est une
 // lecture illisible. « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
 // servent qu'aux délais, comparées à `maintenant`, la seule source de temps.
@@ -43,6 +48,7 @@ export const TEXTE_PANNE = 'Relecture en panne';
 export const TEXTE_ILLISIBLE = 'Lecture illisible — ';
 export const MENTION_ARBITRAGE = 'après arbitrage, non compté';
 export const ILLISIBLE = 'illisible'; // la valeur d'un calcul qui n'a pas pu être lu
+export const PREFIXE_NOTE = 'Même contenu — ';
 
 const SHA = '[0-9a-f]{40}';
 const ID = '[A-Za-z0-9][A-Za-z0-9_-]*';
@@ -50,6 +56,7 @@ const FORME_SHA = new RegExp(`^${SHA}$`);
 const FORME_DISTRIBUTION = new RegExp(`^Relecture — tour ([1-9][0-9]*) — sommet (${SHA}) — sessions (${ID}(?:, ${ID})*)(?: \\((?:(remplace|relance) (${ID})|(complète|${MENTION_ARBITRAGE}))\\))?$`);
 const FORME_DEMANDE = new RegExp(`^À relire — sommet (${SHA}) — Session: (${ID}|—) — Conducteur: (${ID}|—)$`);
 const FORME_DECISION = /^Décision de plafond — \S/;
+const FORME_NOTE = new RegExp(`^Même contenu — sommet (${SHA}) — tour ([1-9][0-9]*) (validé|refusé) au sommet (${SHA}) — (\\S.*)$`);
 const TIRET = ' — ';
 
 /**
@@ -86,6 +93,23 @@ export function ecrireDistribution(d) {
   return texte;
 }
 
+/**
+ * La note de même contenu (A-224) : le tour gardé, son sommet, son verdict, la tête pour laquelle il vaut, et la
+ * raison du calcul « même contenu propre ».
+ * @param {{ tete: string, tour: number, verdict: 'validé'|'refusé', sommet: string, raison: string }} n
+ * @returns {string}  le corps du commentaire, sur une ligne
+ * @throws {TypeError}  quand ce qu'il écrirait ne se relit pas par sa forme (une raison vide, sur deux lignes ou à
+ *   blancs de bord, un sommet mal formé)
+ */
+export function ecrireNote(n) {
+  if (n === null || typeof n !== 'object') throw new TypeError('note : un objet est attendu');
+  const texte = `${PREFIXE_NOTE}sommet ${n.tete}${TIRET}tour ${n.tour} ${n.verdict} au sommet ${n.sommet}${TIRET}${n.raison}`;
+  const m = FORME_NOTE.exec(texte);
+  const meme = m !== null && m[1] === n.tete && Number(m[2]) === n.tour && Number.isSafeInteger(n.tour) && m[3] === n.verdict && m[4] === n.sommet && m[5] === n.raison && n.raison === String(n.raison).trim();
+  if (!meme) throw new TypeError(`note hors de la forme : ${texte}`);
+  return texte;
+}
+
 // Une ligne d'arbitrage, lue par ses segments : `'maintenu'`, `'écarté'`, ou `null` quand elle n'en a pas la
 // forme. Le mot qui décide est le premier segment `maintenu` ou `écarté` après le lieu.
 function lireArbitrage(ligne) {
@@ -117,6 +141,8 @@ const MARQUES = [
   { prefixe: 'Arbitrage — ', lire: (corps) => (lignesPleines(corps).every((l) => lireArbitrage(l) !== null) ? (ecarte(corps) ? { arbitragesEcartes: {} } : {}) : null) },
 ];
 const PREFIXE_TRACE = 'Lecture illisible';
+// Les traces hors de `dernier` à forme abîmée illisible : le préfixe sans la forme entre dans `presque`.
+const TRACES_ILLISIBLES = [PREFIXE_TRACE, PREFIXE_NOTE];
 
 /**
  * Les commentaires à marque d'une PR, chacun avec `{ id, rang, date }` du commentaire, dans l'ordre reçu.
@@ -126,19 +152,22 @@ const PREFIXE_TRACE = 'Lecture illisible';
  * @returns {{ verdicts: object[], verdictsModifies: { id, rang, date, tour: number, session: string }[], distributions: object[],
  *             demandes: { id, rang, date, sommet: string, auteur: string|null, conducteur: string|null }[],
  *             plafonds: object[], decisions: object[], arbitragesEcartes: object[], pannes: object[],
- *             illisibles: { id, rang, date, texte: string }[], presque: { id, rang, date, prefixe: string }[],
+ *             illisibles: { id, rang, date, texte: string }[],
+ *             notes: { id, rang, date, tete: string, tour: number, verdict: 'validé'|'refusé', sommet: string }[],
+ *             presque: { id, rang, date, prefixe: string }[],
  *             dernier: number }}
  *   `verdictsModifies` : les verdicts d'un compte qui compte, modifiés après leur création, dont `Tour:` et
  *   `Session:` se lisent encore : ils ne valent aucun verdict, mais empêchent un `validé` plus ancien de la même
  *   session de valoir à leur place (A-118) ; `presque` porte aussi, avec `verdict: true`, les verdicts que rien
  *   ne rattache, plus récents que la dernière distribution du dernier tour ; `arbitragesEcartes` : un par commentaire qui écarte au moins un bloquant ; `illisibles` : les traces,
- *   `texte` leur première ligne ; `presque` : vide hors `tolerant` ; `dernier` : le rang du plus récent
- *   commentaire à marque ou presque à la forme, traces d'illisible exclues, -1 s'il n'y en a pas.
+ *   `texte` leur première ligne ; `notes` : les notes de même contenu à la forme (A-224) ; `presque` : vide hors
+ *   `tolerant` ; `dernier` : le rang du plus récent commentaire à marque ou presque à la forme, traces d'illisible et
+ *   notes à la forme exclues, -1 s'il n'y en a pas.
  * @throws {LectureIllisible}  commentaires que `retenir` ne lit pas ; et, hors `tolerant`, toute marque
  *   presque à la forme
  */
 export function lireMarques(commentaires, options = {}) {
-  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], presque: [], dernier: -1 };
+  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], notes: [], presque: [], dernier: -1 };
   const { retenus, ecartes } = retenir(commentaires);
   const presque = [];
   // Les verdicts d'un compte qui compte que rien ne rattache : `Tour:` ou `Session:` ne se lit pas.
@@ -166,7 +195,13 @@ export function lireMarques(commentaires, options = {}) {
         continue;
       }
     }
-    const marque = corps.startsWith(PREFIXE_TRACE) ? { prefixe: PREFIXE_TRACE, lire: () => null } : MARQUES.find((q) => corps.startsWith(q.prefixe));
+    const note = FORME_NOTE.exec(corps);
+    if (note !== null && Number.isSafeInteger(Number(note[2]))) {
+      m.notes.push({ ...place, tete: note[1], tour: Number(note[2]), verdict: note[3], sommet: note[4] });
+      continue;
+    }
+    const trace = TRACES_ILLISIBLES.find((t) => corps.startsWith(t));
+    const marque = trace !== undefined ? { prefixe: trace, lire: () => null } : MARQUES.find((q) => corps.startsWith(q.prefixe));
     if (marque === undefined) continue;
     m.dernier = rang;
     const lu = marque.lire(corps);
@@ -388,6 +423,10 @@ export function decider(etat) {
   const etiqueter = (regle, poser, texte) => (porte(poser) && retirer(poser).length === 0 ? rien(regle, 'etiquette-en-place') : { regle, geste: 'etiqueter', poser, retirer: retirer(poser), lignes: auxDeux(texte) });
   const distribuer = (regle, mention) => ({ regle, geste: 'distribuer', tour: (dernier?.numero ?? 0) + 1, sommet: tete, nombre: exiges, preferees: dernier?.sessions ?? [], mention });
   const REFUS = `verdict écrit sur la PR ${numero} : refusé${double}`;
+  // La note de même contenu (A-224, A-239 (1)) : le tour qui juge porte sur un autre sommet que la tête, et aucune
+  // note ne porte encore cette tête et ce tour. `null` sinon.
+  const aNoter = (t, mot) => (t.sommet !== tete && !marques.notes.some((x) => x.tete === tete && x.tour === t.numero) ? { tour: t.numero, sommet: t.sommet, verdict: mot } : null);
+  const avecNote = (geste, note) => (note === null || geste.geste !== 'etiqueter' ? geste : { ...geste, note });
 
   // Règle 1 — le plafond, et là seulement : une décision attendue ; sinon trois tours comptés ou plus.
   const plafond = marques.plafonds.at(-1)?.rang ?? -1;
@@ -398,7 +437,14 @@ export function decider(etat) {
   }
 
   // Règle 2 — le dernier tour qui porte sur le contenu de la tête est validé.
-  if (tourQuiJuge(lesTours, tete, memeContenu)?.etat === 'valide') return etiqueter(2, 'à-fusionner', `verdict écrit sur la PR ${numero} : validé${double}`);
+  const juge = tourQuiJuge(lesTours, tete, memeContenu);
+  if (juge?.etat === 'valide') {
+    const note = aNoter(juge, 'validé');
+    const geste = etiqueter(2, 'à-fusionner', `verdict écrit sur la PR ${numero} : validé${double}`);
+    // L'étiquette déjà en place : la note seule, aucune étiquette, aucune ligne (`noter`, règle 2 seulement).
+    if (note !== null && geste.geste === 'rien') return { regle: 2, geste: 'noter', note, lignes: [] };
+    return avecNote(geste, note);
+  }
 
   const surLaTete = dernier !== null && dernier.surLaTete;
 
@@ -418,7 +464,7 @@ export function decider(etat) {
   // chaque refus a un bloquant écarté plus récent que lui, et que la PR ne porte plus `à-fusionner`.
   if (surLaTete && dernier.etat === 'refuse') {
     const ecartes = dernier.refus.every((r) => marques.arbitragesEcartes.some((a) => a.rang > r.rang));
-    return ecartes && !porte('à-fusionner') ? distribuer(4, MENTION_ARBITRAGE) : etiqueter(4, 'à-reprendre', REFUS);
+    return ecartes && !porte('à-fusionner') ? distribuer(4, MENTION_ARBITRAGE) : avecNote(etiqueter(4, 'à-reprendre', REFUS), aNoter(dernier, 'refusé'));
   }
 
   // Règle 5 — le dernier tour porte sur le contenu de la tête et il est en cours.

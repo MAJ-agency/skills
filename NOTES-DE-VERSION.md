@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.5.1 — 2026-11-27
+
+### Ce qui change
+
+- **Quand « même contenu propre » garde un verdict ou un refus, le Relecteur l'écrit sur la PR, une fois** : une note d'une ligne, `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha du tour> — <raison>`, la raison étant la dernière ligne non vide de la sortie d'erreur de `meme-contenu.sh` pour ce sommet, ou `sans raison écrite`. `jouer` l'écrit après la pose de la nouvelle étiquette et avant le retrait des anciennes ; une note refusée rend d'abord la ligne JSON et ses lignes, puis sort en 7, et le rejeu écrit la note sans renvoyer de ligne. Une note par tête et par tour.
+- **Un geste neuf, `noter`** (règle 2) : le verdict gardé, l'étiquette `à-fusionner` déjà en place, la décision rend `noter` au lieu de `rien` ; `jouer` écrit la note seule, sans toucher aux étiquettes, sans ligne. Il réveille la veille une fois par tête et par tour.
+- **La note est une trace, jamais une marque qui décide** (`decision-relecteur.mjs`, `ecrireNote`, `lireMarques(...).notes`) : elle n'entre pas dans `dernier`, ne change pas `tourValide` ; un commentaire au préfixe `Même contenu — ` sans la forme est une lecture illisible, pour le Relecteur comme pour le capitaine.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer `fusionner`** (étape 0) avant que son Relecteur joue la note : le script de la décision est celui de `scripts/chaine/` sur son `develop`. Le skill `relecteur` est lu dans le plugin.
+
 ## 8.5.0 — 2026-11-27
 
 ### Ce qui change

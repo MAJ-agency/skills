@@ -224,12 +224,93 @@ test('« même contenu propre » : une PR que le capitaine a mise à jour avec d
   d.git('switch', '-q', 'feat/a');
   d.git('merge', '-q', '--no-edit', 'develop');
   d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  // Le tour validé vaut pour la tête, l'étiquette est en place : la note seule (`noter`, ticket 94), puis rien.
+  const tete = d.git('rev-parse', 'HEAD').trim();
+  assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.note?.tour, x.note?.sommet, x.note?.verdict]), [[2, 'noter', 1, sha, 'validé']]);
+  const n = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([n.regle, n.geste, n.joue, n.lignes], [2, 'noter', true, []]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/comments'], 'la note seule, aucune étiquette');
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, new RegExp(`^Même contenu — sommet ${tete} — tour 1 validé au sommet ${sha} — \\S`));
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-fusionner']);
   assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.raison]), [[2, 'rien', 'etiquette-en-place']]);
   // Un commit de l'auteur après le verdict : le contenu a changé, `à-reprendre` (r3).
   d.ecrire('src/a.mjs', 'export const a = 2;\n');
   d.commit('fix: a');
   d.git('push', '-q', 'origin', 'HEAD:feat/a');
   assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.poser]), [[3, 'etiqueter', 'à-reprendre']]);
+});
+
+// Ticket 94 : un tour refusé au sommet V, develop fusionné dans la branche (tête T, même contenu propre), `à-relire`
+// reposée. Rend la PR montée, V et T.
+function refusGarde() {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  d.git('switch', '-q', 'develop');
+  d.ecrire('README.md', 'jouet, develop avance\n');
+  d.commit('docs: develop avance');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('switch', '-q', 'feat/a');
+  d.git('merge', '-q', '--no-edit', 'develop');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const tete = d.git('rev-parse', 'HEAD').trim();
+  ajouter(d, [DEMANDE(tete), 4]);
+  return { d, sha, tete };
+}
+// La raison que rend le même calcul joué par le banc, dans le dossier du Relecteur (posé sur develop).
+const raisonDuCalcul = (d, sommet, tete) => {
+  const r = spawnSync('bash', ['scripts/chaine/meme-contenu.sh', sommet, tete, 'develop'], { cwd: d.dossier, env: d.env, encoding: 'utf8' });
+  return r.stderr.split('\n').map((l) => l.trim()).filter(Boolean).at(-1);
+};
+const reposer = (d) => d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire'] }] });
+
+test('ticket 94 — un refus gardé (#17) : `à-reprendre`, puis la note de même contenu, puis le retrait de `à-relire` ; une seule note par tête et par tour', () => {
+  const { d, sha, tete } = refusGarde();
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.poser, g.joue], [4, 'etiqueter', 'à-reprendre', true]);
+  assert.deepEqual(g.lignes.map((l) => [l.a, l.texte]), [['auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'verdict écrit sur la PR 12 : refusé']]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/labels à-reprendre', 'POST issues/12/comments', 'DELETE issues/12/labels/à-relire']);
+  const raison = raisonDuCalcul(d, sha, tete);
+  assert.ok(raison, 'le calcul écrit sa raison');
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, `Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — ${raison}`, 'la raison à l’octet');
+  // Le retrait perdu (la PR garde `à-relire` et `à-reprendre`), rejoué : l'étiquette est posée avant la note, mais la note
+  // n'est pas une marque, la pose suit la marque la plus récente : aucune ligne ne repart, aucune seconde note.
+  d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire', 'à-reprendre'] }] });
+  const perdu = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([perdu.geste, perdu.lignes, Object.hasOwn(perdu, 'note')], ['etiqueter', [], false]);
+  assert.deepEqual(ecritures(d).slice(3), ['DELETE issues/12/labels/à-relire']);
+  // `à-relire` reposée une deuxième fois : l'étiquette, aucune seconde note.
+  reposer(d);
+  const avant = d.journal().length;
+  const encore = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([encore.regle, encore.geste, encore.poser], [4, 'etiqueter', 'à-reprendre']);
+  assert.deepEqual(ecritures(d).slice(avant), ['POST issues/12/labels à-reprendre', 'DELETE issues/12/labels/à-relire']);
+});
+
+test('ticket 94 — la note refusée : la ligne JSON et ses lignes d’abord, puis la sortie 7, `à-relire` reste ; le refus levé, la note écrite sans renvoyer de ligne', () => {
+  const { d, sha, tete } = refusGarde();
+  d.github({ commentairesRefuses: '^Même contenu — ' });
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 7, r.stderr);
+  const g = d.json(r)[0];
+  assert.deepEqual([g.geste, g.joue], ['etiqueter', true]);
+  assert.deepEqual(g.lignes.map((l) => [l.a, l.session, l.texte]), [['auteur', 'session_auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'session_conducteur', 'verdict écrit sur la PR 12 : refusé']]);
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-relire', 'à-reprendre']);
+  d.github({ commentairesRefuses: false });
+  const rejoue = d.lancer('jouer', '12');
+  assert.equal(rejoue.status, 0, rejoue.stderr);
+  const h = d.json(rejoue)[0];
+  assert.deepEqual([h.geste, h.lignes], ['etiqueter', []], 'l’étiquette posée après la marque la plus récente : aucune ligne ne repart');
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, new RegExp(`^Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — \\S`));
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre']);
+});
+
+test('ticket 94 — la raison manque (un calcul qui sort en 0 sans rien sur sa sortie d’erreur) : la note dit `sans raison écrite`', () => {
+  const { d, sha, tete } = refusGarde();
+  d.talon('meme-contenu.sh', '#!/usr/bin/env bash\necho même\nexit 0\n');
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, `Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — sans raison écrite`);
 });
 
 test('une sous-PR vers un sujet : le diff propre est celui de `sujet.sh a-juger`, depuis le départ sur le sujet, pas tout ce que le sujet apporte à develop', () => {

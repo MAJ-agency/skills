@@ -46,7 +46,12 @@
 // d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
 // refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur : son étiquette s'est posée avant
 // son commentaire, la marque la plus récente (A-189, point 1). Il écrit une ligne
-// JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Une ligne ne
+// JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Quand « même
+// contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant, la décision porte `note` : `etiqueter` écrit
+// la note de même contenu (`Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha> — <raison>`, la
+// raison étant la dernière ligne non vide de la sortie d'erreur du calcul, ou `sans raison écrite`) après la pose et
+// avant le retrait ; refusée, la ligne JSON et ses lignes partent avant la sortie 7 (A-240 (1)). `noter` (règle 2,
+// l'étiquette déjà en place) n'écrit que la note, ne touche à aucune étiquette, n'a aucune ligne. Une ligne ne
 // part qu'au changement d'étiquette (A-85, A-118), ou avec le commentaire du plafond, qui ne s'écrit qu'une fois. Une
 // étiquette déjà posée ne renvoie rien si les événements de la PR la disent posée après sa marque la plus récente (un
 // passage rejoué) ; posée avant (restée d'un tour d'avant), à la même seconde, ou sans pose lisible, ses lignes
@@ -289,13 +294,18 @@ async function decision(json, sessions) {
     const { fichiers } = lue;
     const faits = { sensible: sensible(fichiers, pr.base), exiges: exiges(fichiers, pr) };
     const memeContenu = {};
+    // La raison de chaque calcul : la dernière ligne non vide de sa sortie d'erreur (la sortie standard est le mot du
+    // verdict), pour la note de même contenu (A-224) ; la décision, pure, ne la reçoit pas.
+    const raisons = {};
     for (const s of d.sommetsDesTours(commentaires)) {
       if (s === pr.tete) continue;
       const r = jouer('bash', [join(CHAINE, 'meme-contenu.sh'), s, pr.tete, pr.base]);
       sansOutil('meme-contenu.sh', r);
       memeContenu[s] = r.status === 0 ? true : r.status === 20 ? false : 'illisible';
+      raisons[s] = (r.stderr ?? '').split('\n').map((l) => l.trim()).filter(Boolean).at(-1) ?? 'sans raison écrite';
     }
-    const geste = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+    const decide = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+    const geste = decide.note === undefined ? decide : { ...decide, note: { ...decide.note, raison: raisons[decide.note.sommet] ?? 'sans raison écrite' } };
     const marques = d.lireMarques(commentaires, { tolerant: true });
     const demande = marques.demandes.at(-1) ?? { auteur: null, conducteur: null };
     const couple = faits.sensible || faits.exiges === 'illisible' || faits.exiges >= 2 ? cle.sensible : cle.ordinaire;
@@ -369,6 +379,19 @@ async function jouerGeste(argv) {
   // Au plafond, après l'étiquette : un commentaire refusé laisse le plafond à décider de nouveau, ses lignes entières.
   if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible') {
     ecrire('commenter', String(n), g.commentaire);
+    joue = true;
+  }
+  // La note de même contenu (A-224, A-239 (1)) : après la pose, avant le retrait. Refusée, la ligne JSON part d'abord,
+  // ses lignes avec elle, puis la sortie 7 (A-240 (1)) : `à-relire` reste, le rejeu écrit la note sans renvoyer de
+  // ligne (l'étiquette est posée après la marque la plus récente, la note n'en est pas une).
+  if (g.note !== undefined) {
+    const { decision: d } = await modules();
+    try {
+      ecrire('commenter', String(n), d.ecrireNote({ tete: g.tete, ...g.note }));
+    } catch (e) {
+      if (e instanceof Arret && e.code === 7) process.stdout.write(`${JSON.stringify({ ...g, joue: true, lignes })}\n`);
+      throw e;
+    }
     joue = true;
   }
   for (const e of g.retirer ?? []) ecrire('retirer_label', String(n), e);

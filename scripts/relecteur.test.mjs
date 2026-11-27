@@ -96,6 +96,12 @@ test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le d
   assert.ok(!lire(`${SKILL}/references/CONTENU.md`).includes("pour la seule règle 5"), "l'état des sessions : règles 4, 5 et 6");
 });
 
+test("ticket 94 — `noter` a sa ligne dans la table « À chaque réveil », et `jouer` dit la note de même contenu, entre la pose et le retrait", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  exigerA(ligne(texte, "## À chaque réveil", "| `noter` |"), "la ligne `noter`", ["`jouer <n>` ; aucune ligne"]);
+  exigerA(section(texte, "## À chaque réveil"), "« À chaque réveil »", ["la note de même contenu, entre la pose et le retrait"]);
+});
+
 test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
   const labels = lire("skills/chaine/socle-chaine-de-production/references/labels.sh");
   const noms = labels.slice(labels.indexOf("<<'FIN'\n") + 8, labels.indexOf("\nFIN\n")).split("\n").map((l) => l.split("|")[0]);

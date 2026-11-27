@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 const { depotJouet, script: scriptDe, GRAMMAIRE } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
 );
-const { ecrireDistribution } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
+const { ecrireDistribution, ecrireNote } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
 const { ecrireVerdict } = await import(pathToFileURL(scriptDe("fusionner", "verdict.mjs")).href);
 
 const PASSER = scriptDe("fusionner", "passer.sh");
@@ -141,6 +141,22 @@ test("régime 8, passer.sh : une lecture illisible (marque presque à la forme, 
   assert.equal(r2.status, 7, r2.stdout + r2.stderr);
   assert.match(dernier(r2), /lecture illisible : clé relecture de origin\/develop:\.claude\/chaine\.json mal formée/);
   assert.deepEqual([...fusions(d), ...fusions(m)], []);
+});
+
+test("régime 8, passer.sh : une note de même contenu à la forme (ticket 94) ne change pas le verdict du capitaine ; presque à la forme, la PR saute en 7, sans renvoi", () => {
+  const autre = "f".repeat(40);
+  const note = (sha) => ecrireNote({ tete: autre, tour: 1, verdict: "validé", sommet: sha, raison: "de V à T : 1 fusion(s) de origin/develop" });
+  const d = monter();
+  versDevelop(d, { fil: (sha) => [...valide(sha), note(sha)] });
+  const r = passer(d);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /verdict relu juste avant la fusion : régime 8 : tour 1 validé au sommet /);
+  const m = monter();
+  versDevelop(m, { fil: (sha) => [...valide(sha), note(sha).replace(/ — de V à T.*$/, "")] });
+  const r2 = passer(m);
+  assert.equal(r2.status, 7, r2.stdout + r2.stderr);
+  assert.match(dernier(r2), /^\[#30\] lecture illisible : .*préfixe « Même contenu — » sans la forme de sa marque.* : sautée sans renvoi/);
+  assert.deepEqual(fusions(m), []);
 });
 
 // Le ticket de la PR, sur develop, qui accorde `scripts/agent/**` (la garde des fichiers sensibles, lot 5b).
