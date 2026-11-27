@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { echapperGlob, normaliser, perimetre, perimetreDuDepot, perimetreDuPaquet } from "./mutation-regles.mjs";
 
@@ -13,7 +13,16 @@ const ICI = dirname(fileURLToPath(import.meta.url));
 const trouver = (nom) => [join(ICI, "../../gabarits", nom), join(ICI, "../../apps/api", nom)].find(existsSync);
 const CONFIG = trouver("stryker.regles.config.mjs");
 const CONFIG_NOYAU = trouver("stryker.config.mjs");
-const base = (await import(pathToFileURL(CONFIG_NOYAU).href)).default;
+// Sans `apps/api/` (un projet sans API, ou une API ailleurs), aucune configuration : les deux tests qui les lisent
+// sont sautés avec leur raison, visible en `# SKIP`, au lieu de lever à l'import (A-257).
+const SANS_CONFIG = CONFIG && CONFIG_NOYAU ? false : "configuration Stryker absente (apps/api/ sans stryker.config.mjs ni stryker.regles.config.mjs) : rien à éprouver";
+const base = SANS_CONFIG ? undefined : (await import(pathToFileURL(CONFIG_NOYAU).href)).default;
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const regle = (key, status, code) => ({ key, realisation: { status, levels: [], proofCount: 0, inherited: false }, code });
 const index = (rules, schema = "2") => ({ schema, rules });
@@ -115,6 +124,7 @@ test("normaliser : ./ et // retirés, slashs, sorties du dépôt refusées", () 
 
 function depot(contenu, fichiers = []) {
   const racine = mkdtempSync(join(tmpdir(), "mutation-regles-"));
+  DOSSIERS.push(racine);
   for (const f of fichiers) {
     mkdirSync(join(racine, f, ".."), { recursive: true });
     writeFileSync(join(racine, f), "export const x = 1;\n");
@@ -135,6 +145,7 @@ test("perimetreDuDepot lit l'index commis : un fichier réel est retenu, un doss
 
 test("un lien symbolique du dépôt vers l'extérieur n'entre pas dans le périmètre", () => {
   const dehors = mkdtempSync(join(tmpdir(), "mutation-dehors-"));
+  DOSSIERS.push(dehors);
   writeFileSync(join(dehors, "secret.ts"), "export const s = 1;\n");
   const racine = depot(index([regle("RULE_ALL_LIC-1", "proven", ["src/lien/secret.ts", "src/ok.ts"])]), ["src/ok.ts"]);
   symlinkSync(dehors, join(racine, "src/lien"));
@@ -170,8 +181,8 @@ function projet({ avecIndex }) {
   ]);
   mkdirSync(join(racine, "scripts/verify"), { recursive: true });
   copyFileSync(join(ICI, "mutation-regles.mjs"), join(racine, "scripts/verify/mutation-regles.mjs"));
-  copyFileSync(CONFIG, join(racine, "apps/api/stryker.regles.config.mjs"));
-  copyFileSync(CONFIG_NOYAU, join(racine, "apps/api/stryker.config.mjs"));
+  if (CONFIG) copyFileSync(CONFIG, join(racine, "apps/api/stryker.regles.config.mjs"));
+  if (CONFIG_NOYAU) copyFileSync(CONFIG_NOYAU, join(racine, "apps/api/stryker.config.mjs"));
   return racine;
 }
 const lancer = (racine, args, cwd = racine) =>
@@ -226,7 +237,7 @@ test("mutate échappe les globs par une classe à un caractère : une route [id]
   assert.deepEqual(p.mutate, ["src/[[]id].ts"]);
 });
 
-test("la config Stryker des règles lit le périmètre du paquet : mutate relatif, vide sans index", () => {
+test("la config Stryker des règles lit le périmètre du paquet : mutate relatif, vide sans index", { skip: SANS_CONFIG }, () => {
   const lire = (racine) =>
     JSON.parse(
       spawnSync(process.execPath, ["--input-type=module", "-e", "import('./stryker.regles.config.mjs').then((m) => console.log(JSON.stringify(m.default)))"], {
@@ -244,7 +255,7 @@ test("la config Stryker des règles lit le périmètre du paquet : mutate relati
   assert.deepEqual(lire(projet({ avecIndex: false })).mutate, []);
 });
 
-test("STRYKER_MUTATE remplace le périmètre de l'index pour un essai local", () => {
+test("STRYKER_MUTATE remplace le périmètre de l'index pour un essai local", { skip: SANS_CONFIG }, () => {
   const racine = projet({ avecIndex: true });
   const sortie = spawnSync(process.execPath, ["--input-type=module", "-e", "import('./stryker.regles.config.mjs').then((m) => console.log(JSON.stringify(m.default.mutate)))"], {
     cwd: join(racine, "apps/api"),
