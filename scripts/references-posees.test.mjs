@@ -4,7 +4,6 @@
 // l'arbre du dépôt où il tourne, ou qui importe un chemin du plugin, y tombe. Dans le plugin, aucun contrat n'est à côté
 // des bancs : leur passage vert ici ne dit rien de leur passage dans un projet.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
