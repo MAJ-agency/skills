@@ -553,7 +553,7 @@ test("les règles de suite, par leur texte : une liste vide après un échec n'e
     // L'étape 5.
     "une autre empreinte, un dossier qui n'est plus propre, ou un `CLAUDE.md` apparu (dans l'arbre, au-dessus de lui ou dans le dossier de la session), et aucun axe ne se joue, sortie 14, le verdict est `incomplet`",
     "« index périmés » : chacun est un constat bloquant ; un sous-produit non suivi n'en est pas un.",
-    "Sur une PR de mise à jour, un index à commande que la fusion a touché n'est pas jugé : le verdict le nomme, « Index à régénérer par le capitaine », sans bloquant.",
+    "Un index à commande que la base et la tête déclarent par un chemin littéral n'est pas jugé, sur aucune PR : le verdict le nomme, « Index à régénérer par le capitaine », sans bloquant.",
     "Sortie 12 ou 13 : `C1` est « non exécuté ».",
     ", sur `origin/develop` pour un ticket sans sujet, jamais dans l'arbre à part.",
     "Toute autre sortie que 0 : `C3` est « non exécuté ».",
@@ -598,7 +598,8 @@ test("les règles de suite, par leur texte : une liste vide après un échec n'e
     "Un sous-produit non suivi d'une commande d'index n'y est pas : ce n'est pas un constat.",
     "`C1` est « non exécuté », jamais « aucun index périmé »",
     "n'est ni un bloquant ni un tour compté : le verdict le nomme, « Index à régénérer par le capitaine »",
-    "rien n'est dispensé, chaque fichier de `c1.txt` reste un constat.",
+    "un fichier de `c1.txt` qui est dans `dispenses.txt` n'est pas jugé, sur toute PR",
+    "`fichiers.txt` vide : `dispenses.txt` écrit, puis « aucun fichier à relire »",
     "**n'écrit `/security-review: lancée` que si cette vérification est sortie en 0 avant le lancement**",
     "Le clone ne porte sur le disque ni `CLAUDE.md`, ni `CLAUDE.local.md`, ni `.claude`, dossier, fichier ou lien, à aucune profondeur",
     "elle ne relit jamais autre chose que la PR",
@@ -629,13 +630,13 @@ test("les règles de suite, par leur texte : une liste vide après un échec n'e
     "De même un binaire illisible (`illisibles.txt` : git le dit binaire, et son extension n'est ni celle d'une image, ni d'une police, ni d'une archive)",
     "« Hors du diff relu » nomme chaque fichier changé que les axes n'ont pas lu, et pourquoi, **toujours**, quel que soit le verdict",
     "un `incomplet` sans cette ligne laisse la PR sans issue",
-    "ce n'est pas un constat, le capitaine le régénère quand il fait avancer le sujet",
+    "ce n'est pas un constat, le capitaine le régénère avant que rien n'entre dans develop",
   ]);
   exigerDans(`${REFERENCES}/criteres-session.md`, [
     "une liste vide après un échec n'est jamais « aucun écart »",
     "index sans commande n'est vérifié par rien ici : il se relit dans le diff, comme tout fichier.",
-    "un index à commande que la fusion a touché n'est pas jugé ici",
-    "Un index que la fusion n'a pas touché reste jugé.",
+    "n'est pas jugé ici, sur aucune PR : le capitaine le régénère avant que rien n'entre dans develop",
+    "Tout autre fichier que la régénération change reste un écart.",
     "jamais dans l'arbre relu ni sur la branche de la PR.",
     "chemin hors de la liste, ou PR sans ticket.",
     "La commande ne compte pour lancée que si la session a vérifié par une commande, avant de la lancer, que le diff qu'elle lit est celui de la PR",
@@ -646,6 +647,10 @@ test("les règles de suite, par leur texte : une liste vide après un échec n'e
     "Ce que le ticket ajoute à sa source n'est pas une paraphrase : c'est une décision du ticket, dite telle, avec sa raison (K3) ; une précision glissée sans être dite est un écart.",
     "elle n'est jamais un écart, un doute au plus.",
   ]);
+  for (const f of fichiersDuSkill()) {
+    const texte = plat(lire(f));
+    assert.ok(!texte.includes("que la fusion a touché") && !texte.includes("index-fusion"), `${f} : ni « que la fusion a touché » ni « index-fusion »`);
+  }
   exigerDans(`${REFERENCES}/criteres-regles-metier.md`, ["un même terme n'a pas deux entrées."]);
   exigerDans(`${REFERENCES}/criteres-documentation.md`, ["`D8` dit « dans la PR d'un agent » : l'axe ne sait pas qui a écrit la PR, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent."]);
 });
@@ -944,8 +949,8 @@ test("les gestes des étapes 2 à 6, joués comme la session les joue, sur une s
   // entier : C1 tient sur l'arbre clairsemé. Puis l'arbre revient au sommet, sans consignes.
   const c1 = p.joue("c1", m);
   assert.equal(c1.status, 0, c1.sortie);
-  assert.deepEqual(listeDe(brouillon("c1/perimes.txt")), ["docs/adr/README.md", CONSIGNES], "deux index périmés ; le sous-produit non suivi n'en est pas un");
-  assert.match(c1.stdout, /^index périmés : 2$/m);
+  assert.deepEqual([listeDe(brouillon("c1/perimes.txt")), listeDe(brouillon("c1/au-capitaine.txt"))], [[], ["docs/adr/README.md", CONSIGNES]], "les deux index à commande littéraux de la base et de la tête vont au capitaine ; le sous-produit non suivi n'est dans aucune des deux listes");
+  assert.match(c1.stdout, /^index périmés : 0\nindex à régénérer par le capitaine : 2\ndocs\/adr\/README\.md\ndocs\/consignes\.md$/m);
   assert.equal(readFileSync(join(B, "c1/avant.txt"), "utf8"), readFileSync(join(B, "c1/apres.txt"), "utf8"), "C1 n'a touché ni au diff relu, ni au skill, ni aux consignes");
   assert.equal(p.git(r2.arbre, "status", "--porcelain", "--ignored"), "", "l'arbre revient à la PR, sous-produit retiré");
   for (const f of CONSIGNES_PR) assert.ok(!existsSync(join(r2.arbre, f)), `après C1, ${f} n'est toujours pas sur le disque`);
@@ -1288,7 +1293,7 @@ test("un diff de plus de 2 000 lignes : la machine écrit les lots par zone, vé
   assert.ok(!existsSync(join(p.brouillonsDe(m2), "lots")) && /un seul lot, le diff relu entier/.test(un.stdout));
 });
 
-test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde fait le diff relu ; une ligne ajoutée venue de develop se reconnaît par blame, une ligne que la résolution retire se garde (B3) ; un index que la fusion a touché est laissé au capitaine, un autre reste jugé (B2) ; une forme refusée sort en 4, un commitlint qui ne tourne pas n'est pas un refus, un commitlint qui refuse l'est", { timeout: 180_000 }, () => {
+test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde fait le diff relu ; une ligne ajoutée venue de develop se reconnaît par blame, une ligne que la résolution retire se garde (B3) ; tout index dispensé est laissé au capitaine, que la fusion l'ait touché ou non (B2) ; une forme refusée sort en 4, un commitlint qui ne tourne pas n'est pas un refus, un commitlint qui refuse l'est", { timeout: 180_000 }, () => {
   const SOMMAIRE = "docs/sommaire.md";
   const p = projetJouet([INDEX_ADR, { chemin: SOMMAIRE, commande: "sh -c 'echo sommaire > docs/sommaire.md'" }]);
   const corps = (...l) => `${l.join("\n")}\n`;
@@ -1384,13 +1389,12 @@ test("une PR de mise à jour d'un sujet : a-juger rend deux listes, la seconde f
   writeFileSync(brouillon("montrer.txt"), "docs/venu-de-develop.md\n");
   assert.deepEqual([p.joue("montrer", m).status, p.joue("montrer", m).stdout.split("\n")[0]], [12, "ce fichier n'est pas au diff relu"], "montrer ne montre que le diff relu");
 
-  // C1 (B2) : la régénération change l'index des ADR, que la fusion a touché (`--theirs`), et le sommaire, écrit à
-  // la main dans la retouche. Le premier est laissé au capitaine, le second reste un constat.
+  // C1 (B2) : la régénération change l'index des ADR, que la fusion a touché (`--theirs`), et le sommaire, écrit à la main dans la retouche ; tous deux sont des index dispensés, laissés au capitaine.
   const c1 = p.joue("c1", m);
   assert.equal(c1.status, 0, c1.sortie);
-  assert.deepEqual([listeDe(brouillon("c1/perimes.txt")), listeDe(brouillon("c1/au-capitaine.txt"))], [[SOMMAIRE], ["docs/adr/README.md"]], "l'index que la fusion a touché : nommé au verdict, sans bloquant");
-  assert.match(c1.stdout, /^index à régénérer par le capitaine : 1\ndocs\/adr\/README\.md$/m);
-  assert.deepEqual(listeDe(brouillon("c1/index-fusion.txt")), ["docs/adr/README.md"], "ce que la fusion a touché, restreint aux index à commande dispensés");
+  assert.deepEqual([listeDe(brouillon("c1/perimes.txt")), listeDe(brouillon("c1/au-capitaine.txt"))], [[], ["docs/adr/README.md", SOMMAIRE]], "tout index dispensé : nommé au verdict, sans bloquant");
+  assert.match(c1.stdout, /^index à régénérer par le capitaine : 2\ndocs\/adr\/README\.md\ndocs\/sommaire\.md$/m);
+  assert.ok(!existsSync(brouillon("c1/index-fusion.txt")), "index-fusion.txt n'est plus écrit");
   assert.equal(p.git(p.auteur, "rev-parse", `${fusion}^{commit}`), fusion);
 
   // Le sujet avance : le premier parent de la fusion n'est plus son sommet, la forme est refusée (C2).
@@ -2193,4 +2197,120 @@ test("A-164, une résolution « ours » qui jette ce que develop vient d'ajouter
   exigerDans(`${SKILL}/SKILL.md`, ["**La résolution d'une PR de mise à jour se relit en entier**", "chacun reçoit l'axe Règles, même hors du diff ordinaire, et une ligne de `develop` qu'elle retire est un constat, jamais écartée", "l'axe Règles se lance une fois de plus, `{{DIFF}}` étant `resolution.patch`", "et la résolution n'a ni récrit ni retiré ce que `develop` met à sa place", "Un constat de la résolution (`resolution.patch`) n'entre jamais dans `tri.txt` : il se garde.", "un `.mdx`, qui exécute ses `export`"]);
   exigerDans(`${REFERENCES}/prompt-regles.md`, ["un contrôle, une garde, une validation que `develop` écrivait et qu'elle retire est un écart bloquant"]);
   exigerDans(`${REFERENCES}/cas-limites.md`, ["| La résolution d'une PR de mise à jour ne se relit pas (git sans `--remerge-diff`, avant 2.36 ; aucune fusion ou plusieurs) |"]);
+});
+
+// A-223 : C1 ne juge jamais un index que « même contenu propre » dispense, sur toute PR.
+/** Une PR ordinaire vers le sujet : la tête est poussée, la session clonée, puis les gestes 2, 3 et 4 joués. */
+function banc223(p, tete = "feat/spec-all-fac-1-03-total") {
+  const sommet = p.git(p.auteur, "rev-parse", "HEAD");
+  p.git(p.auteur, "push", "-q", "origin", `HEAD:${tete}`);
+  p.cloner();
+  const m = PR("21", "sujet/facture", tete, sommet);
+  for (const geste of ["etape2", "liste", "diff"]) {
+    const r = p.joue(geste, m);
+    assert.equal(r.status, 0, r.sortie);
+  }
+  const B = p.brouillonsDe(m);
+  return { m, B, sommet, c1: p.joue("c1", m), liste: (nom) => listeDe(join(B, nom)) };
+}
+/** Banc 5 : `meme-contenu.sh` sur un commit à un parent, posé sur le sommet, que `ecrireTout` vient d'écrire. */
+function memeContenu(p, sommet, ecrireTout) {
+  ecrireTout();
+  const t = p.commit("chore: régénère");
+  p.git(p.auteur, "fetch", "-q", "origin", "+refs/heads/sujet/facture:refs/remotes/origin/sujet/facture");
+  const r = p.lancer(p.auteur, "bash", ["scripts/chaine/meme-contenu.sh", sommet, t, "sujet/facture"]);
+  return { statut: r.status, sortie: r.stdout + r.stderr };
+}
+const brancheDe = (p, nom) => {
+  p.git(p.auteur, "switch", "-q", "sujet/facture");
+  p.git(p.auteur, "switch", "-q", "-c", nom);
+};
+
+test("A-223, l'impasse de #17 : une PR ordinaire ajoute une ADR sans régénérer l'index ; C1 le laisse au capitaine, sans bloquant, et le commit qui ne régénère que lui est « même »", { timeout: 180_000 }, () => {
+  const p = projetJouet();
+  brancheDe(p, "feat/spec-all-fac-1-03-total");
+  p.ecrire("docs/adr/ADR_ALL_ARC-2-total.md", "# Total\n");
+  p.commit("docs(adr): l'ADR du total");
+  const b = banc223(p);
+  assert.equal(b.c1.status, 0, b.c1.sortie);
+  assert.deepEqual([b.liste("c1/perimes.txt"), b.liste("c1/au-capitaine.txt")], [[], ["docs/adr/README.md"]]);
+  assert.match(b.c1.stdout, /^index périmés : 0$/m);
+  assert.match(b.c1.stdout, /^index à régénérer par le capitaine : 1\ndocs\/adr\/README\.md$/m);
+  const mc = memeContenu(p, b.sommet, () => p.ecrire("docs/adr/README.md", "- ADR_ALL_ARC-1-socle.md\n- ADR_ALL_ARC-2-total.md\n"));
+  assert.equal(mc.statut, 0, `même : ${mc.sortie}`);
+});
+
+test("A-223, un fichier qu'une commande récrit sans le déclarer reste un bloquant, et « même contenu propre » le juge « différent »", { timeout: 180_000 }, () => {
+  const A = { chemin: "docs/a.md", commande: "sh -c 'echo a > docs/a.md; echo y > docs/y.md'" };
+  const p = projetJouet([INDEX_ADR, A]);
+  p.git(p.auteur, "switch", "-q", "sujet/facture");
+  p.ecrire("docs/a.md", "a\n");
+  p.ecrire("docs/y.md", "y\n");
+  p.commit("docs: a et y");
+  p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
+  brancheDe(p, "feat/spec-all-fac-1-03-total");
+  p.ecrire("docs/y.md", "écrit à la main\n");
+  p.commit("docs: y à la main");
+  const b = banc223(p);
+  assert.equal(b.c1.status, 0, b.c1.sortie);
+  assert.deepEqual([b.liste("c1/perimes.txt"), b.liste("c1/au-capitaine.txt")], [["docs/y.md"], []]);
+  const mc = memeContenu(p, b.sommet, () => p.ecrire("docs/y.md", "y\n"));
+  assert.equal(mc.statut, 20, `différent : ${mc.sortie}`);
+});
+
+test("A-223, la tête déclare l'index par un motif `*` avec commande : il n'est plus dispensé, reste un bloquant, et « même contenu propre » le juge « différent » (retiré)", { timeout: 180_000 }, () => {
+  const COMMANDE = "sh -c 'echo sommaire > docs/sommaire.md'";
+  const p = projetJouet([INDEX_ADR, { chemin: "docs/sommaire.md", commande: COMMANDE }]);
+  p.git(p.auteur, "switch", "-q", "sujet/facture");
+  p.ecrire("docs/sommaire.md", "sommaire\n");
+  p.commit("docs: le sommaire");
+  p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
+  brancheDe(p, "feat/spec-all-fac-1-03-total");
+  p.ecrire("scripts/docs/index-generes.json", JSON.stringify({ index: [INDEX_ADR, { chemin: "docs/*.md", commande: COMMANDE }] }));
+  p.ecrire("docs/sommaire.md", "périmé\n");
+  p.commit("docs: la liste passe au motif, le sommaire reste périmé");
+  const b = banc223(p);
+  assert.equal(b.c1.status, 0, b.c1.sortie);
+  assert.deepEqual([b.liste("c1/perimes.txt"), b.liste("c1/au-capitaine.txt")], [["docs/sommaire.md"], []]);
+  const mc = memeContenu(p, b.sommet, () => p.ecrire("docs/sommaire.md", "sommaire\n"));
+  assert.equal(mc.statut, 20, `différent : ${mc.sortie}`);
+  assert.match(mc.sortie, /n.est plus déclaré à commande/);
+});
+
+test("A-223, une vérification rouge sur ce que la PR écrit reste un bloquant : C1 sort en 15", { timeout: 180_000 }, () => {
+  const V = { chemin: "docs/v.md", commande: "sh -c 'echo v > docs/v.md'", verification: "sh -c 'test ! -f docs/mauvais.md'" };
+  const p = projetJouet([INDEX_ADR, V]);
+  p.git(p.auteur, "switch", "-q", "sujet/facture");
+  p.ecrire("docs/v.md", "v\n");
+  p.commit("docs: v");
+  p.git(p.auteur, "push", "-q", "origin", "sujet/facture");
+  brancheDe(p, "feat/spec-all-fac-1-03-total");
+  p.ecrire("docs/mauvais.md", "la PR écrit ce que la vérification refuse\n");
+  p.commit("docs: mauvais");
+  const b = banc223(p);
+  assert.equal(b.c1.status, 15, b.c1.sortie);
+  assert.match(b.c1.sortie, /régénération en échec/);
+});
+
+test("A-223, une PR de mise à jour sans conflit ni retouche (liste vide) : `dispenses.txt` est écrit, C1 sort en 0 et laisse au capitaine l'index que develop laisse périmé", { timeout: 180_000 }, () => {
+  const p = projetJouet();
+  p.git(p.auteur, "switch", "-q", "develop");
+  p.ecrire("docs/adr/ADR_ALL_ARC-2-total.md", "# Total\n");
+  p.commit("docs(adr): une ADR sans son index");
+  p.git(p.auteur, "push", "-q", "origin", "develop");
+  p.git(p.auteur, "switch", "-q", "-c", "maj/facture", "sujet/facture");
+  p.git(p.auteur, "merge", "-q", "--no-edit", "origin/develop");
+  const fusion = p.git(p.auteur, "rev-parse", "HEAD");
+  p.git(p.auteur, "push", "-q", "origin", "HEAD:maj/facture");
+  p.cloner();
+  const m = PR("22", "sujet/facture", "maj/facture", fusion);
+  assert.equal(p.joue("etape2", m).status, 0);
+  assert.equal(p.joue("liste", m).status, 0);
+  const B = p.brouillonsDe(m);
+  const rDiff = p.joue("diff", m);
+  assert.deepEqual([rDiff.status, rDiff.stdout], [0, "aucun fichier à relire\ndiff : sortie 0\n"]);
+  assert.deepEqual(listeDe(join(B, "dispenses.txt")), ["docs/adr/README.md"]);
+  const c1 = p.joue("c1", m);
+  assert.equal(c1.status, 0, c1.sortie);
+  assert.deepEqual([listeDe(join(B, "c1/perimes.txt")), listeDe(join(B, "c1/au-capitaine.txt"))], [[], ["docs/adr/README.md"]]);
 });
