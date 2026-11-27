@@ -39,7 +39,8 @@
 //   - Une demande `À relire` modifiée, d'un compte qui compte, reste écartée : elle ne fixe ni la décision ni les
 //     destinataires des autres lignes ; ses lignes `Session:` et `Conducteur:` ne servent qu'à dire l'écart, par le geste
 //     `signaler`, quand elle est plus récente que la dernière demande intacte et qu'aucune trace ne nomme encore son
-//     commentaire (A-227, A-228).
+//     commentaire (A-227, A-228). Un commentaire sans identifiant entier ne se signale pas : sa trace ne se relirait
+//     pas, et le geste reviendrait à chaque passe.
 // Les tables indexées par une clé venue de l'entrée (session, sommet) ne lisent jamais une clé héritée.
 //
 // Module pur : aucun point d'entrée, aucune horloge, aucun import hors verdict.mjs.

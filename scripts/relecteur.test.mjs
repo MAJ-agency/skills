@@ -122,7 +122,9 @@ test("ticket 95 — la veille rend ses sourdines (`SOURDINES`), la session la re
 test("ticket 96 — `signaler` a sa ligne dans la table « À chaque réveil », « Les lignes » dit la demande modifiée, et l'étape 5 dit qu'une demande ne se modifie jamais", () => {
   const texte = lire(`${SKILL}/SKILL.md`);
   exigerA(ligne(texte, "## À chaque réveil", "| `signaler` |"), "la ligne `signaler`", ["`jouer <n>`, ses lignes, puis `jouer <n>` de nouveau, et son geste"]);
-  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["une demande `À relire` modifiée ne sonne personne d'autre que par la ligne de `signaler`"]);
+  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["une demande `À relire` modifiée ne sonne personne d'autre que par la ligne de `signaler`", "ou avec le commentaire du plafond ou la trace de `signaler` : rejoué, il n'en rend aucune"]);
+  exigerA(ligne(texte, "## À chaque réveil", "| `signaler` |"), "la ligne `signaler`", ["ou n'a pas la forme d'une demande"]);
+  exigerA(section(texte, "## À chaque réveil"), "« À chaque réveil »", ["le rejeu peut renvoyer les lignes du refus une seconde fois : un doublon toléré"]);
   exigerA(ligne(lire("skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md"), "## 5. Session fille : les consignes communes", "5. **Demander la relecture.**"), "l'étape 5", ["la demande ne se modifie jamais ; une erreur (un sha faux) se corrige par une demande neuve"]);
 });
 

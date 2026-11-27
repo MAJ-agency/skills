@@ -1095,3 +1095,17 @@ test("ticket 96 (g, h, i, j) — ce qui marche ne change pas : une demande intac
   // (j) un commentaire modifié qui ne porte plus le préfixe : rien.
   assert.deepEqual(joue({ commentaires: fil({ corps: 'À relire, sommet ' + V1, edite: true }) }).geste, 'distribuer');
 });
+
+test("ticket 96 (k, l, m) — une trace hors forme ne tait rien ; une seconde demande modifiée, plus récente que la première tracée, se signale à son tour ; un commentaire sans identifiant entier ne se signale pas", () => {
+  // (k) une trace qui porte le préfixe sans la forme est ignorée : l'écart n'est pas tu.
+  assert.deepEqual(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, 'Demande écartée — commentaire 100') }), SIGNALER(100, LIGNES(SIGNALE(100))));
+  // (l) la première tracée, une seconde modifiée plus récente : un `signaler` neuf, pour elle.
+  const seconde = { corps: `À relire — sommet ${V1} — Session: session_autre — Conducteur: —`, edite: true };
+  assert.deepEqual(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, ECART(100), seconde) }), SIGNALER(102, [{ a: 'auteur', session: 'session_autre', texte: SIGNALE(102) }]));
+  assert.equal(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, ECART(100), seconde, ECART(102)) }).geste, 'distribuer');
+  // (m) sans identifiant entier, la trace ne se relirait pas : aucun `signaler`, la décision suit son cours.
+  for (const id of [undefined, 'abc', 0]) {
+    const [c] = fil({ corps: DEMANDE(), edite: true });
+    assert.equal(joue({ commentaires: [{ ...c, id }] }).geste, 'distribuer', String(id));
+  }
+});
