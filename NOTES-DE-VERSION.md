@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.5.1 — 2026-11-27
+## 8.5.2 — 2026-11-27
 
 ### Ce qui change
 
@@ -15,6 +15,18 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.5.1 — 2026-11-27
+
+### Ce qui change
+
+- **`C1` ne juge plus un index dispensé, sur toute PR** (`A-223`, qui amende `A-144`) : un index à commande que la base et la tête déclarent par un chemin littéral (`dispenses.txt`, celui que « même contenu propre » dispense) va dans `c1/au-capitaine.txt`, « Index à régénérer par le capitaine », sans bloquant ni tour compté. Avant, seul l'index que la fusion avait touché, sur une PR de mise à jour, était laissé au capitaine : une ADR ajoutée sans son index régénéré faisait refuser la PR, et la correction, que « même contenu propre » dispense, ne levait pas le refus.
+- **`dispenses.txt` s'écrit dans tous les cas**, liste vide comprise : `C1` le lit sur toute PR, y compris une PR de mise à jour sans conflit ni retouche.
+- **`c1/index-fusion.txt` n'est plus écrit.** Tout autre fichier que la régénération change reste un bloquant, une vérification rouge aussi.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien** : la session de relecture lit le skill du plugin.
 
 ## 8.5.0 — 2026-11-27
 
