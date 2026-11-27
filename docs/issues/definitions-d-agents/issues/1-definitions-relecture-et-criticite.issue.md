@@ -61,7 +61,7 @@ Tout est lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-ag
 
 ## Décisions
 
-0. **`P-1`** (produit, 2026-11-27, relayé par l'architecte du programme Atalian) : **oui**. Ses mots : les sous-agents doivent « avoir un contexte vierge et ne pas aller voir tout le projet ». Les deux définitions portent `omitClaudeMd: true` ; un agent ne lit que ce que son message lui fait lire (A-11), rien d'autre du dépôt.
+0. **`P-1`** (produit, 2026-11-27, relayé par la session mère, architecte d'un autre programme) : **oui**. Ses mots : les sous-agents doivent « avoir un contexte vierge et ne pas aller voir tout le projet ». Les deux définitions portent `omitClaudeMd: true` ; un agent ne lit que ce que son message lui fait lire (A-11), rien d'autre du dépôt.
 1. **Les définitions** : `A-1` (nom, outils, modèle, `omitClaudeMd`, rien d'autre dans le frontmatter), `A-2` (Read, Grep, Glob, sans Bash), `A-3` (Opus, ni `effort` ni paramètre `model` passé par un skill), `A-4` (corps court et générique, description qui interdit la délégation spontanée), `A-5` (aucun skill préchargé). Le frontmatter, exactement dans cet ordre :
 
    ```yaml
