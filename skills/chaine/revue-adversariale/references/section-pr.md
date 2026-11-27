@@ -3,6 +3,7 @@
 - Sommet relu : `<sha court>` — <n> fichiers, <n> lignes (index générés exclus)
 - `/security-review` : lancée (chemins : …) | non requise
 - Résultat : <n> bloquants corrigés · <n> à corriger (<n> corrigés, <n> justifiés) · <n> doutes · <n> écartés
+- Agent des relecteurs : maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli)
 
 | Constat (fichier:ligne — écart) | Règle | Gravité | Suite |
 | ------------------------------- | ----- | ------- | ----- |
