@@ -333,6 +333,12 @@ test("decouper : la clôture, les sous-sections, le niveau 1, le retrait, le blo
   assert.deepEqual(decouper("sans titre\n"), [{ titre: null, texte: "sans titre\n" }]);
 });
 
+test("nommePar : l'identifiant est pris à la lettre, un point n'est pas un joker", () => {
+  const nomme = nommePar("RULE_A.B-1");
+  assert.equal(nomme.test("RULE_AxB-1"), false);
+  assert.equal(nomme.test("RULE_A.B-1"), true);
+});
+
 test("nommePar : l'identifiant borné comme ligneNomme ; un commentaire ne cite pas", () => {
   const nomme = nommePar(ID);
   for (const non of ["RULE_ALL_LIC-30", "RULE_ALL_LIC-3-slug", "RULE_ALL_LIC-3.03"]) assert.equal(nomme.test(non), false, non);

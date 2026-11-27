@@ -76,7 +76,8 @@ export function enonceDeLaRegle(texte) {
 }
 
 /** Le motif de l'identifiant exact, borné des deux côtés : `-30`, `-3-slug` et `-3.03` ne nomment pas `-3`. */
-export const nommePar = (id) => new RegExp(`(?<![\\w-])${id}(?![\\w-]|\\.\\d+(?!\\w))`);
+const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const nommePar = (id) => new RegExp(`(?<![\\w-])${echappe(id)}(?![\\w-]|\\.\\d+(?!\\w))`);
 
 /** Vrai quand la ligne `Clé:` de l'en-tête d'un document (avant sa première section) nomme la règle. */
 export function ligneNomme(texte, cles, id) {
@@ -91,6 +92,15 @@ export function ligneNomme(texte, cles, id) {
 export function cloture(texte) {
   const c = "`".repeat(Math.max(3, ...(texte.match(/`+/g) ?? []).map((x) => x.length)) + 1);
   return `${c}text\n${texte}\n${c}`;
+}
+
+/** Vrai quand la ligne ferme la clôture : 0 à 3 espaces, au moins `n` fois le caractère `car`, puis rien que des espaces ou des tabulations. */
+function fermeLaCloture(ligne, { car, n }) {
+  let i = 0;
+  while (i < 3 && ligne[i] === " ") i++;
+  let j = i;
+  while (ligne[j] === car) j++;
+  return j - i >= n && /^[ \t]*$/.test(ligne.slice(j));
 }
 
 /**
@@ -108,8 +118,7 @@ export function decouper(texte) {
     const nue = ligne.replace(/\r?\n$/, "");
     const ouvre = cloture ? null : /^ {0,3}(`{3,}|~{3,})/.exec(nue);
     if (cloture) {
-      const ferme = new RegExp(`^ {0,3}${cloture.car}{${cloture.n},}[ \\t]*$`);
-      if (ferme.test(nue)) cloture = null;
+      if (fermeLaCloture(nue, cloture)) cloture = null;
     } else if (ouvre) {
       cloture = { car: ouvre[1][0] === "`" ? "`" : "~", n: ouvre[1].length };
     } else {
