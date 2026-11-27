@@ -4,7 +4,7 @@ Les sous-agents de revue de la chaîne deviennent des sous-agents définis, livr
 
 ## Fiche
 
-Phase: suivi — ticket 1 fusionné (8.4.0), ticket 2 livré (PR #166, 8.5.0, ordre de fusion posé) ; passation décidée par le produit le 2026-11-27 (voir `## Passation`)
+Phase: fini — ticket 1 fusionné (PR #164, 8.4.0), ticket 2 fusionné (PR #166, `b57eae7`, 8.5.0) ; reste la fusion de cette carte (PR #167) par le capitaine
 Responsable: le produit (aucun nom de personne dans ce dépôt public)
 Architecte: session_012xRpgXxfn5diB9dcvjpSes (architecte de suite, ouverte le 2026-11-27 à 21 h 06 UTC par le produit sur un autre compte, mode « Auto », dépôts `skills`, `anchorpost`, `fedora`) ; avant elle session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la session mère session_01BxuG32BaRcgwrMvCr1hiet, architecte d'un autre programme)
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | ticket 1 fait (PR #164, `4dba1de`, 8.4.0) ; ticket 2 livré (PR #166, sommet `452a29c`, 8.5.0), en attente de fusion |
+| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | tickets 1 et 2 faits (PR #164, `4dba1de`, 8.4.0 ; PR #166, `b57eae7`, 8.5.0) ; chantier livré |
 
 ## Decisions-so-far
 
@@ -37,9 +37,10 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 | ---- | ------ | ------- | ------ | ------------ | ------ |
 | architecte | — | session_01BxuG2z7ypDYopx6aF3M1sd | opus | 764 k | 68,32 (au 2026-11-27, 21 h 05 UTC) |
 | ticket | 1 | session_01BxuG2yyaJXUKmMh7bRUzzt (archivée) | opus | 269 k | 7,33 |
-| ticket | 2 | session_01BxuG32TNSuYP6pzFEkLeWS | sonnet | 190 k | 2,80 (en vie, attend la fusion) |
-| capitaine | — | session_012xRpgZn85fsbtT8FpRj93L | sonnet | — | — (en vie) |
-| capitaine | — | session_01BxuG2zbkutBrxsG2irw7br | sonnet | 406 k | 8,12 (en vie, au 2026-11-27, 20 h 48 UTC) |
+| ticket | 2 | session_01BxuG32TNSuYP6pzFEkLeWS | sonnet | 190 k | 2,80 (dernier relevé de l'architecte sortant ; session du compte sortant, à archiver par lui ou par le produit) |
+| architecte | — | session_012xRpgXxfn5diB9dcvjpSes | opus | 213 k | 2,52 (au 2026-11-27, 21 h 12 UTC) |
+| capitaine | — | session_012xRpgZn85fsbtT8FpRj93L | sonnet | 111 k | 0,27 (en vie, au 2026-11-27, 21 h 12 UTC) |
+| capitaine | — | session_01BxuG2zbkutBrxsG2irw7br | sonnet | 406 k | 8,12 (au 2026-11-27, 20 h 48 UTC, dernier relevé ; compte sortant, à archiver par lui ou par le produit) |
 | capitaine | — | session_01BxuG2zzeL4A2u7UmWKeD2S | sonnet | 236 k | 2,68 |
 
 ## Passation
@@ -66,6 +67,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 - 2026-11-27 20 h 42 UTC — PR #166 livrée (8.5.0, sommet `452a29c`), lue à la source ; coordination écrite avec l'architecte « périmètre figé » (ses tickets de code partent après la #166, en 8.6.0).
 - 2026-11-27 21 h 05 UTC — Passation décidée par le produit (reprise sur un autre compte) ; `## Passation` écrite.
 - 2026-11-27 21 h 10 UTC — Architecte de suite (session_012xRpgXxfn5diB9dcvjpSes) : carte et passation lues. Plugin 8.4.0 chargé, marketplace 8.4.0. PR #166 lue à la source : ouverte, label et ordre `à-fusionner au sommet 452a29c…` posés, quatre contrôles verts, `clean`, aucun verdict ; elle attend le capitaine du compte sortant.
+- 2026-11-27 21 h 13 UTC — PR #166 fusionnée le 2026-11-27 à 21 h 09 UTC (`b57eae7`, par le capitaine du compte sortant) ; arbre fusionné identique au sommet relu `452a29c`, plugin 8.5.0 sur `main`. Ticket 2 déjà `Fait — PR #166`. Nom du programme client retiré du ticket 2 (l. 66). `main` fusionné dans cette branche. `Phase: fini` ; la #167 part à la fusion.
 - 2026-11-27 21 h 12 UTC — Abonnement à la #166 refusé par l'outil ; un relevé est programmé à 21 h 39 UTC à la place. L'architecte A de « gouverner nos boucles » (session_012xRpgZdqkCb5i5yCUrnRSt, même compte) a reçu ce que le programme change et le point de départ de ses tickets (main après la #166). Aucun capitaine de `skills` en vie sur ce compte.
 - 2026-11-27 21 h 10 UTC — Capitaine de `skills` lancé sur ce compte (session_012xRpgZn85fsbtT8FpRj93L, Sonnet) à la demande de l'architecte A, qui n'en avait aucun. Ses versions : la première PR livrée prend la suivante de `main`, sans numéro réservé.
 
