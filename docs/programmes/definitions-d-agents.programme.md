@@ -6,7 +6,7 @@ Les sous-agents de revue de la chaîne deviennent des sous-agents définis, livr
 
 Phase: suivi — ticket 1 fusionné (8.4.0), ticket 2 livré (PR #166, 8.5.0, ordre de fusion posé) ; passation décidée par le produit le 2026-11-27 (voir `## Passation`)
 Responsable: le produit (aucun nom de personne dans ce dépôt public)
-Architecte: session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la session mère session_01BxuG32BaRcgwrMvCr1hiet, architecte d'un autre programme, mode « Auto », dépôt `skills`)
+Architecte: session_012xRpgXxfn5diB9dcvjpSes (architecte de suite, ouverte le 2026-11-27 à 21 h 06 UTC par le produit sur un autre compte, mode « Auto », dépôts `skills`, `anchorpost`, `fedora`) ; avant elle session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la session mère session_01BxuG32BaRcgwrMvCr1hiet, architecte d'un autre programme)
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
 Dépôts: `MAJ-agency/skills` (dossier `agents/`, `.claude-plugin/plugin.json`, skills `relecture`, `criticite`, `revue-de-ticket`, `revue-adversariale`, `architecte`, `chantier`) ; les projets le reçoivent par la mise à jour du plugin, sans rien reposer.
 Source: le prompt de lancement de cette session (2026-11-25), recopié dans `## Source` ci-dessous — entrée brute, ni spec ni décision.
@@ -64,6 +64,7 @@ Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec
 - 2026-11-27 19 h 51 UTC — PR #164 fusionnée (`4dba1de`, 8.4.0), arbre identique au sommet relu ; session du ticket 1 archivée (7,33 $). Ticket 2 lancé (session_01BxuG32TNSuYP6pzFEkLeWS, Sonnet).
 - 2026-11-27 20 h 42 UTC — PR #166 livrée (8.5.0, sommet `452a29c`), lue à la source ; coordination écrite avec l'architecte « périmètre figé » (ses tickets de code partent après la #166, en 8.6.0).
 - 2026-11-27 21 h 05 UTC — Passation décidée par le produit (reprise sur un autre compte) ; `## Passation` écrite.
+- 2026-11-27 21 h 10 UTC — Architecte de suite (session_012xRpgXxfn5diB9dcvjpSes) : carte et passation lues. Plugin 8.4.0 chargé, marketplace 8.4.0. PR #166 lue à la source : ouverte, label et ordre `à-fusionner au sommet 452a29c…` posés, quatre contrôles verts, `clean`, aucun verdict ; elle attend le capitaine du compte sortant.
 
 ## Source
 
