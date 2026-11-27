@@ -106,6 +106,7 @@ Capitaines: Anchorpost — `session_01BxuG32wcZNFR6wFkcbhYfT` (Sonnet, troisièm
 - `P-B10` — 2026-11-23, produit, « Ok je valide tout. », à la question « Validez-vous en bloc les cas des quatre règles tels qu'ils sont sur la page, oui ou non ? » (page « Cas du lot 5a » : 39 cas métier de RULE_ALL_ANC-9, -24, -26 et -29, au sommet `3ea23a0`). Ce oui vaut aussi pour deux recommandations. On garde `passage-echoue-ne-rajeunit-pas`, et le contrôle de `.24` (A-329) est à corriger. On garde les deux cas d'A-335. Le produit avait d'abord demandé quand un test prouve plusieurs règles ; réponse donnée avec des exemples réels.
 - `P-B11` — 2026-11-23, produit, « oui », à la question « On lance le chantier « description d'une feature » dimanche 29 novembre au soir, et pas avant, oui ou non ? ». SPEC_ALL_ANC-9 part après la levée de la limite d'usage hebdomadaire, le 2026-11-29 à 19 h UTC, en parallèle de la preuve suffisante. Raison : un second conducteur ferait risquer la limite avant sa levée, ce qui arrêterait aussi la 2.0.4.
 
+- `P-B12` — 2026-11-27, produit, « fais-moi un prompt pour qu'un architecte reprenne ton travail sur un autre compte et publie la version 2.0.4 », en réponse à la question « On publie la CLI 2.0.4 maintenant, oui ou non ? ». Vaut oui à la publication de la 2.0.4, par l'architecte du compte suivant.
 ## Fog
 
 - Les scripts de la chaîne en 7.12.3 (Anchorpost) ont tenu pour vert un contrôle `qualite` « skipped » en double, alors que le vrai tournait encore, sur #330, le 2026-11-20 à 07 h 54. GitHub a refusé la fusion, et rien n'est entré. Reste à vérifier si une version récente du plugin corrige déjà la lecture des contrôles en double ; sinon, il faut un ticket dans le dépôt skills. Le sujet de l'architecte A.
@@ -131,7 +132,18 @@ Capitaines: Anchorpost — `session_01BxuG32wcZNFR6wFkcbhYfT` (Sonnet, troisièm
 
 ## Passation
 
-Rien encore.
+**2026-11-27, vers l'architecte du compte suivant (`P-B12`).**
+
+- **Publier la 2.0.4** depuis develop `32091c3d84aa9ec8d2e2139d316dc3890e075d4c` (livraison #433, commit de merge). L'essai à blanc 45714609794 est vert. L'arbre `apps/cli` et `packages` de develop est identique à f9e6a6f. Avant le lancement, vérifier que develop n'a pas bougé dans ces chemins. Lancer « Publier la CLI » depuis develop, version `2.0.4`, case « Publier pour de vrai » cochée. Puis contrôler le run et `npm view @maj-agency/anchorpost version`.
+- **Après la publication** :
+  - lever le gel A-466 de develop ;
+  - prévenir l'architecte du dépôt client 2, pour les parcours Maestro : étiquettes en tête du `name:`, entre guillemets (A-449) ;
+  - noter pour le dépôt client 1 : à sa montée de version, `check` sortira à 1 sous deux planchers, à une règle près (les pertes d'A-410). La décision lui revient : baisser ces planchers, ou sortir ses fichiers du repli.
+- **Alerte CodeQL n° 12** : un faux positif, à fermer à la main par le produit.
+- **Sessions du compte précédent** : conducteur relève 20 (passation dans la carte au sommet `162a743`) et capitaine Sonnet. Le nouvel architecte relance les siens.
+- **Après le 2026-11-29 à 19:00 UTC** : un conducteur neuf sur la passation de la carte, pour `.99`, `.98`, puis le ticket SPEC_ALL_ANC-10, avec en tête le coût du tri par motifs du manifeste (A-463). Le même soir, SPEC_ALL_ANC-9 (`P-B11`).
+- **En attente du produit** : le lot 5b (#419, brouillon).
+- **Mesures** : budget de temps relatif (A-437), au plus 2,2 fois la 2.0.3, en alternance sur la même machine. Les copies des dépôts clients restent sur l'ancien compte : il faut les refaire. Prochaine décision libre : A-470.
 
 ## Journal
 
@@ -702,3 +714,4 @@ Rien encore.
 - 2026-11-25 22:14 UTC — Verdict conforme du conducteur sur #433, label posé. Le check CodeQL est rouge à cause de l'alerte n° 12 (faux positif), mais il n'est pas exigé : le ruleset de develop exige qualite, test-db et zizmor. L'alerte se ferme à la main dans l'onglet Security (l'API répond 403 au conducteur) : à demander au produit avec la question de la 2.0.4. Écart de ma part : un `gh api` de lecture des règles de branche, hors recherche, alors que `gh` est réservé à la recherche dans cette session. Je n'en referai pas.
 - 2026-11-25 22:40 UTC — #433 est entrée dans develop par un commit de merge : 32091c3 (parents 266cc00 et 732c7bd). Le gel de develop sur apps/cli/ et packages/schema/ est confirmé par le capitaine, et #419 est rouverte. Empreintes à 32091c3 : arbre apps/cli et packages identique à f9e6a6f ; `dist/cli.cjs` sha256 e53b1eaa…1b35, identique à l'artefact de l'essai final ; lib.cjs ae175c79… ; typescript.cjs 58a07087…. Essai à blanc du workflow « Publier la CLI », 2.0.4, case décochée, depuis develop : run 45714609794.
 - 2026-11-25 22:45 UTC — Essai à blanc 45714609794 de « Publier la CLI » 2.0.4 depuis develop (32091c3) : succès en 54 s, `npm publish --dry-run` compris ; artefact anchorpost-2.0.4-essai-32091c3.tgz (digest sha256:2629e1a4…1626). Son téléchargement est refusé par le réseau de la session, et je n'ai pas comparé l'archive octet pour octet ; elle est construite au même commit que mon build. Question posée au produit : publier la 2.0.4, oui ou non (P-54), avec l'impact chez le dépôt client 1 à sa montée de version, et la demande de fermer l'alerte CodeQL n° 12 comme faux positif.
+- 2026-11-27 — `P-B12` : le produit demande un prompt pour qu'un architecte d'un autre compte reprenne ce travail et publie la 2.0.4. La passation est écrite ci-dessus.
