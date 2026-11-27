@@ -1,6 +1,6 @@
 # PR de documentation à périmètre figé
 
-Programme : [`../../programmes/perimetre-fige.programme.md`](../../programmes/perimetre-fige.programme.md). État : écrite le 2026-11-27, à valider par le produit (`Q-1`, `Q-2`).
+Programme : [`../../programmes/perimetre-fige.programme.md`](../../programmes/perimetre-fige.programme.md). État : validée par le produit le 2026-11-27 (`P-2`, `P-3`).
 
 ## Le problème
 
@@ -26,7 +26,7 @@ Lus le 2026-11-27 sur les commentaires des deux PR et dans les skills du plugin 
 - **Périmètre tenu.** Entre deux tours, l'auteur ne pousse que les corrections des constats du verdict. Le Relecteur refuse de distribuer une PR qui sort de son périmètre, sans compter de tour.
 - **Suites.** Un fait nouveau, une décision nouvelle ou une ADR part dans un ticket ou dans une autre PR. La PR courante le cite sur une ligne, sans l'intégrer.
 - **Plafond.** Au plafond d'une de ses PR, l'architecte écrit la décision lui-même et en informe le produit en une ligne. Le produit ne fusionne plus à la main.
-- **Tours 2 et 3 bornés** (si le produit valide `Q-1`). Un constat nouveau sur un texte inchangé ne bloque plus : il est listé et part en suite.
+- **Tours 2 et 3 bornés** (`P-2`). Un constat nouveau sur un texte inchangé ne bloque plus : il est listé et part en suite.
 
 ## La règle
 
@@ -36,7 +36,7 @@ Une **PR de documentation** est une PR dont le diff ne contient aucun chemin qui
 2. **Corrections.** Entre deux tours, les fichiers que l'auteur modifie sont ceux de la ligne `Fichiers:` et ceux que nomme un bloquant du dernier verdict refusé. Dans ces fichiers, il ne corrige que les constats de ce verdict. Il peut aussi clarifier un passage que le verdict nomme sous « Écartés au tri » avec le motif « faux », sans en changer le sens : par exemple citer la règle qui justifie une définition, ou écrire le résultat attendu d'une commande de preuve.
 3. **Contenu.** Les axes de documentation reçoivent la déclaration, comme ils reçoivent déjà la section `## Criticité`. Un critère nouveau s'ajoute à chacun : une décision, un fait ou une ADR que la déclaration ne nomme pas est un bloquant. Sa correction est le retrait, jamais l'ajout de ce qui manque autour.
 4. **Suite.** Ce qui est retiré, ou ce qu'un constat révèle hors du périmètre, s'écrit dans un ticket ou dans une autre PR. L'auteur le cite sur la PR courante par un commentaire `Suite — <objet> — <ticket ou PR>`. La session de relecture lit ces commentaires, comme elle lit déjà les arbitrages. Au tri, elle classe « renvoyé en suite » un bloquant qui remplit deux conditions : le lever demande une décision, un fait ou un fichier hors du périmètre déclaré, et un commentaire `Suite` nomme un ticket ou une PR qui existe. Un bloquant qui porte sur le périmètre déclaré n'est jamais renvoyé en suite.
-5. **Tours 2 et 3** (`Q-1`). Un bloquant n'est admis que s'il porte sur une ligne modifiée depuis le sommet du tour précédent, ou s'il reprend un bloquant non levé du verdict précédent. Tout autre constat est ramené à un doute, listé dans le verdict sous « Relevés tardifs ». Exception : un constat de l'axe Règles métier sur une règle de criticité haute bloque à tout tour.
+5. **Tours 2 et 3** (`P-2`). Un bloquant n'est admis que s'il porte sur une ligne modifiée depuis le sommet du tour précédent, ou s'il reprend un bloquant non levé du verdict précédent. Tout autre constat est ramené à un doute, listé dans le verdict sous « Relevés tardifs ». Exception : un constat de l'axe Règles métier sur une règle de criticité haute bloque à tout tour.
 6. **Plafond.** Au plafond d'une PR dont il est l'auteur, l'architecte écrit `Décision de plafond — …`. Elle dit, bloquant par bloquant, ce qui est corrigé dans la PR, ce qui part en suite (avec son commentaire `Suite`) et ce qui est écarté (`Arbitrage — … — écarté — <raison>`). Il en informe le produit en une ligne. Un bloquant sur une règle de criticité haute reste décidé par le produit. Rien ne change pour la PR d'une fille ou d'un conducteur, ni pour l'arbitrage d'une contestation.
 
 ## Décisions de conception (architecte)
@@ -46,7 +46,7 @@ Une **PR de documentation** est une PR dont le diff ne contient aucun chemin qui
 - **A-3 — Le contrôle du contenu est un critère des axes de documentation.** Raison : une décision nouvelle peut entrer dans un fichier déjà déclaré (sur la PR #6, P-55 et A-42 entrent dans la carte du programme) ; seul un lecteur le voit.
 - **A-4 — Une suite ne lève un bloquant qu'au tri de la session de relecture, jamais par la seule parole de l'auteur.** Raison : l'auteur ne juge pas ses propres bloquants. La session vérifie que le ticket ou la PR nommé existe.
 - **A-5 — L'architecte décide au plafond de sa propre PR** (`P-1`). L'ADR de la relecture indépendante, `architecte/SKILL.md` § 5 et `chantier/SKILL.md` sont amendés. « L'arbitre n'est jamais l'auteur » reste vrai pour une contestation. Raison : au plafond, la décision est un découpage (ce qui entre, ce qui part en suite), que l'architecte a le droit de faire ; la demander au produit est une demande d'autorisation.
-- **A-6 — Les constats « écartés au tri » ne sont pas transmis au tour suivant** (recommandation, `Q-2`). Raison : voir « Questions au produit ».
+- **A-6 — Les constats « écartés au tri » ne sont pas transmis au tour suivant** (`P-3`). Raison : voir « Questions au produit ».
 - **A-9 — Un constat faux qui revient se traite dans le texte relu, pas dans la mémoire des relecteurs.** La règle 2 autorise l'auteur à clarifier un passage écarté au tri comme « faux ». Raison : six sessions neuves ont fait la même mauvaise lecture des deux mêmes passages de la PR #6 (fait 4) ; l'erreur vient du texte, et le clarifier sert tous les lecteurs suivants sans toucher à l'indépendance de la relecture.
 - **A-7 — Pas de conducteur ni de sujet : des tickets hors chantier, en série, lancés par l'architecte.** Raison : le dépôt `skills` n'a pas la chaîne, et les tickets touchent les mêmes fichiers de version.
 - **A-8 — Les tickets partent de `main` après la fusion du ticket 2 du programme « définitions d'agents ».** Raison : ce ticket modifie `architecte/SKILL.md` § 5, `plugin.json`, `NOTES-DE-VERSION.md` et `scripts/depot.test.mjs`, que ce programme modifie aussi.
@@ -63,7 +63,7 @@ Ce programme-là fixe **qui relit** : un sous-agent défini, en lecture seule, s
 
 ## Les tickets, dans l'ordre
 
-Écrits après la réponse du produit à `Q-1` et `Q-2`, relus par un agent neuf avant leur lancement.
+Relus par un agent neuf avant leur lancement.
 
 | Ticket | Objet | Dépôt | Modèle |
 | ------ | ----- | ----- | ------ |
@@ -73,6 +73,8 @@ Ce programme-là fixe **qui relit** : un sous-agent défini, en lecture seule, s
 | 4 | L'essai réel | `essai-relecture-8` | sonnet |
 
 ## Questions au produit
+
+Les deux questions sont tranchées le 2026-11-27, dans le sens des recommandations : `P-2` pour `Q-1`, `P-3` pour `Q-2`.
 
 - **`Q-1` — Aux tours 2 et 3, un constat nouveau sur un texte inchangé cesse-t-il de bloquer ?** Recommandation : oui (règle 5). Avantage : la relecture se termine, parce que chaque tour ne juge plus que les corrections. Risque : un défaut que le tour 1 n'a pas vu entre dans le dépôt ; il reste écrit dans le verdict, et les règles de criticité haute gardent leur blocage. Si non : le périmètre déclaré réduit le problème sans le fermer (fait 3 : quatre bloquants nouveaux sur un sommet inchangé).
 - **`Q-2` — Les constats « écartés au tri » sont-ils transmis au tour suivant ?** Recommandation : non. Ces constats n'ont jamais bloqué une PR : ils coûtent le travail du tri (fait 4). Les transmettre aux sous-agents leur dirait quoi ne pas relever, et un écart décidé à tort au tour 1 ne serait plus jamais revu : la relecture perdrait son indépendance. Les transmettre à la seule étape du tri économise peu et ancre la session sur le jugement précédent. Avec la règle 5, un faux positif sur un texte inchangé ne peut plus bloquer. Ce qui doit se transmettre l'est déjà : les arbitrages, et désormais les suites.

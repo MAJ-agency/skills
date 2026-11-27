@@ -4,7 +4,7 @@ Une PR de documentation déclare son périmètre à l'ouverture et le garde jusq
 
 ## Fiche
 
-Phase: spec — spec écrite le 2026-11-27, deux questions posées au produit (`Q-1`, `Q-2`), tickets à écrire après sa réponse
+Phase: suivi — spec validée par le produit le 2026-11-27 (`P-2`, `P-3`), tickets en écriture
 Responsable: Guillaume Jauffret
 Architecte: session_01BxuG31gJXv41A7jRRFEAWi (ouverte par le produit le 2026-11-27, mode « Auto », dépôts `skills`, `anchorpost`, `essai-relecture-8`, `anchorpost-essai`, et `atalian-offer-generator` en lecture)
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
@@ -17,20 +17,22 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec écrite, à valider par le produit |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; tickets en écriture |
 
 ## Decisions-so-far
 
 Décisions du produit :
 
 - P-1 — (2026-11-27, prompt d'ouverture) Les quatre premiers points de l'objectif sont demandés : périmètre déclaré à l'ouverture, corrections limitées aux constats du verdict, fait nouveau renvoyé à une autre PR ou à un ticket, et, au plafond d'une PR de l'architecte, décision de plafond écrite par l'architecte lui-même. Ses mots : « il en a le droit ».
+- P-2 — (2026-11-27) `Q-1` : aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte que l'auteur n'a pas touché ne bloque plus (spec, règle 5). Sa réponse à « doit-il encore bloquer la PR ? » : « ok non ».
+- P-3 — (2026-11-27) `Q-2` : les constats « écartés au tri » ne sont pas transmis au tour suivant ; un constat faux qui revient se traite en clarifiant le texte (A-9). Le produit a lu cette conclusion et n'a rien objecté ; sa réponse « ok non » la couvre.
 
 Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec (`## Décisions de conception`).
 
 ## Fog
 
-- `Q-1` — Aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte inchangé depuis le tour précédent cesse-t-il de bloquer ? Recommandation : oui. Posée au produit le 2026-11-27.
-- `Q-2` — Les constats « écartés au tri » sont-ils transmis au tour suivant ? Recommandation : non. Posée au produit le 2026-11-27.
+- _(tranché, P-2)_ `Q-1` — Aux tours 2 et 3 d'une PR de documentation, un constat nouveau sur un texte inchangé depuis le tour précédent cesse-t-il de bloquer ? Recommandation : oui. Posée au produit le 2026-11-27.
+- _(tranché, P-3)_ `Q-2` — Les constats « écartés au tri » sont-ils transmis au tour suivant ? Recommandation : non. Posée au produit le 2026-11-27.
 - Deux sessions relisent un même tour et un seul verdict refusé suffit à refuser le tour ; leurs verdicts divergent en nombre et en gravité (spec, « Faits établis », fait 6). Hors de ce programme : à reprendre si la non-convergence persiste après la règle.
 - La PR `atalian-offer-generator#6` a été fusionnée le 2026-11-27 sans commentaire `Décision de plafond`. Rien à faire ici : c'est le fait que la règle A-5 évite.
 
@@ -56,6 +58,7 @@ Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec 
 - 2026-11-27 20 h 47 UTC — PR brouillon #165 ouverte, périmètre déclaré dans son corps ; quatre contrôles verts. Le ticket 2 du programme « définitions d'agents » est livré (PR #166, 8.5.0), pas encore fusionné. Le produit demande s'il peut archiver la session : passation écrite, rappel programmé supprimé.
 - 2026-11-27 21 h 10 UTC — L'architecte du programme « définitions d'agents » écrit que la PR #166 est fusionnée sur `main` (plugin 8.5.0) : les tickets de ce programme peuvent partir de `main`, en 8.6.0. Son programme passe à un architecte d'un autre compte, qui ne peut pas écrire à cette session, et son capitaine est archivé : ce programme lance son propre capitaine pour `skills` à la première PR prête.
 - 2026-11-27 — A-9 ajoutée à la spec après un échange avec le produit sur les deux constats faux répétés de la PR #6 : l'auteur peut clarifier un passage écarté au tri comme « faux ». Les deux passages eux-mêmes sont dans `atalian-offer-generator` (`GLOSSARY.md:320`, ticket `.14:77`) : leur correction revient au programme Atalian, cette session n'y écrit pas.
+- 2026-11-27 — Le produit tranche `Q-1` et `Q-2` (`P-2`, `P-3`) : spec validée. Le produit n'a pas archivé la session : la passation ci-dessus reste écrite, l'architecte continue. Tickets confiés à un sous-agent.
 
 ## Source
 
