@@ -14,7 +14,7 @@ Les vingt et un critères communs à tout projet amorcé par ces socles : sens d
 
 ## `references/prompt.md`
 
-Le prompt exact du sous-agent. Il ne reçoit ni l'historique, ni l'intention, ni la description de la PR : il juge le code. La liste est fermée et le format imposé, pour qu'une revue ouverte ne grossisse pas chaque PR de suggestions.
+Le prompt exact du sous-agent. Il ne reçoit ni l'historique, ni l'intention, ni la description de la PR : il juge le code. La liste est fermée et le format imposé, pour qu'une revue ouverte ne grossisse pas chaque PR de suggestions. Le sous-agent se lance par l'agent défini `maj-skills:axe-de-relecture` (dossier `agents/` du plugin) : Read, Grep et Glob seulement, Opus, sans les consignes du projet dans son contexte, ce qui rend la lecture seule impossible à contourner ; son prompt lui fait lire les règles du projet d'abord. Une session partie d'un instantané du plugin antérieur à 8.4.0 n'a pas la définition : l'outil répond « not found », la session relance le même message, entier, par l'agent générique et le dit dans la ligne « Agent des relecteurs » de la section de PR.
 
 ## `references/section-pr.md`
 
