@@ -1,6 +1,6 @@
 # Les deux définitions d'agents du plugin, et `relecture` et `criticite` les lancent par leur nom, avec le repli (8.4.0)
 
-Status: ready-for-agent
+Status: Fait — PR #164
 Type: task
 Modèle: opus — deux fichiers neufs dont le frontmatter doit être exact, un banc neuf, cinq prompts à reprendre, des bancs existants qui figent des textes à réécrire sans les assouplir (`scripts/depot.test.mjs`, `scripts/relecture.test.mjs`), et un essai réel des définitions par `claude -p`, lu dans les transcripts des sous-agents ; les décisions sont prises dans la spec.
 Blocked by: —
@@ -146,3 +146,4 @@ Tout est lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-ag
   - **La ligne `Agent des axes :`** prend aussi `sans objet`, quand aucun axe ne s'est lancé (diff relu « non exécuté », garde en échec).
   - **`graphify update .`** joué ; `graphify-out/` est ignoré par git sur `main` (`.gitignore`, l. 3) : rien à commiter.
   - `references-agent-integrees.json` ne change pas : aucun fichier posé par le plugin ne nomme les définitions.
+  - **Relecture de la branche** par un sous-agent neuf (diff et ticket seuls) : trois corrections (la liste de `prompt-ticket.md` garde les règles du dépôt autres que les fiches ; le noyau entier du repli dans `cas-limites.md` et les deux `CONTENU.md`, que le banc lit aussi ; la garde des fiches de règles du banc, qui s'arrêtait au premier point). Le reste est dans la PR #164.
