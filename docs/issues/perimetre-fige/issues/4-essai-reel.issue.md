@@ -9,6 +9,8 @@ Fichiers chauds: dans `MAJ-agency/essai-relecture-8` : `scripts/chaine/` (les sc
 
 Programme : [`../../../programmes/perimetre-fige.programme.md`](../../../programmes/perimetre-fige.programme.md). Spec : [`../perimetre-fige.spec.md`](../perimetre-fige.spec.md) (« Vérification », « Essai réel » ; règles 1 à 5). Suit les tickets [1](1-decision-de-plafond-de-l-architecte.issue.md), [2](2-declaration-et-controle-du-perimetre.issue.md) et [3](3-critere-de-perimetre-suite-et-tours-bornes.issue.md), fusionnés sur `main` de `MAJ-agency/skills` (plugin 8.8.0 ou plus).
 
+Les versions citées dans ce ticket (8.6.0, 8.7.0, 8.8.0) sont les valeurs attendues (spec, `A-14` : « Chaque ticket monte la version mineure suivante de celle de `main` au moment de sa livraison. »). Si une autre PR a été fusionnée avant l'un des tickets 1 à 3, la session lit dans `NOTES-DE-VERSION.md` la version que chaque ticket a livrée, et la met à la place de la valeur attendue (« 8.8.0 ou plus » devient « la version du ticket 3 ou plus »).
+
 ## Le besoin
 
 Les bancs des tickets 2 et 3 tiennent les scripts et les textes. Ils ne montrent pas qu'une vraie PR de documentation, relue par de vraies sessions, converge avant le plafond. La spec demande un essai réel sur `MAJ-agency/essai-relecture-8`, dont les commentaires font preuve.
@@ -113,3 +115,4 @@ La session suit `docs/agents/chaine-de-production.md` § 5 du dépôt d'essai po
 ## Comments
 
 - 2026-11-27 — Écrit par un sous-agent de l'architecte du programme « périmètre figé », d'après la spec validée (`P-2`, `P-3`). Rien n'est écrit dans `essai-relecture-8` : la spec `SPEC_ALL_ESS-2` et ses tickets sont une proposition (décision 3). Trois points reviennent à l'architecte avant le lancement : l'accord du produit sur `scripts/chaine/**` pour la repose, le dépôt sur lequel la session s'ouvre, et le fait que le second cas ne se force pas (décision 7).
+- 2026-11-27 — Versions lues par `A-14` (paragraphe sous l'en-tête), après une relecture indépendante des tickets 1 à 3.
