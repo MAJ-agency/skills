@@ -1,6 +1,6 @@
 # Définitions d'agents — spec
 
-Programme : [`../../programmes/definitions-d-agents.programme.md`](../../programmes/definitions-d-agents.programme.md). État : **en attente de la décision du produit `P-1`** (contexte vierge sans CLAUDE.md, recommandée) ; rédigée sur l'option recommandée, à reprendre si le produit répond non.
+Programme : [`../../programmes/definitions-d-agents.programme.md`](../../programmes/definitions-d-agents.programme.md). État : **`P-1` tranchée le 2026-11-27 : oui** (« avoir un contexte vierge et ne pas aller voir tout le projet ») ; tickets 1 et 2 prêts.
 
 ## Le problème
 
@@ -21,7 +21,7 @@ Sources : la page des sous-agents (`https://code.claude.com/docs/en/sub-agents`)
 
 ## Ce qui change, vu par le produit
 
-- Les relectures (axes de `relecture`, de `revue-de-ticket`, relecteur de `revue-adversariale`, relecture d'un ticket hors chantier par l'architecte, contre-revue du régime 7) partent d'un agent qui **ne peut que lire** (aucun outil d'écriture ni de commande), sur **Opus**, **sans les consignes du projet dans son contexte** (`P-1`, recommandé) : il lit lui-même les règles là où son message le lui dit.
+- Les relectures (axes de `relecture`, de `revue-de-ticket`, relecteur de `revue-adversariale`, relecture d'un ticket hors chantier par l'architecte, contre-revue du régime 7) partent d'un agent qui **ne peut que lire** (aucun outil d'écriture ni de commande), sur **Opus**, **sans les consignes du projet dans son contexte** (`P-1`) : il lit lui-même les règles là où son message le lui dit.
 - Le classeur de `criticite` part d'un agent **sans aucun outil**, sur Opus, sans les consignes du projet : il ne voit plus que le message fabriqué par `contexte-regle.mjs`.
 - Une session qui n'a pas encore les définitions (instantané ancien) relit comme aujourd'hui, et **le dit** dans sa sortie.
 - Rien à reposer dans un projet : les définitions et les skills qui les nomment sont lus dans le plugin.

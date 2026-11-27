@@ -1,13 +1,11 @@
 # `revue-de-ticket`, `revue-adversariale`, la relecture de l'architecte et la contre-revue du régime 7 lancent `maj-skills:axe-de-relecture`, avec le repli (8.5.0)
 
-Status: needs-info
+Status: ready-for-agent
 Type: task
 Modèle: sonnet — des paragraphes de procédure à reprendre dans quatre skills, trois prompts et deux gabarits de section, sans script ; la définition, la phrase du repli et le banc existent après le ticket 1, que ce ticket étend ; les décisions sont prises dans la spec et ici.
 Blocked by: 1
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `skills/chaine/revue-de-ticket/SKILL.md`, `skills/chaine/revue-de-ticket/references/prompt-ticket.md`, `skills/chaine/revue-de-ticket/references/prompt-documentation.md`, `skills/chaine/revue-de-ticket/references/section-pr.md`, `skills/chaine/revue-de-ticket/references/CONTENU.md`, `skills/chaine/revue-adversariale/SKILL.md`, `skills/chaine/revue-adversariale/references/prompt.md`, `skills/chaine/revue-adversariale/references/section-pr.md`, `skills/chaine/revue-adversariale/references/CONTENU.md`, `skills/chaine/architecte/SKILL.md`, `skills/chaine/architecte/references/lancement.md`, `skills/chaine/chantier/references/regime-7.md`, `scripts/agents.test.mjs`, `scripts/depot.test.mjs`, `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md`, `graphify-out/`
-
-Passe à `ready-for-agent` quand la réponse de `P-1` est écrite ici, dans `## Décisions`.
 
 Programme : [`../../../programmes/definitions-d-agents.programme.md`](../../../programmes/definitions-d-agents.programme.md). Spec : [`../definitions-d-agents.spec.md`](../definitions-d-agents.spec.md) (décisions `A-1`, `A-2`, `A-3`, `A-6`, `A-8`, `A-9`, `A-10`, `A-11`). Suit le ticket [1](1-definitions-relecture-et-criticite.issue.md), qui livre la définition `maj-skills:axe-de-relecture` (sa description nomme déjà les usages de ce ticket : rien à y changer), la phrase du repli et le banc `scripts/agents.test.mjs`.
 
@@ -65,7 +63,7 @@ Lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-agents-prog
 
 ## Décisions
 
-0. **`P-1`** : _(en attente ; l'architecte écrit ici la réponse du produit)_.
+0. **`P-1`** (produit, 2026-11-27, relayé par l'architecte du programme Atalian) : **oui**. Ses mots : les sous-agents doivent « avoir un contexte vierge et ne pas aller voir tout le projet ». Les deux définitions portent `omitClaudeMd: true` ; un agent ne lit que ce que son message lui fait lire (A-11), rien d'autre du dépôt.
 1. **L'agent et le message** : `A-1` (la définition, pour ces cinq usages ; sa description est écrite au ticket 1), `A-2` (aucun prompt ne demande une commande), `A-3` (aucun paramètre `model`). La phrase de `revue-adversariale` l. 50 (« il peut lire le dépôt pour vérifier un constat, il ne modifie rien, il ne lance ni commit ni commande d'écriture ») reste vraie et se garde ; elle peut dire que la définition le rend impossible.
 2. **Les prompts** : `A-11`. `revue-adversariale/references/prompt.md`, `revue-de-ticket/references/prompt-ticket.md` et `prompt-documentation.md` disent de lire **d'abord, avant de juger**, dans le dépôt, le `CLAUDE.md` de la racine, ceux des dossiers que le diff touche, et les fiches `.claude/rules/` ; les fiches de règles sortent de la liste « pour vérifier un point », qui garde le reste. Même phrase que les prompts de `relecture` (ticket 1), `{{BASE}}` en moins. Rien d'autre des prompts ne change.
 3. **Le repli** : `A-6`, la phrase du ticket 1, son noyau exact (« relance le même message, entier, par l'agent générique »), dans chaque passage qui lance l'agent : une phrase par étape, pas une par lancement. Chaque lancement essaie le nom (ticket 1, décision 3).
@@ -110,3 +108,4 @@ Lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-agents-prog
 ## Comments
 
 - 2026-11-25 — Écrit par un sous-agent de l'architecte du programme définitions d'agents, d'après la spec.
+- 2026-11-27 — `P-1` tranchée (oui) ; passé à `ready-for-agent` par l'architecte.

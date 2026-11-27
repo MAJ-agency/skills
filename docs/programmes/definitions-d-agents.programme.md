@@ -4,7 +4,7 @@ Les sous-agents de revue de la chaîne deviennent des sous-agents définis, livr
 
 ## Fiche
 
-Phase: spec — spec et deux tickets relus par un agent neuf (PR brouillon #163), en attente de `P-1`
+Phase: suivi — `P-1` tranchée le 2026-11-27, ticket 1 lancé
 Responsable: Guillaume Jauffret
 Architecte: session_01BxuG2z7ypDYopx6aF3M1sd (lancée le 2026-11-25 par la session mère session_01BxuG32BaRcgwrMvCr1hiet, l'architecte du programme Atalian, mode « Auto », dépôt `skills`)
 Objectif: les sous-agents de relecture et de criticité lancés par leur nom, sur des définitions du plugin qui fixent outils (lecture seule, ou aucun), modèle et contexte ; un repli pour une session dont l'instantané ne les a pas ; une version du plugin et sa note.
@@ -17,13 +17,13 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | tickets 1 et 2 `needs-info`, en attente de `P-1` |
+| 1   | Définitions d'agents | `skills` | [`definitions-d-agents.spec.md`](../issues/definitions-d-agents/definitions-d-agents.spec.md) | sans carte de chantier (A-10) | l'architecte (A-10) | tickets 1 et 2 `ready-for-agent` ; ticket 1 lancé |
 
 ## Decisions-so-far
 
 Décisions du produit :
 
-- P-1 — _(question posée le 2026-11-25, en attente)_ Les agents de relecture et le classeur de criticité partent-ils sans le `CLAUDE.md` ni les fiches `.claude/rules/` du projet dans leur contexte (`omitClaudeMd: true`) ? Recommandé : oui.
+- P-1 — (2026-11-27, relayée par l'architecte du programme Atalian) Les agents de relecture et le classeur de criticité partent sans le `CLAUDE.md` ni les fiches `.claude/rules/` du projet (`omitClaudeMd: true`) : **oui**. Ses mots : « avoir un contexte vierge et ne pas aller voir tout le projet ».
 
 Décisions de l'architecte : A-1 à A-10, écrites avec leur raison dans la spec (`## Décisions de conception`) — deux définitions (`maj-skills:axe-de-relecture`, Read/Grep/Glob ; `maj-skills:classeur-de-criticite`, aucun outil), listées dans `plugin.json` ; lecture seule sans Bash ; Opus, effort non fixé ; corps court, description qui interdit la délégation spontanée ; aucun skill préchargé ; repli sur l'agent générique, dit dans la sortie ; garde des consignes de `relecture` gardée ; skills de rôle inchangés hors deux points ; un banc ; deux tickets en série (8.4.0, 8.5.0), sessions hors chantier.
 

@@ -1,13 +1,11 @@
 # Les deux définitions d'agents du plugin, et `relecture` et `criticite` les lancent par leur nom, avec le repli (8.4.0)
 
-Status: needs-info
+Status: ready-for-agent
 Type: task
 Modèle: opus — deux fichiers neufs dont le frontmatter doit être exact, un banc neuf, cinq prompts à reprendre, des bancs existants qui figent des textes à réécrire sans les assouplir (`scripts/depot.test.mjs`, `scripts/relecture.test.mjs`), et un essai réel des définitions par `claude -p`, lu dans les transcripts des sous-agents ; les décisions sont prises dans la spec.
 Blocked by: —
 Dépendances: — (aucune dépendance nouvelle)
 Fichiers chauds: `agents/axe-de-relecture.md`, `agents/classeur-de-criticite.md`, `.claude-plugin/plugin.json`, `scripts/agents.test.mjs`, `skills/chaine/relecture/SKILL.md`, `skills/chaine/relecture/references/prompt-regles.md`, `skills/chaine/relecture/references/prompt-ticket.md`, `skills/chaine/relecture/references/prompt-documentation.md`, `skills/chaine/relecture/references/prompt-tickets.md`, `skills/chaine/relecture/references/prompt-regles-metier.md`, `skills/chaine/relecture/references/verdict.md`, `skills/chaine/relecture/references/cas-limites.md`, `skills/chaine/relecture/references/CONTENU.md`, `skills/chaine/criticite/SKILL.md`, `skills/chaine/criticite/references/CONTENU.md`, `scripts/depot.test.mjs`, `scripts/relecture.test.mjs`, `CONTEXT.md`, `NOTES-DE-VERSION.md`, `README.md`, `graphify-out/`
-
-Passe à `ready-for-agent` quand la réponse de `P-1` est écrite ici, dans `## Décisions`.
 
 Programme : [`../../../programmes/definitions-d-agents.programme.md`](../../../programmes/definitions-d-agents.programme.md). Spec : [`../definitions-d-agents.spec.md`](../definitions-d-agents.spec.md) (faits établis 1 à 6, décisions `A-1` à `A-12`). Rédigé sur l'option recommandée de `P-1` (contexte sans `CLAUDE.md`) ; si le produit répond non, `omitClaudeMd: true` sort des deux définitions et du banc, et `A-11` se rediscute ; le reste du ticket tient.
 
@@ -63,7 +61,7 @@ Tout est lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-ag
 
 ## Décisions
 
-0. **`P-1`** : _(en attente ; l'architecte écrit ici la réponse du produit)_.
+0. **`P-1`** (produit, 2026-11-27, relayé par l'architecte du programme Atalian) : **oui**. Ses mots : les sous-agents doivent « avoir un contexte vierge et ne pas aller voir tout le projet ». Les deux définitions portent `omitClaudeMd: true` ; un agent ne lit que ce que son message lui fait lire (A-11), rien d'autre du dépôt.
 1. **Les définitions** : `A-1` (nom, outils, modèle, `omitClaudeMd`, rien d'autre dans le frontmatter), `A-2` (Read, Grep, Glob, sans Bash), `A-3` (Opus, ni `effort` ni paramètre `model` passé par un skill), `A-4` (corps court et générique, description qui interdit la délégation spontanée), `A-5` (aucun skill préchargé). Le frontmatter, exactement dans cet ordre :
 
    ```yaml
@@ -139,3 +137,4 @@ Tout est lu dans le dépôt le 2026-11-25, sur la branche `docs/definitions-d-ag
 ## Comments
 
 - 2026-11-25 — Écrit par un sous-agent de l'architecte du programme définitions d'agents, d'après la spec.
+- 2026-11-27 — `P-1` tranchée (oui) ; passé à `ready-for-agent` par l'architecte.
