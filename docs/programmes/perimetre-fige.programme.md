@@ -44,13 +44,15 @@ Décisions de l'architecte : A-1 à A-9, écrites avec leur raison dans la spec 
 
 ## Passation
 
-Écrite le 2026-11-27, à la demande du produit d'archiver la session.
+Écrite le 2026-11-27, le produit ayant demandé un prompt pour qu'un autre architecte reprenne.
 
-- **Où en est le chantier.** La carte et la spec sont dans la PR brouillon `MAJ-agency/skills#165` (branche `claude-jfrt-fam/great-lovelace-pwm6uo`), contrôles verts au sommet de la spec. Aucun ticket n'est écrit. Aucun fichier de skill n'est modifié.
-- **Ce qui attend le produit.** `Q-1` et `Q-2` (spec, « Questions au produit »), posées le 2026-11-27, sans réponse. La spec n'est pas validée.
-- **Suite, dans l'ordre.** Réponses du produit portées dans la carte (`P-2`, `P-3`) et dans la spec ; les quatre tickets écrits par un sous-agent, relus par un agent neuf, ajoutés à la PR #165, dont le périmètre déclaré les couvre ; PR sortie du brouillon, commentaire `à-fusionner au sommet <sha>` puis label `à-fusionner` ; un capitaine pour `skills` s'il n'y en a pas en vie ; ticket 1 lancé depuis `main` après la fusion de `MAJ-agency/skills#166`.
-- **Sessions en vie.** Aucune session lancée par cet architecte. L'architecte du programme « définitions d'agents » (session_01BxuG2z7ypDYopx6aF3M1sd) a dit qu'il préviendrait de la fusion de la PR #166 : la session de suite lit l'état de cette PR sur GitHub.
-- **Environnement de la session de suite.** Ouverte par le produit, en « Auto », sur `MAJ-agency/skills` ; `MAJ-agency/essai-relecture-8` pour le ticket 4 ; `MAJ-agency/atalian-offer-generator` en lecture, seulement pour relire les verdicts d'origine.
+- **Où en est le chantier.** La spec est validée par le produit (`P-1` à `P-3`). La carte et la spec sont dans la PR brouillon `MAJ-agency/skills#165` (branche `claude-jfrt-fam/great-lovelace-pwm6uo`, à jour avec `main` en 8.5.0). Aucun fichier de skill n'est modifié.
+- **Tickets.** Quatre tickets sont prévus (spec, « Les tickets, dans l'ordre »). S'ils sont sous `docs/issues/perimetre-fige/issues/` sur la branche, un sous-agent les a écrits et il reste à les faire relire par un agent neuf. S'ils n'y sont pas, ils sont à écrire.
+- **Suite, dans l'ordre.** Tickets relus par un agent neuf et corrigés ; PR #165 sortie du brouillon, sans sortir de son périmètre déclaré (carte, spec, tickets) ; commentaire `à-fusionner au sommet <sha>` puis label `à-fusionner` ; un capitaine lancé pour `skills` (procédure d'un dépôt sans la chaîne, `architecte/references/lancement.md`) ; ticket 1 lancé depuis `main`, puis les tickets 2 et 3 en série ; ticket 4 sur `essai-relecture-8`.
+- **Ce qui attend le produit.** Rien.
+- **Sessions en vie.** Aucune session lancée par cet architecte, aucun réveil programmé, aucun suivi de PR.
+- **À transmettre au programme Atalian.** Deux passages de `atalian-offer-generator` provoquent un constat faux à chaque tour (`GLOSSARY.md:320`, ticket `.14:77`) : journal du 2026-11-27, A-9.
+- **Environnement de la session de suite.** Ouverte par le produit, en « Auto », sur `MAJ-agency/skills` ; `MAJ-agency/essai-relecture-8` pour le ticket 4.
 
 ## Journal
 
