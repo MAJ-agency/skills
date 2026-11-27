@@ -5,6 +5,7 @@
 - Contrôle des preuves joué par la revue de ticket, faute de relecteur indépendant (critère `T3`, toutes criticités)
 - Cas laissés à un autre ticket (`T3`, (d)) : cas `<règle>#<id>` porté par `<ticket>` | aucun
 - Résultat : <n> bloquants corrigés · <n> à corriger (<n> corrigés, <n> justifiés) · <n> doutes · <n> écartés
+- Agent des relecteurs : maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli)
 
 | Axe | Constat (fichier:ligne — écart) | Critère | Gravité | Suite |
 | --- | ------------------------------- | ------- | ------- | ----- |

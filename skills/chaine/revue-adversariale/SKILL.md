@@ -35,7 +35,7 @@ REVUE_DIR=<scratchpad>/revue bash scripts/chaine/diff-revue.sh [<base>] [<zone>�
 
 Base par défaut `origin/develop` ; `origin/sujet/<nom>` pour une sous-PR de sujet. Le script écrit `diff.patch` et `stat.txt`, sans lockfile, index générés ni snapshots ; migrations, seeds et specs restent. Fini quand `diff.patch` existe, non vide, et que le sommet relu est connu (le script l'affiche). Sortie 1 (base non rapatriée, ou diff vide) : le lire, ne lancer aucun sous-agent ; un lot de zone vide n'a pas de sous-agent.
 
-**Diff de plus de 2 000 lignes :** un lot par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` + `scripts`), passée en `<zone>` avec un `REVUE_DIR` par lot. Un sous-agent par lot, lancés en parallèle, mêmes critères.
+**Diff de plus de 2 000 lignes :** un lot par zone (`apps/api`, `apps/web`, `apps/mobile`, `packages` + `scripts`), passée en `<zone>` avec un `REVUE_DIR` par lot. Un sous-agent par lot, lancés en parallèle, mêmes critères, chacun par `maj-skills:axe-de-relecture` (étape 3) ; au repli, la session relance le même message, entier, par l'agent générique.
 
 ## Étape 2 — Chemins sensibles
 
@@ -47,7 +47,7 @@ Les chemins sont ceux de `.claude/chaine.json` (`cheminsSensibles`) : authentifi
 
 ## Étape 3 — Lancer le sous-agent
 
-Outil **Agent**, un sous-agent neuf, en lecture seule : il peut lire le dépôt pour vérifier un constat, il ne modifie rien, il ne lance ni commit ni commande d'écriture. Ne lui transmettre **ni** l'historique de la session, **ni** l'intention de la PR, **ni** sa description : il juge le code, pas l'explication.
+Outil **Agent**, agent `maj-skills:axe-de-relecture` (paramètre `subagent_type`), sans paramètre `model` : un sous-agent neuf, en lecture seule. Il peut lire le dépôt pour vérifier un constat, il ne modifie rien, il ne lance ni commit ni commande d'écriture ; la définition le rend impossible (Read, Grep, Glob seulement, Opus, sans les consignes du projet : le prompt lui fait lire d'abord les règles du projet). Chaque lancement essaie ce nom. Si l'outil répond « Agent type 'maj-skills:axe-de-relecture' not found » (une session partie d'un instantané du plugin antérieur à 8.4.0), la session relance le même message, entier, par l'agent générique, sans paramètre `model`, et le dit dans la section de PR (ligne « Agent des relecteurs : ») ; ce repli n'est pas un échec de l'outil : la revue est jouée. Ne lui transmettre **ni** l'historique de la session, **ni** l'intention de la PR, **ni** sa description : il juge le code, pas l'explication.
 
 **Prompt exact** : [`references/prompt.md`](references/prompt.md). Remplacer `{{PROJET}}` par le nom du projet, `<critères>` par le bloc de code du fichier de critères du projet (socle **et** projet, sans le réduire) et `<diff>` par le contenu de `diff.patch` (ou du lot).
 
@@ -58,8 +58,8 @@ La session relit chaque constat dans le code, ligne citée ouverte. **Sans règl
 ## Étape 5 — Corriger, répondre, étiqueter
 
 1. **Bloquants** : corrigés, chacun avec le test qui l'aurait attrapé quand c'est possible. **À corriger** : corrigés, ou laissés avec une raison écrite. **Doutes** : une ligne de réponse chacun dans la section de PR.
-2. Si les corrections débordent des lignes signalées, **relancer une revue** sur le nouveau diff, avec un sous-agent neuf. Deux tours au plus : au-delà, le dire à l'humain plutôt que boucler.
-3. **Ajouter** la section de [`references/section-pr.md`](references/section-pr.md) au corps de la PR, sans effacer ce qui y est. Un titre `## Revue adversariale` hors bloc de code : sans lui, le capitaine renvoie toute PR qui touche du code. Lire le corps, concaténer, réécrire le tout : par l'outil GitHub MCP, `pull_request_read` puis `update_pull_request` avec le corps complet ; avec `gh`, en REST (`gh api 'repos/{owner}/{repo}/pulls/<n>' --jq .body`, puis `gh api -X PATCH … -F 'body=@body.md'`) : `gh pr edit` passe par GraphQL, refusé depuis les sessions cloud.
+2. Si les corrections débordent des lignes signalées, **relancer une revue** sur le nouveau diff, avec un sous-agent neuf lancé par `maj-skills:axe-de-relecture` (même repli : la session relance le même message, entier, par l'agent générique). Deux tours au plus : au-delà, le dire à l'humain plutôt que boucler.
+3. **Ajouter** la section de [`references/section-pr.md`](references/section-pr.md) au corps de la PR, sans effacer ce qui y est, avec sa ligne « Agent des relecteurs » (la dernière des lignes de tête, après « Résultat »). Un titre `## Revue adversariale` hors bloc de code : sans lui, le capitaine renvoie toute PR qui touche du code. Lire le corps, concaténer, réécrire le tout : par l'outil GitHub MCP, `pull_request_read` puis `update_pull_request` avec le corps complet ; avec `gh`, en REST (`gh api 'repos/{owner}/{repo}/pulls/<n>' --jq .body`, puis `gh api -X PATCH … -F 'body=@body.md'`) : `gh pr edit` passe par GraphQL, refusé depuis les sessions cloud.
 4. Poser `à-fusionner` (`CLAUDE.md` § « Fusion vers `develop` : une file, un capitaine »).
 
 **Le relecteur humain** relit cette section avant que la PR ne passe. Il doit pouvoir **expliquer le diff** à partir d'elle et du code. S'il n'y arrive pas, il retire `à-fusionner` et pose sa question sur la PR. Un code que personne dans l'équipe ne sait expliquer est une dette, même vert en CI.
