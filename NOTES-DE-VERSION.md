@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.4.1 — 2026-11-27
+## 8.5.1 — 2026-11-27
 
 ### Ce qui change
 
@@ -15,6 +15,21 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.5.0 — 2026-11-27
+
+### Ce qui change
+
+- **Les autres relectures de la chaîne se lancent par `maj-skills:axe-de-relecture`**, sans paramètre `model` : les trois axes de `revue-de-ticket` (et leurs tours de correction), le relecteur de `revue-adversariale` et ses lots, la relecture d'un ticket hors chantier que l'architecte lance, la contre-relecture de l'architecte en régime 7 et dans un dépôt sans la chaîne, la contre-revue du conducteur en régime 7. Leurs sous-agents n'ont plus que Read, Grep et Glob, tournent sur Opus et ne reçoivent plus le `CLAUDE.md` ni les fiches `.claude/rules/` de la session.
+- **Les prompts de `revue-adversariale` et de `revue-de-ticket` font lire les règles d'abord** : avant de juger, l'agent lit, dans le dépôt, le `CLAUDE.md` de la racine, celui de chaque dossier que le diff touche et les fiches `.claude/rules/`, qui n'arrivent plus d'elles-mêmes. Le reste des messages ne change pas.
+- **Le diff de la contre-revue et de la contre-relecture** : l'agent n'a pas Bash. La session qui le lance lui donne le diff dans un fichier (`diff-revue.sh`, ou `git diff` écrit dans le scratchpad) et lui dit de le lire.
+- **Une ligne de plus dans la section de PR** : `- Agent des relecteurs :`, dans les deux gabarits `section-pr.md`, juste après `- Résultat :`. Elle nomme `maj-skills:axe-de-relecture` ou le repli.
+- **Le repli** : une session dont l'instantané du plugin est antérieur à 8.4.0 n'a pas la définition. L'outil répond « Agent type 'maj-skills:axe-de-relecture' not found » ; la session relance le même message, entier, par l'agent générique, et le dit là où la relecture rend son résultat : la section de PR (`revue-de-ticket`, `revue-adversariale`), la fin du commentaire de verdict de la contre-relecture (jamais sa première ligne), le journal de la carte du chantier pour la contre-revue du conducteur, `## Comments` du ticket pour la relecture que l'architecte fait faire avant un lancement.
+- **Le banc `scripts/agents.test.mjs`** tient ces skills comme ceux de 8.4.0 : le nom, le noyau du repli, la ligne de la section de PR, la phrase de lecture des règles.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien à reposer** : les skills, les prompts et les gabarits de section sont lus dans le plugin. Une session lancée avant la mise à jour relit par l'agent générique et le dit.
 
 ## 8.4.0 — 2026-11-27
 

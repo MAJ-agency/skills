@@ -193,3 +193,82 @@ test("« Agent défini » est au glossaire, juste après « Axe », sa définiti
   const axe = lignes.indexOf("**Axe**:");
   assert.ok(axe >= 0 && axe < i && lignes.slice(axe + 1, i).every((l) => !l.startsWith("**")), "juste après « Axe »");
 });
+
+// Ticket 2 : les autres relectures de la chaîne (revue-de-ticket, revue-adversariale, l'architecte, le régime 7).
+const NOM = "maj-skills:axe-de-relecture";
+const REGLES_DU_DEPOT =
+  "Ces règles ne sont pas dans ton contexte : avant de juger, tu lis d'abord, dans le dépôt, le CLAUDE.md de la racine, celui de chaque dossier que le diff touche et de ses dossiers parents, et les fiches .claude/rules/*.md.";
+const LIGNE_RELECTEURS =
+  "- Agent des relecteurs : maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli)";
+const CHAINE = "skills/chaine";
+const section = (texte, debut) => texte.split(/^## /m).find((s) => s.startsWith(debut));
+const ligne = (texte, marque) => texte.split("\n").find((l) => l.includes(marque));
+
+test("les relectures de revue-de-ticket, revue-adversariale, de l'architecte et du régime 7 se lancent par maj-skills:axe-de-relecture, avec le repli (A-1, A-6, A-8)", () => {
+  const ticket = lire(`${CHAINE}/revue-de-ticket/SKILL.md`);
+  const adverse = lire(`${CHAINE}/revue-adversariale/SKILL.md`);
+  const regime7 = lire(`${CHAINE}/chantier/references/regime-7.md`);
+  const cibles = [
+    ["revue-de-ticket/SKILL.md, étape 2", section(ticket, "Étape 2 ")],
+    ["revue-de-ticket/SKILL.md, étape 4", section(ticket, "Étape 4 ")],
+    ["revue-adversariale/SKILL.md, lots", ligne(adverse, "**Diff de plus de 2 000 lignes")],
+    ["revue-adversariale/SKILL.md, étape 3", section(adverse, "Étape 3 ")],
+    ["revue-adversariale/SKILL.md, étape 5", section(adverse, "Étape 5 ")],
+    ["architecte/SKILL.md, § 5", ligne(lire(`${CHAINE}/architecte/SKILL.md`), "Un ticket hors chantier qu'il lance lui-même")],
+    ["lancement.md, « contre-relit lui-même »", ligne(lire(`${CHAINE}/architecte/references/lancement.md`), "contre-relit lui-même")],
+    ["regime-7.md, contre-revue du conducteur", ligne(regime7, "**La contre-revue du conducteur**")],
+    ["regime-7.md, contre-relecture de l'architecte", ligne(regime7, "contre-relit lui-même")],
+  ];
+  for (const [nom, texte] of cibles) {
+    assert.ok(texte, `${nom} : le passage existe`);
+    assert.ok(plat(texte).includes(NOM), `${nom} : nomme ${NOM}`);
+    assert.ok(plat(texte).includes(REPLI), `${nom} : le noyau du repli, « ${REPLI} »`);
+  }
+  assert.ok(plat(section(ticket, "Étape 2 ")).includes("sans paramètre `model`"), "revue-de-ticket étape 2 : sans paramètre `model`");
+  assert.ok(plat(section(adverse, "Étape 3 ")).includes("sans paramètre `model`"), "revue-adversariale étape 3 : sans paramètre `model`");
+});
+
+test("les deux section-pr.md portent la ligne « Agent des relecteurs » juste après « Résultat », et les CONTENU.md disent la définition, la lecture des règles et le repli (A-6, décision 4)", () => {
+  for (const f of ["revue-de-ticket", "revue-adversariale"]) {
+    const l = lire(`${CHAINE}/${f}/references/section-pr.md`).split("\n");
+    const i = l.findIndex((x) => x.startsWith("- Résultat :"));
+    assert.ok(i > 0, `${f}/section-pr.md : la ligne « Résultat »`);
+    assert.equal(l[i + 1], LIGNE_RELECTEURS, `${f}/section-pr.md : « Agent des relecteurs » juste après « Résultat »`);
+    assert.equal(l[i + 2], "", `${f}/section-pr.md : puis la ligne vide et le tableau`);
+    assert.ok(!l[i + 1].includes("`/security-review` :"), "la ligne ne se lit pas comme la ligne de /security-review");
+    const contenu = plat(lire(`${CHAINE}/${f}/references/CONTENU.md`));
+    for (const phrase of [NOM, REPLI, "les règles du projet d'abord"])
+      assert.ok(contenu.includes(phrase), `${f}/CONTENU.md : « ${phrase} »`);
+  }
+  assert.ok(plat(lire(`${CHAINE}/revue-de-ticket/SKILL.md`)).includes("Agent des relecteurs"), "revue-de-ticket/SKILL.md : cite la ligne de la section");
+  assert.ok(plat(lire(`${CHAINE}/revue-adversariale/SKILL.md`)).includes("Agent des relecteurs"), "revue-adversariale/SKILL.md : cite la ligne de la section");
+});
+
+test("le repli de la contre-relecture de l'architecte, de la contre-revue du conducteur et de la relecture d'un ticket hors chantier s'écrit là où chacune rend son résultat (décision 4)", () => {
+  const lancement = plat(ligne(lire(`${CHAINE}/architecte/references/lancement.md`), "contre-relit lui-même"));
+  assert.match(lancement, /à la fin du commentaire[^.]*jamais en première ligne/, "lancement.md : la ligne du repli à la fin du verdict, jamais en première ligne");
+  assert.ok(lancement.includes("diff-revue.sh") && lancement.includes("n'a pas Bash"), "lancement.md : le diff dans un fichier, l'agent n'a pas Bash (décision 6)");
+  assert.ok(lancement.includes("règles du projet d'abord"), "lancement.md : les règles lues d'abord (A-11)");
+  const regime7 = lire(`${CHAINE}/chantier/references/regime-7.md`);
+  const conducteur = plat(ligne(regime7, "**La contre-revue du conducteur**"));
+  for (const m of ["journal de la carte du chantier", "dans la liste à la fille", "sans repli, aucune de ces lignes"])
+    assert.ok(conducteur.includes(m), `regime-7.md, contre-revue du conducteur : « ${m} »`);
+  assert.ok(plat(ligne(regime7, "contre-relit lui-même")).includes("au repli, il relance"), "regime-7.md : la ligne de l'architecte écrite seulement au repli");
+  assert.ok(plat(ligne(lire(`${CHAINE}/architecte/references/lancement.md`), "contre-relit lui-même")).includes("sans repli, cette ligne n'est pas écrite"), "lancement.md : la ligne écrite seulement au repli");
+  assert.ok(conducteur.includes("diff-revue.sh") && conducteur.includes("n'a pas Bash"), "regime-7.md : le diff dans un fichier");
+  assert.match(plat(ligne(regime7, "contre-relit lui-même")), /à la fin du commentaire[^.]*jamais en première ligne/, "regime-7.md : même règle que lancement.md");
+  assert.ok(plat(ligne(lire(`${CHAINE}/architecte/SKILL.md`), "Un ticket hors chantier qu'il lance lui-même")).includes("## Comments"), "architecte/SKILL.md § 5 : le repli noté sous ## Comments du ticket");
+});
+
+test("les prompts de revue-adversariale et de revue-de-ticket font lire les règles du projet d'abord, hors de la liste « pour vérifier un point » (A-11)", () => {
+  for (const f of ["revue-adversariale/references/prompt.md", "revue-de-ticket/references/prompt-ticket.md", "revue-de-ticket/references/prompt-documentation.md"]) {
+    const texte = plat(lire(`${CHAINE}/${f}`));
+    assert.ok(texte.includes(REGLES_DU_DEPOT), `${f} : les règles lues d'abord (A-11)`);
+    assert.ok(!texte.includes("{{BASE}}"), `${f} : pas de {{BASE}}, le dépôt relu est le répertoire courant`);
+    const debut = texte.indexOf("Tu travailles en lecture seule");
+    const fin = texte.search(/Rien d'autre|tu ne modifies rien/);
+    assert.ok(debut > texte.indexOf(REGLES_DU_DEPOT), `${f} : les règles lues avant la liste de lecture`);
+    assert.ok(debut >= 0 && fin > debut, `${f} : la liste de lecture`);
+    assert.doesNotMatch(texte.slice(debut, fin), /CLAUDE\.md|\.claude\/rules/, `${f} : aucune fiche de règles dans la liste « pour vérifier un point »`);
+  }
+});
