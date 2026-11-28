@@ -124,11 +124,23 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
   exiger(entre(texte, "## Ne jamais", "\n- Lancer une fille"), ["Contre-relire une PR, relayer ou résumer un constat, poser `à-fusionner` sur une PR en régime 8", "ou appeler `archive_session` (`P-62`)"], "chantier, Ne jamais");
 });
 
+test("les skills fusionner et sujet nomment la commande de la demande, le README cite demande.mjs (ticket 120, A-241)", () => {
+  const fus = lire(`${C}/fusionner/SKILL.md`);
+  const suj = lire(`${C}/sujet/SKILL.md`);
+  for (const [nom, t] of [["fusionner", fus], ["sujet", suj]]) {
+    assert.ok(!t.includes("le commentaire `À relire`"), `${nom} : « le commentaire À relire »`);
+    assert.ok(!t.includes("`À relire`, puis"), `${nom} : « À relire, puis »`);
+  }
+  exiger(entre(fus, "| Session de travail", "\n"), ["`node scripts/chaine/demande.mjs`", "puis `à-relire`"], "fusionner, Session de travail");
+  exiger(entre(suj, "La relecture se demande après le dernier push", "\n"), ["`node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur, ou —>`", "puis l'étiquette `à-relire`"], "sujet, la relecture");
+  assert.match(lire("README.md"), /decision-relecteur\.mjs[^\n]*demande\.mjs/, "README : demande.mjs");
+});
+
 test("le capitaine en régime 8 : « Le verdict », la sous-PR sautée qui garde son sujet, la table des rôles, l'archivage (A-91, A-105, A-185 point 2, A-188)", () => {
   const texte = lire(`${C}/fusionner/SKILL.md`);
   const regle = entre(texte, "## La règle (`CLAUDE.md` § « Fusion vers develop »)", "## La règle d'ascendance");
   exiger(regle, [
-    "| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push",
+    "| Session de travail   | demande la relecture (la ligne que rend `node scripts/chaine/demande.mjs`, puis `à-relire`) après son dernier push",
     "| Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus",
     "| Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
     "| remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |",
