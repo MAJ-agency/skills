@@ -272,7 +272,7 @@ export function bilan(liste, resultats, { parallele, duree }) {
   return lignes;
 }
 
-/** `{ diagnostics, fautes }` : le bilan, en vert comme en rouge ; les fautes (échecs, plafond, couverture, plancher), vides si tout va bien. */
+/** `{ diagnostics, fautes }` : le bilan, en vert comme en rouge ; les fautes (échecs, plafond, couverture, plancher, sauts : hors de `admis`, todo, entrée admise non sautée), vides si tout va bien. */
 export function conclure(liste, resultats, { parallele, duree, depasse, plancher, admis = [] }) {
   const fautes = [];
   for (const r of resultats) if (r && r.code !== 0) fautes.push(recit(r));

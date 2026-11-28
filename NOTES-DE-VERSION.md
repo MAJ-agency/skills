@@ -8,7 +8,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Un test sauté ou en « todo » sans déclaration dans un banc posé rougit la suite du plugin** (`A-266` à `A-268`) : `scripts/poses.test.mjs` lit désormais les sauts (`skip`, `t.skip()`, `test.skip`, `it.skip`, `describe.skip`, `{ todo }`) à tout niveau et les compare à une liste fermée, `scripts/sautes-admis.mjs`, qui tient chaque saut admis avec sa raison. Un « todo » n'est jamais admis ; une entrée admise qui ne saute plus rougit aussi. `scripts/references-posees.test.mjs` lit la même liste.
 
-### Ce qu'un projet fait
+### Ce qu'un projet fait pour en profiter
 
 Rien à reposer : `scripts/poses.test.mjs`, `scripts/references-posees.test.mjs`, `scripts/tranches.mjs` et `scripts/sautes-admis.mjs` ne sont jamais posés.
 

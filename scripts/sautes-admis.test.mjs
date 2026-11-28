@@ -13,5 +13,5 @@ test("`sautesAttendus` rend les entrées des seuls bancs donnés, triées par ba
   assert.deepEqual(sautesAttendus(["scripts/chaine/autre.test.mjs"]), []);
   assert.deepEqual(sautesAttendus([]), []);
   const tri = sautesAttendus(SAUTES.map((s) => s.banc));
-  assert.deepEqual(tri, [...tri].sort((a, b) => a.banc.localeCompare(b.banc) || a.nom.localeCompare(b.nom)));
+  assert.deepEqual(tri, [...tri].sort((a, b) => (a.banc < b.banc ? -1 : a.banc > b.banc ? 1 : a.nom < b.nom ? -1 : a.nom > b.nom ? 1 : 0)));
 });
