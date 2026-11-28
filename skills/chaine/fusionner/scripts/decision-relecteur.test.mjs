@@ -3,7 +3,7 @@
 // jouet, aucun processus, aucune horloge : l'instant est une entrée.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ILLISIBLE, MENTION_ARBITRAGE, TEXTE_ILLISIBLE, TEXTE_PANNE, TEXTE_PLAFOND, decider, ecrireDistribution, ecrireNote, lireDistribution, lireMarques, sommetsDesTours, tourValide, tours } from './decision-relecteur.mjs';
+import { ILLISIBLE, MENTION_ARBITRAGE, TEXTE_ILLISIBLE, TEXTE_PANNE, TEXTE_PLAFOND, VERDICT_ILLISIBLE, decider, ecrireDistribution, ecrireNote, lireDistribution, lireMarques, sommetsDesTours, tourValide, tours } from './decision-relecteur.mjs';
 import { LectureIllisible, PIED, ecrireVerdict } from './verdict.mjs';
 
 const [V1, V2, V3, V4, T, V5, T2] = ['a', 'b', 'c', 'd', 'e', 'f', '9'].map((c) => c.repeat(40));
@@ -527,6 +527,16 @@ test("A-115 — une marque presque à la forme n'est jamais ignorée : une ligne
     ['Arbitrage — R3 — écarté', 'Arbitrage —'],
     [`${ECARTE}\net voici pourquoi`, 'Arbitrage —'],
     ['Lecture illisible', 'Lecture illisible'],
+    // Le périmètre (ticket perimetre-fige 2) : chaque préfixe sans sa forme.
+    ['Périmètre — correction\nFichiers: docs/', 'Périmètre —'],
+    ['Périmètre — correction\nFichiers: docs/*\nDécisions: aucune\nSujets: glossaire', 'Périmètre —'],
+    ['Périmètre — correction\nFichiers: docs/, \nDécisions: aucune\nSujets: glossaire', 'Périmètre —'],
+    ['Périmètre — correction\nFichiers: docs/\nDécisions: aucune\nSujets: glossaire\nmerci', 'Périmètre —'],
+    ['Périmètre absent.', 'Périmètre absent'],
+    ['Périmètre dépassé', 'Périmètre dépassé'],
+    ['Périmètre dépassé — docs/a.md\ndocs/b.md', 'Périmètre dépassé'],
+    ['Suite — le glossaire', 'Suite —'],
+    ['Suite — le glossaire —  ', 'Suite —'],
   ]) {
     assert.deepEqual(joue({ commentaires: fil(...base, corps) }), ILL(`commentaire 103 : préfixe « ${prefixe} » sans la forme de sa marque`), corps);
     assert.throws(() => lireMarques(fil(...base, corps)), LectureIllisible, corps);
@@ -1108,4 +1118,138 @@ test("ticket 96 (k, l, m) — une trace hors forme ne tait rien ; une seconde de
     const [c] = fil({ corps: DEMANDE(), edite: true });
     assert.equal(joue({ commentaires: [{ ...c, id }] }).geste, 'distribuer', String(id));
   }
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Le périmètre d'une PR de documentation (programme « périmètre figé », ticket 2).
+const PERIM = (fichiers = 'docs/a.md, GLOSSARY.md', objet = 'correction de 11 remarques') => `Périmètre — ${objet}\nFichiers: ${fichiers}\nDécisions: aucune\nSujets: le glossaire`;
+const DOC = (fichiers, delta) => ({ documentation: true, fichiers, ...(delta === undefined ? {} : { delta }) });
+// Un verdict refusé, son corps à la forme de `verdict.md` : les lignes du tableau, puis « Écartés au tri ».
+const REFUS = (tour, session, sommet, { lignes = ['| bloquant | Ticket | `T3` | `docs/a.md:12` | Le terme manque. | aucun test, un écart de documentation |'], ecartes = [] } = {}) =>
+  `${ecrireVerdict({ sommet, tour, verdict: 'refusé', bloquants: lignes.filter((l) => l.startsWith('| bloquant')).length || 1, session, securite: null })}\n\nPR #12 vers \`develop\`.\n\n| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |\n| --- | --- | --- | --- | --- | --- |\n${lignes.join('\n')}\n\nÉcartés au tri : ${ecartes.length}.\n${ecartes.join('\n')}${ecartes.length ? '\n' : ''}\nHors du diff relu : aucun`;
+const ABSENT = (texte = 'PR 12 : périmètre absent : écrire le commentaire `Périmètre — …`, puis redemander la relecture') => ({ regle: 6, geste: 'perimetre', commentaire: 'Périmètre absent', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES(texte) });
+const DEPASSE = (...fichiers) => ({ regle: 6, geste: 'perimetre', commentaire: `Périmètre dépassé — ${fichiers.join(', ')}`, poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES(`PR 12 : périmètre dépassé : ${fichiers.join(', ')}`) });
+const TOUR1 = { regle: 6, geste: 'distribuer', tour: 1, sommet: V1, nombre: 1, preferees: [], mention: null };
+const TOUR2 = { regle: 6, geste: 'distribuer', tour: 2, sommet: V2, nombre: 1, preferees: ['r1'], mention: null };
+// Le fil du tour 1 refusé, puis la demande au sommet V2.
+const TOUR1_REFUSE = (options) => [PERIM(), DEMANDE(), D(1, V1, ['r1']), REFUS(1, 'r1', V1, options), DEMANDE(V2)];
+
+test('périmètre — les quatre marques se lisent chacune dans sa liste ; la déclaration à la forme, ses fichiers séparés par « , »', () => {
+  const m = lireMarques(fil(PERIM('docs/, CONTEXT.md'), PERIM('tout/'), 'Périmètre absent', 'Périmètre dépassé — docs/adr/b.md, docs/c.md', 'Suite — le glossaire — docs/issues/x/issues/3-suite.issue.md'));
+  assert.deepEqual(m.perimetres.map(({ objet, fichiers, rang }) => ({ objet, fichiers, rang })), [{ objet: 'correction de 11 remarques', fichiers: ['docs/', 'CONTEXT.md'], rang: 0 }, { objet: 'correction de 11 remarques', fichiers: ['tout/'], rang: 1 }]);
+  assert.equal(m.perimetresAbsents.length, 1);
+  assert.deepEqual(m.perimetresDepasses.map((x) => x.fichiers), [['docs/adr/b.md', 'docs/c.md']]);
+  assert.deepEqual(m.suites.map(({ objet, cible }) => ({ objet, cible })), [{ objet: 'le glossaire', cible: 'docs/issues/x/issues/3-suite.issue.md' }]);
+  assert.equal(m.dernier, 4, 'des marques : elles comptent dans `dernier`');
+  // Le pied de page des sessions cloud est retiré avant la lecture de la forme.
+  assert.equal(lireMarques(fil(`${PERIM()}\n\n---\n${PIED}`)).perimetres.length, 1);
+  // D'un compte sans droit : ignorée, comme toute marque.
+  assert.equal(lireMarques(fil({ corps: PERIM(), de: 'NONE' })).perimetres.length, 0);
+});
+
+test('périmètre — une déclaration modifiée après sa création rend le geste `illisible`, sa cause dite, puis rien tant que la trace est la plus récente', () => {
+  const modifiee = fil({ corps: PERIM(), edite: true }, DEMANDE());
+  const cause = 'commentaire 100 : déclaration de périmètre modifiée après sa création';
+  assert.deepEqual(joue({ commentaires: modifiee, perimetre: DOC(['docs/a.md']) }), { regle: null, geste: 'illisible', commentaire: `${TEXTE_ILLISIBLE}${cause}`, lignes: [{ a: 'architecte', session: null, texte: `PR 12 : lecture illisible : ${cause}` }] });
+  assert.throws(() => lireMarques(modifiee), LectureIllisible);
+  assert.deepEqual(joue({ commentaires: fil({ corps: PERIM(), edite: true }, DEMANDE(), `${TEXTE_ILLISIBLE}${cause}`) }), { regle: null, geste: 'rien', raison: 'illisible-signale' });
+  // Modifiée par un compte sans droit : écartée, comme tout commentaire d'un tel compte.
+  assert.deepEqual(joue({ commentaires: fil({ corps: PERIM(), edite: true, de: 'NONE' }, DEMANDE()), perimetre: DOC(['docs/a.md']) }), ABSENT());
+});
+
+test("le geste perimetre : ses lignes, à l'auteur et au conducteur, pour l'absent et pour le dépassé", () => {
+  // Tour 1 sans déclaration : `Périmètre absent`, aucune distribution.
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE()), perimetre: DOC(['docs/a.md']) }), ABSENT());
+  // Tour 1, un fichier hors de `Fichiers:` : le dépassé, les fichiers triés, sans doublon.
+  assert.deepEqual(joue({ commentaires: fil(PERIM(), DEMANDE()), perimetre: DOC(['docs/z.md', 'docs/a.md', 'docs/b.md', 'GLOSSARY.md']) }), DEPASSE('docs/b.md', 'docs/z.md'));
+  // Couvert : un chemin se couvre lui-même, un dossier tout ce qu'il contient, à la casse et à la forme NFC près.
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs/, ./CONTEXT.md'), DEMANDE()), perimetre: DOC(['docs/adr/x.md', 'context.md', 'docs/a.md']) }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs/é.md'), DEMANDE()), perimetre: DOC(['docs/é.md']) }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs'), DEMANDE()), perimetre: DOC(['docs/a.md']) }), DEPASSE('docs/a.md'), 'un dossier finit par `/`');
+  // Les lignes ne sont jamais un constat : le texte de la marque, rien d'autre.
+  for (const g of [joue({ commentaires: fil(DEMANDE()), perimetre: DOC(['docs/a.md']) }), joue({ commentaires: fil(PERIM(), DEMANDE()), perimetre: DOC(['docs/b.md']) })])
+    assert.ok(g.lignes.every((l) => /^PR 12 : périmètre (absent|dépassé) : /.test(l.texte)), JSON.stringify(g.lignes));
+});
+
+test('périmètre — rejoué : la marque de refus plus récente que la dernière demande, le geste tient `à-reprendre` sans réécrire ; une demande neuve refait le contrôle', () => {
+  const refuse = [DEMANDE(), 'Périmètre absent'];
+  assert.deepEqual(joue({ commentaires: fil(...refuse), perimetre: DOC(['docs/a.md']), etiquettes: ['à-relire', 'à-reprendre'] }), { regle: 6, geste: 'etiqueter', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES('PR 12 : périmètre absent : écrire le commentaire `Périmètre — …`, puis redemander la relecture') });
+  assert.deepEqual(joue({ commentaires: fil(...refuse), perimetre: DOC(['docs/a.md']), etiquettes: ['à-relire'] }).geste, 'etiqueter', 'jamais un second commentaire');
+  assert.deepEqual(joue({ commentaires: fil(PERIM(), ...refuse), perimetre: DOC(['docs/a.md']) }).geste, 'etiqueter', 'une déclaration écrite sans demande neuve ne refait pas le contrôle');
+  assert.deepEqual(joue({ commentaires: fil(...refuse, PERIM(), DEMANDE()), perimetre: DOC(['docs/a.md']) }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(PERIM(), DEMANDE(), 'Périmètre dépassé — docs/b.md'), perimetre: DOC(['docs/b.md']) }).lignes, LIGNES('PR 12 : périmètre dépassé : docs/b.md'));
+  assert.deepEqual(joue({ commentaires: fil(PERIM(), DEMANDE(), 'Périmètre dépassé — docs/b.md', DEMANDE()), perimetre: DOC(['docs/b.md']) }), DEPASSE('docs/b.md'));
+});
+
+test('périmètre — seule la première déclaration compte : une seconde, plus large, est ignorée', () => {
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs/a.md'), PERIM('docs/'), DEMANDE()), perimetre: DOC(['docs/a.md', 'docs/b.md']) }), DEPASSE('docs/b.md'));
+});
+
+test('périmètre — la PR #6 (atalian-offer-generator) : un tour refusé, puis une ADR que ni `Fichiers:` ni un bloquant ne nomment : aucun tour neuf', () => {
+  const adr = 'docs/adr/ADR_ALL_ARC-13-perimetre.md';
+  const commentaires = fil(PERIM('docs/a.md, GLOSSARY.md'), DEMANDE(), D(1, V1, ['r1']), REFUS(1, 'r1', V1), DEMANDE(V2));
+  const g = joue({ commentaires, tete: V2, perimetre: DOC(['docs/a.md', adr], ['docs/a.md', adr]) });
+  assert.deepEqual(g, DEPASSE(adr));
+  assert.equal(comptes({ commentaires, tete: V2 }), 1, 'le compte des tours reste à un');
+});
+
+test('périmètre — fichiers admis aux tours suivants : `Fichiers:`, un bloquant du dernier refus, un écarté « faux » ; un écarté d\'un autre motif est refusé', () => {
+  const ecartes = ['- `docs/f.md:4` : faux — `D2`, la définition est juste', '- `docs/g.md:9` : sans critère — une suggestion de nommage', '- `docs/h.md:1` : doublon — `D4`, doublon de l\'axe Documentation'];
+  const commentaires = fil(...TOUR1_REFUSE({ ecartes, lignes: ['| bloquant | Ticket | `T3` | `docs/b.md:12-14` | Le terme manque. | aucun test |'] }));
+  const jouer = (delta) => joue({ commentaires, tete: V2, perimetre: DOC(delta, delta) });
+  assert.deepEqual(jouer(['docs/a.md', 'docs/b.md', 'docs/f.md']), TOUR2);
+  assert.deepEqual(jouer(['docs/g.md', 'docs/h.md', 'docs/f.md']), DEPASSE('docs/g.md', 'docs/h.md'));
+  // Seul le delta compte : un fichier du diff que le commit neuf ne modifie pas n'est pas contrôlé de nouveau.
+  assert.deepEqual(joue({ commentaires, tete: V2, perimetre: DOC(['docs/a.md', 'docs/g.md'], ['docs/a.md']) }), TOUR2);
+  // Deux sessions ont refusé : l'union de leurs fichiers nommés.
+  const deux = fil(PERIM('docs/a.md'), DEMANDE(), D(1, V1, ['r1', 'r2']), REFUS(1, 'r1', V1), REFUS(1, 'r2', V1, { lignes: ['| bloquant | Règles | `D1` | `docs/c.md:1` | x | aucun test |'] }), DEMANDE(V2));
+  assert.deepEqual(joue({ commentaires: deux, tete: V2, exiges: 2, perimetre: DOC(['docs/c.md'], ['docs/c.md']) }), { ...TOUR2, nombre: 2, preferees: ['r1', 'r2'] });
+  // Un tour validé, puis un commit hors de `Fichiers:` : aucun bloquant ne l'admet.
+  const valide = fil(PERIM('docs/a.md'), DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), DEMANDE(V2));
+  assert.deepEqual(joue({ commentaires: valide, tete: V2, perimetre: DOC(['docs/a.md', 'docs/z.md'], ['docs/z.md']) }), DEPASSE('docs/z.md'));
+});
+
+test("A-10 — un bloquant dont la correction est dans un autre fichier : le chemin du constat est admis", () => {
+  const ligne = '| bloquant | Documentation | `D4`, `CONTEXT.md` § « Relecture » | `docs/a.md:12` | Le terme est défini sans entrée dans `GLOSSARY.md`, ni dans `docs/adr/`. | aucun test, un écart de documentation |';
+  const commentaires = fil(PERIM('docs/a.md'), DEMANDE(), D(1, V1, ['r1']), REFUS(1, 'r1', V1, { lignes: [ligne] }), DEMANDE(V2));
+  assert.deepEqual(joue({ commentaires, tete: V2, perimetre: DOC(['docs/a.md', 'GLOSSARY.md'], ['GLOSSARY.md']) }), TOUR2);
+  // La cellule « Critère » n'est pas lue : `CONTEXT.md` n'y est pas admis ; un dossier du constat ne couvre que lui-même.
+  assert.deepEqual(joue({ commentaires, tete: V2, perimetre: DOC(['CONTEXT.md', 'docs/adr/x.md'], ['CONTEXT.md', 'docs/adr/x.md']) }), DEPASSE('CONTEXT.md', 'docs/adr/x.md'));
+});
+
+test("un verdict que la machine ne lit pas : le contrôle du delta ne joue pas, et distribuer porte perimetre: 'verdict illisible'", () => {
+  const commentaires = fil(...TOUR1_REFUSE({ ecartes: ['- `docs/f.md:4` : la définition est juste'] }));
+  const g = joue({ commentaires, tete: V2, perimetre: DOC(['docs/z.md'], ['docs/z.md']) });
+  assert.deepEqual(g, { ...TOUR2, perimetre: VERDICT_ILLISIBLE });
+  assert.equal(VERDICT_ILLISIBLE, 'verdict illisible');
+  // Un bloquant sans fichier lisible, de même ; un bloquant sans fichier (`—`) se lit.
+  const sansAccent = fil(...TOUR1_REFUSE({ lignes: ['| bloquant | Ticket | `T3` | docs/a.md:12 | x | aucun test |'] }));
+  assert.equal(joue({ commentaires: sansAccent, tete: V2, perimetre: DOC(['docs/z.md'], ['docs/z.md']) }).perimetre, VERDICT_ILLISIBLE);
+  const sansFichier = fil(...TOUR1_REFUSE({ lignes: ['| bloquant | Ticket | `T3` | — | Le ticket ne dit pas la règle. | aucun test |'] }));
+  assert.deepEqual(joue({ commentaires: sansFichier, tete: V2, perimetre: DOC(['docs/z.md'], ['docs/z.md']) }), DEPASSE('docs/z.md'));
+});
+
+test('un delta du périmètre qui ne se calcule pas : le geste illisible, sa cause dite, aucune session', () => {
+  const commentaires = fil(...TOUR1_REFUSE());
+  const cause = 'delta du périmètre : git diff : bad object bbbb';
+  assert.deepEqual(joue({ commentaires, tete: V2, perimetre: { ...DOC(['docs/a.md'], ILLISIBLE), cause: 'git diff : bad object bbbb' } }), { regle: null, geste: 'illisible', commentaire: `${TEXTE_ILLISIBLE}${cause}`, lignes: [{ a: 'architecte', session: null, texte: `PR 12 : lecture illisible : ${cause}` }] });
+  assert.deepEqual(joue({ commentaires: fil(...TOUR1_REFUSE(), `${TEXTE_ILLISIBLE}${cause}`), tete: V2, perimetre: { ...DOC(['docs/a.md'], ILLISIBLE), cause: 'git diff : bad object bbbb' } }), { regle: null, geste: 'rien', raison: 'illisible-signale' });
+  assert.throws(() => joue({ commentaires, tete: V2, perimetre: DOC(['docs/a.md'], ILLISIBLE) }), TypeError, 'un delta illisible sans sa cause');
+});
+
+test('périmètre — ce qui n\'est pas contrôlé : une PR de code, un diff vide, une PR déjà distribuée sans déclaration, un appelant d\'avant ; une fusion de la base hors du delta', () => {
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE()), perimetre: { documentation: false, fichiers: ['src/a.ts'] } }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE()), perimetre: DOC([]) }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE()) }), TOUR1, 'sans la clé `perimetre`, ce que decider rendait');
+  // La transition : un tour distribué sans déclaration, ou avec une déclaration écrite après la première distribution.
+  const sans = [DEMANDE(), D(1, V1, ['r1']), REFUS(1, 'r1', V1), DEMANDE(V2)];
+  assert.deepEqual(joue({ commentaires: fil(...sans), tete: V2, perimetre: DOC(['docs/z.md'], ['docs/z.md']) }), TOUR2);
+  assert.deepEqual(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), PERIM(), REFUS(1, 'r1', V1), DEMANDE(V2)), tete: V2, perimetre: DOC(['docs/z.md'], ['docs/z.md']) }), TOUR2);
+  // La base fusionnée dans la branche : ses fichiers ne sont pas dans le delta que l'appelant calcule ; un delta vide passe.
+  assert.deepEqual(joue({ commentaires: fil(...TOUR1_REFUSE()), tete: V2, perimetre: DOC(['docs/a.md'], []) }), TOUR2);
+  // La règle ne joue qu'à la place de la règle 6 : un tour refusé sur la tête rend toujours `à-reprendre` (r4).
+  assert.equal(joue({ commentaires: fil(PERIM('docs/a.md'), DEMANDE(), D(1, V1, ['r1']), REFUS(1, 'r1', V1)), perimetre: DOC(['docs/z.md'], ['docs/z.md']) }).regle, 4);
+  // Une clé mal formée : TypeError, jamais un geste.
+  for (const perimetre of [null, { documentation: 'oui', fichiers: [] }, { documentation: true }, { documentation: true, fichiers: [1] }, { documentation: true, fichiers: [], delta: 'x' }])
+    assert.throws(() => joue({ commentaires: fil(DEMANDE()), perimetre }), TypeError, JSON.stringify(perimetre));
 });

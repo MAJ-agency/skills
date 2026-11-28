@@ -19,7 +19,13 @@
 //   - la note de même contenu : `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha> — <raison>`,
 //     sur une ligne, écrite quand « même contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant (A-224) ;
 //   - la trace d'une demande écartée : `Demande écartée — commentaire <id> modifié après sa création : redemander la
-//     relecture d'un commentaire neuf, jamais modifié`, lue parmi les commentaires intacts d'un compte qui compte (A-228).
+//     relecture d'un commentaire neuf, jamais modifié`, lue parmi les commentaires intacts d'un compte qui compte (A-228) ;
+//   - le périmètre d'une PR de documentation (programme « périmètre figé ») : la déclaration de l'auteur, quatre lignes,
+//     `Périmètre — <objet>`, `Fichiers: <chemins ou dossiers, séparés par « , »>`, `Décisions: <texte>`, `Sujets: <texte>`,
+//     chaque valeur non vide, aucun motif à étoile, seule la première comptant ; les refus du Relecteur, `Périmètre absent`
+//     et `Périmètre dépassé — <fichiers, séparés par « , »>` ; la suite, `Suite — <objet> — <ticket ou PR>`, sur une
+//     ligne. Une déclaration modifiée après sa création, d'un compte qui compte, est une lecture illisible : sinon l'auteur
+//     élargirait son périmètre en modifiant la première puis en en écrivant une seconde.
 // Hors de `dernier` vivent la trace d'illisible et deux traces à règles opposées, qui ne sont pas des marques qui
 // décident : elles ne changent ni la ligne qui repart à la pose d'une étiquette, ni « déjà signalé ». La note de même
 // contenu, dont la forme abîmée est une lecture illisible (un verdict gardé ne disparaît pas sans bruit) ; la trace
@@ -28,7 +34,8 @@
 // lecture illisible, sauf la trace `Demande écartée — `, ignorée (A-228). « Plus récent » veut dire « de rang supérieur dans le tableau reçu » ; les dates ne
 // servent qu'aux délais, comparées à `maintenant`, la seule source de temps.
 //
-// Un commentaire modifié après sa création est écarté, à trois exceptions près (A-118).
+// Un commentaire modifié après sa création est écarté, à trois exceptions près (A-118), et la déclaration de
+// périmètre modifiée, illisible (plus haut).
 //   - Un verdict modifié ne peut qu'aggraver ou laisser, jamais adoucir. Quand le verdict le plus récent d'une
 //     session pour un tour a été modifié, sa lecture pour ce tour dépend de son verdict intact le plus récent
 //     pour ce tour : `refusé`, le refus tient ; `validé` ou `incomplet`, la lecture est `incomplet` ; aucun, le
@@ -43,10 +50,14 @@
 //     pas, et le geste reviendrait à chaque passe.
 // Les tables indexées par une clé venue de l'entrée (session, sommet) ne lisent jamais une clé héritée.
 //
+// Le contrôle du périmètre joue là où la règle 6 distribuerait, et là seulement, quand l'appelant donne la clé
+// `perimetre` (sans elle, `decider` rend ce qu'il rendait) : il rend le geste `perimetre` (`Périmètre absent` ou
+// `Périmètre dépassé — <fichiers>`, `à-reprendre`, aucun tour), ou laisse passer `distribuer`.
+//
 // Module pur : aucun point d'entrée, aucune horloge, aucun import hors verdict.mjs.
 // =============================================================================
 
-import { LectureIllisible, lireVerdict, retenir } from './verdict.mjs';
+import { LectureIllisible, corpsLu, fichiersNommes, lireVerdict, retenir } from './verdict.mjs';
 
 export const ETIQUETTES = ['à-relire', 'à-reprendre', 'à-fusionner', 'fusion-bloquée']; // « les quatre »
 export const DELAI_MS = 2 * 60 * 60 * 1000; // `relecture.delai` par défaut : deux heures
@@ -57,6 +68,11 @@ export const TEXTE_ILLISIBLE = 'Lecture illisible — ';
 export const MENTION_ARBITRAGE = 'après arbitrage, non compté';
 export const ILLISIBLE = 'illisible'; // la valeur d'un calcul qui n'a pas pu être lu
 export const PREFIXE_NOTE = 'Même contenu — ';
+export const TEXTE_PERIMETRE_ABSENT = 'Périmètre absent';
+export const PREFIXE_PERIMETRE = 'Périmètre — ';
+export const PREFIXE_DEPASSE = 'Périmètre dépassé — ';
+export const CAUSE_PERIMETRE_MODIFIE = 'déclaration de périmètre modifiée après sa création';
+export const VERDICT_ILLISIBLE = 'verdict illisible'; // le champ `perimetre` d'un `distribuer` que le contrôle n'a pas joué
 
 const SHA = '[0-9a-f]{40}';
 const ID = '[A-Za-z0-9][A-Za-z0-9_-]*';
@@ -68,6 +84,18 @@ const FORME_ECART = /^Demande écartée — commentaire ([1-9][0-9]*) modifié a
 export const PREFIXE_ECART = 'Demande écartée — ';
 const FORME_NOTE = new RegExp(`^Même contenu — sommet (${SHA}) — tour ([1-9][0-9]*) (validé|refusé) au sommet (${SHA}) — (\\S.*)$`);
 const TIRET = ' — ';
+const VALEUR = '(\\S(?:.*\\S)?)';
+const FORME_PERIMETRE = new RegExp(`^Périmètre — ${VALEUR}\nFichiers: ${VALEUR}\nDécisions: ${VALEUR}\nSujets: ${VALEUR}$`);
+const FORME_DEPASSE = new RegExp(`^Périmètre dépassé — ${VALEUR}$`);
+const FORME_SUITE = /^Suite — ([^\n]*\S[^\n]*) — ([^\n]*\S[^\n]*)$/;
+// Une liste de chemins séparés par « , » : chacun non vide, aucun motif à étoile ; `null` sinon.
+const chemins = (texte) => {
+  const liste = texte.split(',').map((c) => c.trim());
+  return liste.every((c) => c !== '' && !c.includes('*')) ? liste : null;
+};
+// Un chemin comparable, comme `cheminLu` de revue-exigee.mjs pour une ligne non citée : `./` de tête retiré, NFC,
+// majuscules puis minuscules. Une ligne citée par git (`"…"`) se compare telle quelle : jamais couverte.
+const cle = (chemin) => String(chemin).trim().replace(/^\.\//, '').normalize('NFC').toUpperCase().toLowerCase();
 
 /**
  * @typedef {object} Distribution
@@ -149,6 +177,30 @@ const MARQUES = [
   { prefixe: 'Plafond — ', lire: (corps) => (corps === TEXTE_PLAFOND ? { plafonds: {} } : null) },
   { prefixe: 'Décision de plafond', lire: (corps) => (FORME_DECISION.test(corps.split('\n')[0]) ? { decisions: {}, ...(ecarte(corps) ? { arbitragesEcartes: {} } : {}) } : null) },
   { prefixe: 'Arbitrage — ', lire: (corps) => (lignesPleines(corps).every((l) => lireArbitrage(l) !== null) ? (ecarte(corps) ? { arbitragesEcartes: {} } : {}) : null) },
+  {
+    prefixe: PREFIXE_PERIMETRE,
+    lire: (corps) => {
+      const m = FORME_PERIMETRE.exec(corps);
+      const fichiers = m && chemins(m[2]);
+      return fichiers && { perimetres: { objet: m[1], fichiers } };
+    },
+  },
+  { prefixe: TEXTE_PERIMETRE_ABSENT, lire: (corps) => (corps === TEXTE_PERIMETRE_ABSENT ? { perimetresAbsents: {} } : null) },
+  {
+    prefixe: 'Périmètre dépassé',
+    lire: (corps) => {
+      const m = FORME_DEPASSE.exec(corps);
+      const fichiers = m && chemins(m[1]);
+      return fichiers && { perimetresDepasses: { fichiers } };
+    },
+  },
+  {
+    prefixe: 'Suite — ',
+    lire: (corps) => {
+      const m = FORME_SUITE.exec(corps);
+      return m && { suites: { objet: m[1], cible: m[2] } };
+    },
+  },
 ];
 const PREFIXE_TRACE = 'Lecture illisible';
 // Les traces hors de `dernier` à forme abîmée illisible : le préfixe sans la forme entre dans `presque`.
@@ -166,7 +218,10 @@ const TRACES_ILLISIBLES = [PREFIXE_TRACE, PREFIXE_NOTE];
  *             notes: { id, rang, date, tete: string, tour: number, verdict: 'validé'|'refusé', sommet: string }[],
  *             demandesModifiees: { id, rang, date, auteur: string|null, conducteur: string|null, lisible: boolean }[],
  *             ecarts: { id, rang, date, commentaire: string }[],
- *             presque: { id, rang, date, prefixe: string }[],
+ *             perimetres: { id, rang, date, objet: string, fichiers: string[] }[],
+ *             perimetresAbsents: object[], perimetresDepasses: { id, rang, date, fichiers: string[] }[],
+ *             suites: { id, rang, date, objet: string, cible: string }[],
+ *             presque: { id, rang, date, prefixe: string, cause?: string }[],
  *             dernier: number }}
  *   `verdictsModifies` : les verdicts d'un compte qui compte, modifiés après leur création, dont `Tour:` et
  *   `Session:` se lisent encore : ils ne valent aucun verdict, mais empêchent un `validé` plus ancien de la même
@@ -182,7 +237,7 @@ const TRACES_ILLISIBLES = [PREFIXE_TRACE, PREFIXE_NOTE];
  *   presque à la forme
  */
 export function lireMarques(commentaires, options = {}) {
-  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], notes: [], demandesModifiees: [], ecarts: [], presque: [], dernier: -1 };
+  const m = { verdicts: [], verdictsModifies: [], distributions: [], demandes: [], plafonds: [], decisions: [], arbitragesEcartes: [], pannes: [], illisibles: [], notes: [], demandesModifiees: [], ecarts: [], perimetres: [], perimetresAbsents: [], perimetresDepasses: [], suites: [], presque: [], dernier: -1 };
   const { retenus, ecartes } = retenir(commentaires);
   const presque = [];
   // Les verdicts d'un compte qui compte que rien ne rattache : `Tour:` ou `Session:` ne se lit pas.
@@ -193,6 +248,12 @@ export function lireMarques(commentaires, options = {}) {
     if (motif === 'edite' && corps.startsWith('À relire — ')) {
       const d = FORME_DEMANDE.exec(corps);
       m.demandesModifiees.push({ id, rang, date, auteur: d && d[2] !== '—' ? d[2] : null, conducteur: d && d[3] !== '—' ? d[3] : null, lisible: d !== null });
+      continue;
+    }
+    // Une déclaration de périmètre modifiée : illisible, jamais écartée en silence.
+    if (motif === 'edite' && corps.startsWith(PREFIXE_PERIMETRE)) {
+      presque.push({ id, rang, date, prefixe: PREFIXE_PERIMETRE.trimEnd(), cause: CAUSE_PERIMETRE_MODIFIE });
+      m.dernier = Math.max(m.dernier, rang);
       continue;
     }
     const v = motif === 'edite' ? lireVerdict(corps) : null;
@@ -249,8 +310,8 @@ export function lireMarques(commentaires, options = {}) {
   return m;
 }
 
-const causePresque = ({ id, rang, prefixe, verdict = false }) =>
-  `commentaire ${id ?? `de rang ${rang}`} : ${verdict ? 'verdict que rien ne rattache à un tour et à une session' : `préfixe « ${prefixe} » sans la forme de sa marque`}`;
+const causePresque = ({ id, rang, prefixe, verdict = false, cause }) =>
+  `commentaire ${id ?? `de rang ${rang}`} : ${cause ?? (verdict ? 'verdict que rien ne rattache à un tour et à une session' : `préfixe « ${prefixe} » sans la forme de sa marque`)}`;
 // La valeur d'une table reçue pour une clé venue de l'entrée, jamais une clé héritée.
 const propre = (table, cle) => (Object.hasOwn(table, cle) ? table[cle] : undefined);
 const CAUSE_DOUBLE = '« double relecture exigée » illisible';
@@ -403,6 +464,11 @@ const ETATS_DE_SESSION = ['vivante', 'morte', 'plafond', 'couple'];
  * @property {Record<string, 'vivante'|'morte'|'plafond'|'couple'>} [sessions]  l'état des sessions, quand il est connu ;
  *   `couple` : la session tourne à un autre modèle ou un autre effort que ceux que la PR demande (A-182) : hors
  *   service comme `morte` ou `plafond`, elle est remplacée, une fois par tour, cause `couple`
+ * @property {{ documentation: boolean, fichiers: string[], delta?: string[]|'illisible', cause?: string }} [perimetre]
+ *   les faits du périmètre, absents d'un appelant d'avant : `documentation`, le diff propre n'exige pas la revue
+ *   (`exigeRevue` de revue-exigee.mjs, sur le contrat de la base) ; `fichiers`, le diff propre de la tête ; `delta`,
+ *   quand la PR porte une distribution : les fichiers du diff propre de la tête ou de celui du sommet du dernier tour
+ *   distribué dont le contenu diffère entre ces deux sommets, ou `'illisible'`, `cause` disant pourquoi
  *
  * @param {EtatPR} etat
  * @returns {object}  un seul geste : la première règle qui s'applique
@@ -419,6 +485,7 @@ export function decider(etat) {
   if (typeof maintenant !== 'number' || !Number.isFinite(maintenant)) refuser('maintenant', 'un nombre fini de millisecondes depuis l\'époque');
   if (typeof delaiMs !== 'number' || !Number.isFinite(delaiMs) || delaiMs <= 0) refuser('delaiMs', 'un nombre fini de millisecondes, plus de zéro');
   if (!estObjet(connues) || Object.values(connues).some((s) => !ETATS_DE_SESSION.includes(s))) refuser('sessions', `par session : ${ETATS_DE_SESSION.join(', ')}`);
+  verifierPerimetre(etat.perimetre);
 
   // La file : hors d'elle, les commentaires ne sont pas lus.
   const etiquettes = etat.etiquettes.map((e) => e.normalize('NFC'));
@@ -433,13 +500,14 @@ export function decider(etat) {
   const marques = lireMarques(etat.commentaires, { tolerant: true });
 
   // L'illisible, avant toute règle : ni distribution, ni validation, ni changement d'étiquette.
-  const cause = marques.presque.length > 0 ? causePresque(marques.presque[0]) : causeDesCalculs(marques, etat);
-  if (cause !== null) {
+  const illisible = (cause) => {
     const commentaire = `${TEXTE_ILLISIBLE}${cause}`;
     const signale = marques.illisibles.some((t) => t.rang > marques.dernier && t.texte.startsWith(commentaire) && maintenant - Date.parse(t.date) <= delaiMs);
     if (signale) return rien(null, 'illisible-signale');
     return { regle: null, geste: 'illisible', commentaire, lignes: [{ a: 'architecte', session: null, texte: `PR ${numero} : lecture illisible : ${cause}` }] };
-  }
+  };
+  const cause = marques.presque.length > 0 ? causePresque(marques.presque[0]) : causeDesCalculs(marques, etat);
+  if (cause !== null) return illisible(cause);
 
   // La demande modifiée, avant toute règle : la trace et une ligne à qui l'a écrite, une fois par commentaire (A-228).
   const modifiee = marques.demandesModifiees.at(-1);
@@ -531,6 +599,50 @@ export function decider(etat) {
     return geste('panne', { commentaire: TEXTE_PANNE, lignes: [ligne('architecte', texte), ligne('auteur', texte), ...(demande.conducteur === null ? [] : [ligne('conducteur', texte)])] });
   }
 
-  // Règle 6 — la tête n'a pas de tour : un tour neuf.
-  return distribuer(6, null);
+  // Règle 6 — la tête n'a pas de tour : un tour neuf, sauf si le périmètre d'une PR de documentation le refuse.
+  return perimetre({ etat, marques, lesTours, illisible, etiqueter, retirer, auxDeux, distribuer: () => distribuer(6, null) });
+}
+
+// La forme de la clé `perimetre`, quand l'appelant la donne.
+function verifierPerimetre(p) {
+  if (p === undefined) return;
+  const liste = (x) => Array.isArray(x) && x.every((f) => typeof f === 'string');
+  if (!estObjet(p) || typeof p.documentation !== 'boolean' || !liste(p.fichiers)) refuser('perimetre', '{ documentation: booléen, fichiers: chemins, delta?: chemins ou « illisible », cause? }');
+  if (p.delta !== undefined && p.delta !== ILLISIBLE && !liste(p.delta)) refuser('perimetre.delta', `des chemins, ou « ${ILLISIBLE} »`);
+  if (p.delta === ILLISIBLE && typeof p.cause !== 'string') refuser('perimetre.cause', 'la cause d\'un delta illisible');
+}
+
+// Le contrôle du périmètre (spec « périmètre figé », règles 1 et 2, A-2, A-9, A-10) : là où la règle 6 distribuerait.
+// Il ne joue que sur une PR de documentation au diff propre non vide, quand la PR ne porte aucune distribution ou
+// qu'une déclaration retenue est plus ancienne que la première (une PR déjà distribuée sans déclaration finit sans).
+function perimetre({ etat, marques, lesTours, illisible, etiqueter, retirer, auxDeux, distribuer }) {
+  const p = etat.perimetre;
+  if (p === undefined || !p.documentation || p.fichiers.length === 0) return distribuer();
+  const declaration = marques.perimetres[0];
+  const premiere = marques.distributions[0];
+  if (premiere !== undefined && (declaration === undefined || declaration.rang > premiere.rang)) return distribuer();
+  const n = etat.numero;
+  const texteAbsent = `PR ${n} : périmètre absent : écrire le commentaire \`Périmètre — …\`, puis redemander la relecture`;
+  const texteDepasse = (fichiers) => `PR ${n} : périmètre dépassé : ${fichiers.join(', ')}`;
+  // Rejoué : la marque de refus plus récente que la dernière demande, le geste ne fait que tenir l'étiquette.
+  const refus = [...marques.perimetresAbsents, ...marques.perimetresDepasses].sort((a, b) => a.rang - b.rang).at(-1);
+  if (refus !== undefined && refus.rang > (marques.demandes.at(-1)?.rang ?? -1)) return etiqueter(6, 'à-reprendre', refus.fichiers === undefined ? texteAbsent : texteDepasse(refus.fichiers));
+  const refuser = (commentaire, texte) => ({ regle: 6, geste: 'perimetre', commentaire, poser: 'à-reprendre', retirer: retirer('à-reprendre'), lignes: auxDeux(texte) });
+  if (declaration === undefined) return refuser(TEXTE_PERIMETRE_ABSENT, texteAbsent);
+  const declares = declaration.fichiers.map(cle);
+  const couvert = (f) => declares.some((d) => (d.endsWith('/') ? cle(f).startsWith(d) : cle(f) === d));
+  let aControler = p.fichiers;
+  let admis = couvert;
+  if (premiere !== undefined) {
+    if (p.delta === undefined || p.delta === ILLISIBLE) return illisible(`delta du périmètre : ${p.delta === undefined ? 'non calculé' : p.cause}`);
+    // Les fichiers que nomment les bloquants et les écartés « faux » des refus du dernier tour refusé.
+    const lus = (lesTours.filter((t) => t.etat === 'refuse').at(-1)?.refus ?? []).map((v) => fichiersNommes(corpsLu(etat.commentaires[v.rang].body)));
+    // Un verdict dont la machine ne lit pas une ligne : la chaîne ne refuse jamais sur ce qu'elle ne lit pas.
+    if (lus.some((x) => x.illisibles > 0)) return { ...distribuer(), perimetre: VERDICT_ILLISIBLE };
+    const nommes = new Set(lus.flatMap((x) => [...x.bloquants, ...x.faux]).map(cle));
+    admis = (f) => couvert(f) || nommes.has(cle(f));
+    aControler = p.delta;
+  }
+  const hors = [...new Set(aControler.filter((f) => !admis(f)))].sort();
+  return hors.length === 0 ? distribuer() : refuser(`${PREFIXE_DEPASSE}${hors.join(', ')}`, texteDepasse(hors));
 }

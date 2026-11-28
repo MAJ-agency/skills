@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Relecteur d'un dépôt
 
-Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture** la relit et écrit son verdict sur la PR (skill `relecture`). Le **Relecteur** aiguille : il crée ces sessions, écrit sur la PR les distributions qui les nomment, lit leurs verdicts **par la machine**, et pose l'étiquette qui en découle. Il ne lit ni le diff, ni les constats, ni le corps d'un verdict ; il ne juge rien et n'arbitre rien. Ce que le skill contient, et pourquoi : [`references/CONTENU.md`](references/CONTENU.md).
+Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture** la relit et écrit son verdict sur la PR (skill `relecture`). Le **Relecteur** aiguille : il crée ces sessions, écrit sur la PR les distributions qui les nomment, lit leurs verdicts **par la machine**, et pose l'étiquette qui en découle. Il ne lit ni le diff, ni les constats, ni le corps d'un verdict ; il ne juge rien et n'arbitre rien. Pour le périmètre d'une PR de documentation, la machine lit les fichiers du diff et ceux qu'un verdict nomme, et rend le geste `perimetre`. Ce que le skill contient, et pourquoi : [`references/CONTENU.md`](references/CONTENU.md).
 
 **Une PR est en régime 8** quand sa base, `develop` ou `sujet/<nom>`, porte dans son `.claude/chaine.json` la clé `relecture` et que la PR a été ouverte après sa date `depuis`. Toute autre PR suit le régime 7, sans lui : il n'a rien à faire tant qu'aucune PR n'est en régime 8.
 
@@ -36,7 +36,7 @@ Fin de la veille, message d'une session : **`passe` d'abord**, toujours, puis le
 | --- | --- |
 | `rien`, `hors-regime`, `pause` | rien ; sauf `rien` avec la raison `attente` (règle 5) : « L'état des sessions » |
 | `contrat-illisible` | une ligne à l'architecte (la clé `relecture` d'une base est mal formée), une fois ; la veille relancée avec `--taire` avec la clé `<n>:contrat-illisible:—:*` (la tête en `*` : sa cause est la base, un push ne la lève pas) |
-| `etiqueter`, `plafonner`, `panne`, `illisible` | `jouer <n>`, puis chaque ligne de `lignes` (« Les lignes ») |
+| `etiqueter`, `plafonner`, `perimetre`, `panne`, `illisible` | `jouer <n>`, puis chaque ligne de `lignes` (« Les lignes ») ; `perimetre` : une PR de documentation sans déclaration (`Périmètre absent`) ou qui touche un fichier hors de son périmètre (`Périmètre dépassé — <fichiers>`), `à-reprendre`, aucune session, aucun tour |
 | `signaler` | `jouer <n>`, ses lignes, puis `jouer <n>` de nouveau, et son geste : une demande `À relire` modifiée est écartée, la trace l'écrit sur la PR et ses lignes vont à qui l'a écrite (ses `Session:` et `Conducteur:`, ou l'architecte quand elle n'en nomme aucune ou n'a pas la forme d'une demande) |
 | `noter` | `jouer <n>` ; aucune ligne (règle 2 : « même contenu propre » garde le verdict d'un tour au sommet d'avant, l'étiquette est déjà en place) |
 | `distribuer` (règles 4 et 6) | « Créer ou relancer les sessions », puis `distribuer <n> --sommet <sommet> --couple <modele>/<effort> <sessions…>`, puis le message de relance aux sessions réemployées |

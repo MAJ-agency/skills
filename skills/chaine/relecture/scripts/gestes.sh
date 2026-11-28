@@ -787,7 +787,7 @@ controle() {
     *) quitter 12 "usage : controle '<brouillons>' verdict|publie" ;;
   esac
   [ -s "$f" ] || quitter 12 "$(basename -- "$f") absent"
-  node --input-type=module -e 'import{readFileSync}from"node:fs";import{pathToFileURL}from"node:url";const{corpsLu,lireVerdict}=await import(pathToFileURL(process.argv[2]).href);const v=lireVerdict(corpsLu(readFileSync(process.argv[1],"utf8")));const d=!v?["marque absente en première ligne"]:v.illisible?v.defauts:v.verdict==="incomplet"&&v.bloquants>0?["incomplet avec des bloquants : un bloquant gardé donne refusé"]:[];if(d.length){console.log(d.join(" ; "));process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' "$f" "$S/scripts/chaine/verdict.mjs"
+  node --input-type=module -e 'import{readFileSync}from"node:fs";import{pathToFileURL}from"node:url";const m=await import(pathToFileURL(process.argv[2]).href);const{corpsLu,lireVerdict}=m;const c=corpsLu(readFileSync(process.argv[1],"utf8"));const v=lireVerdict(c);const d=!v?["marque absente en première ligne"]:v.illisible?v.defauts:v.verdict==="incomplet"&&v.bloquants>0?["incomplet avec des bloquants : un bloquant gardé donne refusé"]:[];const n=v&&typeof m.fichiersNommes==="function"?m.fichiersNommes(c).illisibles:0;if(n>0)d.push(`${n} ligne(s) du corps hors de leur forme : la cellule « Fichier et ligne » d’un bloquant, ou une puce « Écartés au tri » (verdict.md)`);if(d.length){console.log(d.join(" ; "));process.exit(1)}console.log(v.verdict,v.bloquants,v.tour,v.sommet,v.session,v.securite)' "$f" "$S/scripts/chaine/verdict.mjs"
 }
 
 ranger() {
