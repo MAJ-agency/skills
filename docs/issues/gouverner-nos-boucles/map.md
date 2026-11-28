@@ -319,6 +319,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgaWJ75kvDQygZXdA7p` | ticket   | 110    | 4,27   | 277 915           |
 | `session_012xRpgZQxMdGWQVpZLwjW26` | ticket   | 94-96  | 12,15  | 352 223           |
 | `session_012xRpgZ3p7QKTGQMk6PCpGn` | ticket   | 112-113 | 2,24  | 185 557           |
+| `session_012xRpgYmSs5i82jVB5gBscL` | ticket   | 97     | 1,10   | 150 108           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1547,3 +1548,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 03 h 28 UTC. Contrôle de vie : ticket 97 au repos, suite complète en tâche de fond ; ticket 101 au travail (`demande.mjs` vert, version en cours). Aucun des quatre signes.
 - 2026-11-28 — 03 h 37 UTC. PR #174 (ticket 97, 8.8.1, sommet `183874c`, base égale à `main`) : tour 1 conforme (agent neuf), `CodeQL` et `Analyze` verts ; verdict, ordre et label posés ; `bancs` en cours. Remarque non bloquante laissée : `lancement.md:80` ne nomme que le cas « sans programme ».
 - 2026-11-28 — 03 h 45 UTC. PR #176 (ticket 101, 8.9.0, sommet `bc572f6`) : tour 1 conforme (agent neuf) ; l'écart sur `messages-du-regime.test.mjs:142` et `:156` jugé plus strict, pas assoupli ; M1, M8, M9 jugées rouges à la lecture. Elle attend la fusion de #174 pour se remettre sur `main` (8.9.0 au-dessus de 8.8.1). Remarques laissées : une branche sans commit sort en 12 plutôt qu'en 1 ; `README.md` ne cite pas `demande.mjs`.
+- 2026-11-28 — 04 h 06 UTC. **PR #174 fusionnée** (ticket 97) : `main` à `bab98df`, parent `2436313`, arbre égal au sommet ordonné `183874c`, plugin 8.8.1 ; vérifié à la source. Session 97 archivée (1,10 $). PR #176 : gestes de remise sur `main` envoyés (section 8.9.0 sha256 `ac3d72a…`, arbre attendu `e41d153…`).
