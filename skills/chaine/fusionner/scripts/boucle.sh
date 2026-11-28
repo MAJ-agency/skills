@@ -5,6 +5,8 @@
 # ses jobs rouges relancés une fois (instabilité), puis est renvoyée s'ils retombent. En régime 8 (A-243), avant cette
 # relance, et dès qu'une PR « CI en cours » est dans la file (la sous-PR qui tient ou prend son sujet), son verdict est
 # contrôlé une fois par sommet (`eligibilite`) : sans tour validé pour son sommet, renvoyée sans attendre sa CI.
+# Dans les deux régimes (A-271, point 3), une PR illisible avant la relance (GitHub en panne) n'est ni relancée ni
+# renvoyée : une ligne au journal le dit, reprise au tour suivant.
 # Un refus corrigeable par l'auteur (sortie 4 : titre, revue…) renvoie la PR avec son motif
 # (refus.sh) ; une PR non éligible sans correction possible (sortie 7) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
@@ -324,6 +326,8 @@ eligibilite() {
 # dans « CI » (cas vécu : quatre PR restées rouges, jamais relancées ni renvoyées).
 # Régime 8 (A-243) : avant toute relance, l'éligibilité de la PR (`eligibilite`, sans mémoire, la clé `relecture` sur sa
 # base) ; une sortie 4 la renvoie avec son motif, sans relance.
+# Dans les deux régimes (A-271, point 3), une PR illisible avant la relance (GitHub en panne) n'est ni relancée ni
+# renvoyée : une ligne au journal le dit, reprise au tour suivant.
 traiter_rouges() {
   local n checks sommet runs id tentative relance pr
   bash "$outils/file.sh" --rouges | while IFS="$(printf '\t')" read -r n checks; do
@@ -333,6 +337,9 @@ traiter_rouges() {
     [ -n "$runs" ] || continue # runs encore en cours, ou API muette : on reverra au prochain tour
     if pr=$(pr_json "$n" </dev/null); then
       eligibilite "$n" "$(jq -r '.base.ref // ""' <<<"$pr")" 0 </dev/null || continue
+    else
+      echo "[#$n] PR illisible avant la relance de ses jobs rouges (cause ci-dessus) : ni relance ni renvoi, reprise au tour suivant"
+      continue
     fi
     relance=0
     while read -r id tentative; do
