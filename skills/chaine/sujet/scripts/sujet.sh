@@ -1371,6 +1371,7 @@ series() {
 
 regrouper() {
   local nom=${1:?nom du sujet} n base
+  local -A base_de=()
   shift
   [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
   nom=${nom#sujet/}
@@ -1379,12 +1380,14 @@ regrouper() {
   local pr fourche_vue=0 gardees=()
   for n in "$@"; do
     n=${n#\#}
-    pr=$(gh api "$DEPOT/pulls/$n")
+    # Une lecture illisible arrête avant toute écriture : une PR non jugée n'est jamais regroupée.
+    pr=$(lire_github "$DEPOT/pulls/$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : regroupement repris au tour suivant, aucun renvoi"
     if [ "$(jq -r '(.head.repo.full_name // "") != (.base.repo.full_name // "")' <<<"$pr")" = true ]; then
       echo "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, jamais reciblée sur un sujet"
       fourche_vue=1
     else
       gardees+=("$n")
+      base_de[$n]=$(jq -r '.base.ref' <<<"$pr")
     fi
   done
   [ "${#gardees[@]}" -gt 0 ] || exit 7
@@ -1395,7 +1398,7 @@ regrouper() {
   rafraichir "$nom" --abandon-si-conflit
   for n in "$@"; do
     n=${n#\#}
-    base=$(gh api "$DEPOT/pulls/$n" --jq .base.ref)
+    base=${base_de[$n]}
     case "$base" in
       develop)
         gh api -X PATCH "$DEPOT/pulls/$n" -f base="sujet/$nom" >/dev/null

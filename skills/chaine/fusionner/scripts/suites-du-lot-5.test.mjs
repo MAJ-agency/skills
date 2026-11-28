@@ -425,6 +425,8 @@ test("boucle.sh, dans les deux régimes : une PR de fourche vers develop qui cit
     assert.match(r.stdout, /^\[#92\] REGROUPÉE dans sujet\/lot/m, `${cas} : ${r.stdout}`);
     const bases = Object.fromEntries(d.etat().pulls.map((p) => [p.number, p.base]));
     assert.deepEqual([bases[92], bases[93], bases[94]], ["sujet/lot", "develop", "develop"], cas);
+    assert.match(r.stdout, /^\[#93\] .*PR de fourche \(autre\/jouet\).*sautée sans renvoi/m, `${cas} : ${r.stdout}`);
+    assert.doesNotMatch(r.stdout, /PR de fourche : jamais reciblée/, `${cas} : ${r.stdout}`);
     for (const n of [93, 94]) assert.deepEqual(d.journal().filter((e) => new RegExp(`^(issues|pulls)/${n}/?`).test(e.route) && e.methode !== "GET"), [], `${cas} : rien d'écrit sur #${n}`);
   }
 });

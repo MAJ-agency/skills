@@ -60,6 +60,7 @@ test("cas 3 : --branche lit la tête d'origin, pas HEAD", () => {
   const absente = jouer(d, "--session", "-", "--conducteur", C, "--branche", "feat/nulle");
   assert.equal(absente.status, 1, absente.stderr);
   assert.match(absente.stderr, /absente d'origin/);
+  assert.match(absente.stderr, /PR de fourche/);
 });
 
 test("cas 4 : un champ hors forme ou absent : sortie 2, avant tout appel à git", () => {

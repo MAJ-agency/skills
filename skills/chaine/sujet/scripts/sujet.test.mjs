@@ -1038,3 +1038,14 @@ test("regrouper-series --dry-run : une PR de fourche n'entre dans aucune série 
   const [, cle, , prs] = lignes[0].match(/^série « (.+) » → sujet\/(\S+) : ([#0-9 ]+) \(--dry-run/);
   assert.deepEqual([cle, numeros(prs)], ["spec SPEC_ALL_DEM-3", "#4 #5 #6"]);
 });
+
+test("regrouper : une lecture de PR illisible (GitHub en panne sur pulls/<n>) arrête avant tout : sortie 5, sujet ni ouvert ni rafraîchi, aucune écriture", () => {
+  const d = depotJouet();
+  d.github({ pulls: [prFourche(1, "feat/fourche", { fourche: "autre/jouet" }), prFourche(2, "feat/autre")], pannes: [{ route: "^pulls/1$" }] });
+  const r = d.lancer(SCRIPT, "regrouper", "demo", "2", "1");
+  assert.equal(r.status, 5, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /GitHub illisible à la lecture de la PR/);
+  assert.equal(sujetsDistants(d), "", "aucun sujet ouvert");
+  assert.deepEqual(d.journal(), [], "aucune écriture");
+  assert.deepEqual(bases(d), { 1: "develop", 2: "develop" });
+});
