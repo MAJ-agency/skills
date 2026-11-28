@@ -180,3 +180,13 @@ test('fichiersNommes : lireVerdict et ecrireVerdict ne changent pas, le corps lu
   assert.equal(v.illisible, false);
   assert.equal(v.verdict, 'refusé');
 });
+
+test('fichiersNommes : les entrées piégées — fins de ligne CRLF (lues par corpsLu, comme la machine les lit), dernière ligne sans fin de ligne', () => {
+  const corps = CORPS(['| bloquant | R | `D1` | `docs/a.md:12` | voir `GLOSSARY.md` | t |'], ['- `docs/f.md:4` : faux — `D2`, la définition est juste']);
+  const attendu = { bloquants: ['docs/a.md', 'GLOSSARY.md'], faux: ['docs/f.md'], illisibles: 0 };
+  assert.deepEqual(fichiersNommes(corpsLu(corps.replace(/\n/g, '\r\n'))), attendu);
+  assert.deepEqual(fichiersNommes(corpsLu(`${corps.replace(/\n/g, '\r\n')}\r\n\r\n---\r\n${PIED}\r\n`)), attendu, 'le pied des sessions cloud, en CRLF');
+  // La dernière ligne lue, sans fin de ligne : un bloquant, puis une puce.
+  assert.deepEqual(fichiersNommes('| bloquant | R | `D1` | `docs/a.md:12` | x | t |'), { bloquants: ['docs/a.md'], faux: [], illisibles: 0 });
+  assert.deepEqual(fichiersNommes('Écartés au tri : 1.\n- `docs/f.md:4` : faux — x'), { bloquants: [], faux: ['docs/f.md'], illisibles: 0 });
+});
