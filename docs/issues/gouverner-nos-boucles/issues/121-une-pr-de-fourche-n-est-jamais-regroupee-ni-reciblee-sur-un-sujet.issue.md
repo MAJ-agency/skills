@@ -33,7 +33,7 @@ Déduites des décisions écrites ; rien n'y est à trancher.
 2. **`file.sh`** : le sujet d'un ticket ne se lit que pour une PR qui n'est pas de fourche (`:136`, `if [ -n "$ticket" ] && [ "$fourche" = false ]`). Une PR de fourche vers develop est donc classée comme toute PR vers develop (`ci_de`), puis sautée sans renvoi par `passer.sh` (7) ; elle n'est ni « vers sujet/<nom> », ni gelée par le gel de ce sujet, ni marquée « sujet livré » (aucune étiquette `hors-sujet` posée sur elle). Raison : le sujet que son ticket déclare n'est jamais le sien (`A-201` (2)) ; et rien ne s'écrit sur une fourche que le capitaine ne lit pas.
 3. **`series`** : le `jq` (`:1338-1340`) écarte les PR de fourche par le critère 1. Une fourche n'entre dans aucune série, ni « spec », ni « pile », ni « branche » : elle ne compte pas dans les 3 PR d'une spec, et les séries restantes que le capitaine propose ne la nomment pas.
 4. **`regrouper`** (défense, comme `fourche_sautee` après `A-208`) : chaque PR est lue d'abord (base et fourche, une lecture par PR), **avant** `ouvrir` et `rafraichir`. Une PR de fourche n'est pas reciblée : `#<n> : PR de fourche (<dépôt ou « dépôt supprimé »>) : sa tête vit hors du dépôt, jamais reciblée sur un sujet`, sur la sortie standard. Les autres PR de la liste sont regroupées ; si toutes sont des fourches, ni le sujet n'est ouvert ni rafraîchi. `regrouper` sort en 7 dès qu'une PR de la liste est une fourche, après les autres (rien à corriger côté auteur, comme les sorties 7 de `fusionner` et `relancer`).
-5. **`boucle.sh:521-525`** : la sortie 7 de `regrouper` se dit `[#<n>] PR de fourche : jamais reciblée sur sujet/<x> (aucun renvoi)`, jamais « SUJET EN CONFLIT ? ».
+5. **`boucle.sh:521-525`** (décidé par l'architecte à la relecture du ticket, le 2026-11-28) : la sortie 7 de `regrouper` se dit `[#<n>] PR de fourche : jamais reciblée sur sujet/<x> (aucun renvoi)`, jamais « SUJET EN CONFLIT ? ». La boucle n'atteint cette branche que si `file.sh` a dit la PR « vers sujet/<x> » et que `regrouper`, à sa propre lecture, la voit de fourche (décision 4) : défense, comme `fourche_sautee` après `A-208`. Un banc la tient (« Surfaces »), sur le modèle du banc de `fourche_sautee`.
 6. **Les en-têtes** : `file.sh:35-36` (« vers sujet/<nom> » : jamais une PR de fourche) ; `sujet.sh:62-64` (`regrouper` ne recible jamais une PR de fourche) et `:117-121` (la sortie 7 de `regrouper`) ; `boucle.sh:51-54` (le regroupement d'office ne compte jamais une PR de fourche).
 7. **La version** : celle de la PR de 119 à 121 ; la note dit, pour les deux régimes, qu'une PR de fourche n'est plus reciblée sur un sujet ni comptée dans une série, et que les projets reposent les scripts de `fusionner` et de `sujet`.
 
@@ -52,7 +52,7 @@ Déduites des décisions écrites ; rien n'y est à trancher.
 | `sujet.test.mjs:232`, `:257` | **inchangés** : aucune fourche dans leurs séries |
 | `NOTES-DE-VERSION.md` | la note de la PR, complétée |
 
-Modèles : `suites-du-lot-5.test.mjs:316-336` (une fourche au faux GitHub, `fourche: "autre/jouet"`, et `sansDepotDansLaListe` pour une fourche supprimée) ; `suites-du-lot-5.test.mjs:227` (un tour de boucle, rien d'écrit sur la fourche : `d.journal()` filtré par `^(issues|pulls)/<n>/`) ; `sujet.test.mjs:232` (`regrouper-series --dry-run`).
+Modèles : `suites-du-lot-5.test.mjs:316-336` (une fourche au faux GitHub, `fourche: "autre/jouet"`, et `sansDepotDansLaListe` pour une fourche supprimée) ; `suites-du-lot-5.test.mjs:227` (un tour de boucle, rien d'écrit sur la fourche : `d.journal()` filtré par `^(issues|pulls)/<n>/`) ; `sujet.test.mjs:232` (`regrouper-series --dry-run`) ; `suites-du-lot-5.test.mjs:268-315` (une doublure de `sujet.sh` dans les scripts que la boucle copie d'`origin/develop` : une commande visée écrit une sortie fixée et sort en 7, le reste passe au vrai, posé à côté en `sujet-vrai.sh`).
 
 ## À faire, dans l'ordre
 
@@ -69,7 +69,8 @@ Modèles : `suites-du-lot-5.test.mjs:316-336` (une fourche au faux GitHub, `four
 | `file.sh` : une PR de fourche vers develop dont le ticket déclare un sujet ouvert se lit comme une PR directe (son état de CI), jamais « vers sujet/<nom> » ; de même pour une fourche supprimée ; la même PR hors fourche se lit « vers sujet/<nom> » ; une fourche dont le ticket déclare un sujet livré : 4e colonne vide ; un sujet gelé : la fourche n'est pas « gelée » | `suites-du-lot-5.test.mjs`, test neuf |
 | `boucle.sh`, un tour, dans les deux régimes : la fourche vers develop qui cite le ticket d'un sujet n'est pas reciblée (sa base reste `develop`), aucune étiquette ni aucun commentaire posés sur elle, aucun `PATCH` de `pulls/<n>` ; la ligne de `passer.sh` dit la fourche sautée | `suites-du-lot-5.test.mjs`, test neuf |
 | `regrouper <nom> <fourche> <autre>` : l'autre reciblée, la fourche non, sa ligne « PR de fourche », sortie 7 ; `regrouper <nom2> <fourche>` seul : sortie 7, aucune branche `sujet/<nom2>` créée, aucune écriture | `sujet.test.mjs`, test neuf |
-| `regrouper-series --dry-run` : trois PR d'une spec, dont une de fourche, n'annoncent aucune série (deux PR) ; une pile dont la racine est une fourche n'est pas annoncée ; `series` ne nomme pas la fourche | `sujet.test.mjs`, test neuf |
+| `boucle.sh` lit la sortie 7 de `regrouper` : une PR #80 hors fourche vers develop qui cite le ticket d'un sujet (`file.sh` la dit « vers sujet/lot ») ; la doublure de `sujet.sh` rend, pour `regrouper lot 80`, la ligne de fourche de la décision 4 et la sortie 7, le reste au vrai `sujet.sh` ; un tour : `[#80] PR de fourche : jamais reciblée sur sujet/lot (aucun renvoi)`, aucun « SUJET EN CONFLIT ? », aucun « REGROUPÉE » | `suites-du-lot-5.test.mjs`, test neuf |
+| `regrouper-series --dry-run` : trois PR d'une spec, dont une de fourche, n'annoncent aucune série (deux PR) ; quatre PR d'une autre spec, dont une de fourche, annoncent leur série avec les trois autres seules ; une pile dont la racine est une fourche n'est pas annoncée ; `series` ne nomme pas la fourche | `sujet.test.mjs`, test neuf |
 
 ## Mutations
 
@@ -82,7 +83,8 @@ Chacune seule, le fichier remis après : chacune rouge.
 | la garde de `regrouper` retirée | le test de `regrouper` |
 | la garde de `regrouper` placée après `ouvrir` | le test de `regrouper` (la branche `sujet/<nom2>` créée) |
 | `regrouper` qui sort en 0 sur une fourche | le test de `regrouper` |
-| le critère réduit à `head.repo.full_name != base.repo.full_name` sans `// ""` | la fourche supprimée du test de `file.sh` |
+| dans le `jq` de `series`, la fourche lue sur `.head.ref != .base.ref` au lieu des dépôts | le test neuf de `regrouper-series --dry-run`, et `sujet.test.mjs:232` et `:257` : toute PR vers develop a une tête différente de sa base, toutes se lisent fourches, et plus aucune série n'est annoncée ni regroupée (la série des quatre PR manque) |
+| `boucle.sh:521-525` sans le cas 7 (la sortie 7 retombe sur « regroupement dans sujet/<x> impossible (SUJET EN CONFLIT ?) ») | le test neuf de la boucle qui lit la sortie 7 de `regrouper` |
 
 ## Vérification
 
@@ -102,3 +104,4 @@ Chacune seule, le fichier remis après : chacune rouge.
 ## Comments
 
 - 2026-11-28 — Écrit par un agent rédacteur sur `origin/main` à `b5c7ac3` (plugin 8.9.5), sur la suite de la relecture de la PR 152 (`A-199` (4), `A-249`). Chaque ligne citée a été relue à ce sommet. `Status: ready-for-agent`.
+- 2026-11-28 — Relu (agent neuf) ; écarts corrigés : la mutation du critère sans `// ""` (verte : en jq, `null != "maj/jouet"` est vrai) remplacée par le critère lu sur `head.ref`, qui rougit les bancs de séries ; la ligne de la sortie 7 de `regrouper` dans `boucle.sh` gardée (décision de l'architecte), tenue par un banc de la boucle sur une doublure de `sujet.sh`, avec sa mutation ; une série de quatre PR dont une fourche, pour que le banc des séries lise aussi ce qui est annoncé.
