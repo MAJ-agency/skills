@@ -32,6 +32,16 @@
 //     push tombé entre la préparation et la lecture de la PR n'en est pas une), dépendances de develop (une installation
 //     en échec), forme refusée par `a-juger` (la ligne va à l'auteur, la seule cause qui soit à lui), `a-juger` ou le
 //     diff en échec — et rien tant que cette trace est la plus récente et date de `relecture.delai` au plus (A-116) ;
+//   - le périmètre (programme « périmètre figé », ticket 2), dans la clé `perimetre` : `documentation`, le diff propre
+//     n'exige pas la revue (`exigeRevue` de `revue-exigee.mjs`, sur le contrat lu par `lireBase('origin/<base>')`) ;
+//     `fichiers`, ce diff propre ; et, quand la PR porte une distribution, `delta` : les fichiers du diff propre de la
+//     tête ou de celui du sommet du dernier tour distribué dont le contenu diffère entre ces deux sommets (`git diff
+//     --no-renames --name-only`), une fusion de la base dans la branche n'y entrant pas ; un delta qui ne se calcule
+//     pas vaut `illisible`, sa cause dite. Des scripts posés d'avant (sans `fichiersNommes` dans `verdict.mjs`, ou sans
+//     `exigeRevue` et `lireBase`) : aucune clé, rien de contrôlé. `decider` rend alors le geste `perimetre`
+//     (`Périmètre absent` ou `Périmètre dépassé — <fichiers>`, `à-reprendre`, aucune session) là où il distribuerait,
+//     ou un `distribuer` qui porte `perimetre: 'verdict illisible'` (reporté dans `faits.perimetre`) quand la machine
+//     ne lit pas une ligne du dernier verdict refusé : la chaîne ne refuse jamais sur ce qu'elle ne lit pas ;
 //   - `--sessions <fichier>` : un objet JSON { <session>: vivante | morte | plafond | couple } que le modèle a lu
 //     (get_session ; `couple` : la session tourne à un autre modèle ou un autre effort que `faits`, A-182) ; une autre
 //     forme sort en 2, la cause dite.
@@ -43,7 +53,8 @@
 // que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande
 // intacte : une demande modifiée ne les donne jamais ; elle rend `signaler` (A-227, A-228).
 // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
-// que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne, de l'illisible ou de `signaler` (la trace
+// que l'ancienne soit retirée, A-84), le commentaire du plafond, du périmètre (comme le plafond : l'étiquette
+// `à-reprendre` d'abord, puis `Périmètre absent` ou `Périmètre dépassé — …`), de la panne, de l'illisible ou de `signaler` (la trace
 // d'une demande `À relire` modifiée, `Demande écartée — commentaire <id> …`, et ses lignes à qui l'a écrite : la session
 // les envoie, puis rejoue `jouer <n>` aussitôt, et le geste qu'il rend) ; au plafond, l'étiquette
 // d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
@@ -258,6 +269,7 @@ async function modules() {
   if (!MODULES.decision) {
     MODULES.decision = await import(pathToFileURL(join(CHAINE, 'decision-relecteur.mjs')).href);
     MODULES.verdict = await import(pathToFileURL(join(CHAINE, 'verdict.mjs')).href);
+    MODULES.revue = await import(pathToFileURL(join(CHAINE, 'revue-exigee.mjs')).href);
   }
   return MODULES;
 }
@@ -315,18 +327,41 @@ async function decision(json, sessions) {
       memeContenu[s] = r.status === 0 ? true : r.status === 20 ? false : 'illisible';
       raisons[s] = (r.stderr ?? '').split('\n').map((l) => l.trim()).filter(Boolean).at(-1) ?? 'sans raison écrite';
     }
-    const decide = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+    const perimetre = faitsDuPerimetre(await modules(), pr, json, fichiers, commentaires);
+    const decide = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu, ...(perimetre === undefined ? {} : { perimetre }) });
     const geste = decide.note === undefined ? decide : { ...decide, note: { ...decide.note, raison: raisons[decide.note.sommet] ?? 'sans raison écrite' } };
     const marques = d.lireMarques(commentaires, { tolerant: true });
     const demande = marques.demandes.at(-1) ?? { auteur: null, conducteur: null };
     const couple = faits.sensible || faits.exiges === 'illisible' || faits.exiges >= 2 ? cle.sensible : cle.ordinaire;
     // Pour `jouer` : la date de la marque la plus récente (`dernier`), que la pose d'une étiquette déjà là doit suivre.
     const marque = geste.geste === 'etiqueter' ? { marque: commentaires[marques.dernier]?.created_at ?? null } : {};
-    return { ...tete, ...geste, ...marque, faits: { ...faits, modele: couple.modele, effort: couple.effort, auteur: demande.auteur, conducteur: demande.conducteur } };
+    // `faits` s'écrit après `...geste` et l'écrase : le champ `perimetre` du geste (un contrôle qui n'a pas joué) y est reporté.
+    const pourquoi = geste.perimetre === undefined ? {} : { perimetre: geste.perimetre };
+    return { ...tete, ...geste, ...marque, faits: { ...faits, modele: couple.modele, effort: couple.effort, auteur: demande.auteur, conducteur: demande.conducteur, ...pourquoi } };
   } catch (e) {
     if (e instanceof v.LectureIllisible) return { ...tete, regle: null, geste: 'pause', raison: `commentaires illisibles : ${e.message}` };
     throw e;
   }
+}
+
+// Les faits du périmètre (ticket perimetre-fige 2), ou `undefined` quand les scripts posés sont d'avant : `decider`
+// rend alors ce qu'il rendait. Le delta : les fichiers du diff propre de la tête ou du sommet du dernier tour distribué
+// dont le contenu diffère entre les deux sommets ; une fusion de la base dans la branche n'y entre pas.
+function faitsDuPerimetre({ decision: d, verdict: v, revue: r }, pr, json, fichiers, commentaires) {
+  if (typeof v.fichiersNommes !== 'function' || typeof r.exigeRevue !== 'function' || typeof r.lireBase !== 'function') return undefined;
+  const faits = { documentation: !r.exigeRevue(fichiers, r.lireBase(`origin/${pr.base}`)), fichiers };
+  const { distributions } = d.lireMarques(commentaires, { tolerant: true });
+  if (distributions.length === 0 || !faits.documentation || fichiers.length === 0) return faits;
+  // Le sommet du dernier tour distribué : la première distribution du plus grand numéro.
+  const dernier = Math.max(...distributions.map((x) => x.tour));
+  const precedent = distributions.find((x) => x.tour === dernier).sommet;
+  const avant = liste({ ...pr, tete: precedent }, json);
+  if (avant.cause !== undefined) return { ...faits, delta: d.ILLISIBLE, cause: `diff propre du sommet ${precedent} : ${avant.cause}` };
+  const change = git('-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', precedent, pr.tete);
+  if (change.status !== 0) return { ...faits, delta: d.ILLISIBLE, cause: `git diff ${precedent} ${pr.tete} : ${derniere(change)}` };
+  const cle = (f) => r.cheminLu?.(f) ?? f;
+  const propres = new Set([...fichiers, ...avant.fichiers].map(cle));
+  return { ...faits, delta: change.stdout.split('\n').filter(Boolean).filter((f) => propres.has(cle(f))) };
 }
 
 // Un diff propre qui ne se lit pas : le geste `illisible` de la décision, avec sa cause propre (A-113, A-116) ; « rien »
@@ -377,7 +412,7 @@ async function jouerGeste(argv) {
   const avant = (json.labels ?? []).map((l) => l.name.normalize('NFC'));
   let joue = false;
   let lignes = g.lignes ?? [];
-  if (g.geste === 'etiqueter' || g.geste === 'plafonner') {
+  if (g.geste === 'etiqueter' || g.geste === 'plafonner' || g.geste === 'perimetre') {
     // La nouvelle avant l'ancienne (A-84) : jamais une PR sans étiquette. Déjà posée après la marque la plus récente :
     // un passage rejoué, aucune ligne ne repart ; posée avant, une étiquette restée : ses lignes partent.
     // Un plafond ne rend pas de `marque` : son commentaire est neuf par construction, ses lignes partent toujours, même
@@ -388,7 +423,7 @@ async function jouerGeste(argv) {
     joue = true;
   }
   // Au plafond, après l'étiquette : un commentaire refusé laisse le plafond à décider de nouveau, ses lignes entières.
-  if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible' || g.geste === 'signaler') {
+  if (g.geste === 'plafonner' || g.geste === 'perimetre' || g.geste === 'panne' || g.geste === 'illisible' || g.geste === 'signaler') {
     ecrire('commenter', String(n), g.commentaire);
     joue = true;
   }

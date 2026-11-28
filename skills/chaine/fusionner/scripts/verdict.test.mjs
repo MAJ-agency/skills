@@ -2,7 +2,8 @@
 // commentaires d'exemple, à la forme que l'API GitHub rend.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ASSOCIATIONS, LectureIllisible, MARQUE_VERDICT, PIED, corpsLu, ecrireVerdict, lireVerdict, lireVerdicts, retenir } from './verdict.mjs';
+import { readFileSync } from 'node:fs';
+import { ASSOCIATIONS, LectureIllisible, MARQUE_VERDICT, MOTIFS_ECARTES, PIED, corpsLu, ecrireVerdict, fichiersNommes, lireVerdict, lireVerdicts, retenir } from './verdict.mjs';
 
 const V = 'a'.repeat(40);
 const CLOUD = `\n\n---\n${PIED}`;
@@ -120,4 +121,72 @@ test("verdict : ecrireVerdict rend ce que lireVerdict relit, et refuse d'écrire
     assert.equal(illisible, false);
   }
   for (const champs of [{ sommet: 'abc' }, { tour: 0 }, { verdict: 'ok' }, { bloquants: 1 }, { session: 'a b' }, { securite: 'oui' }]) assert.throws(() => entete(champs), TypeError, JSON.stringify(champs));
+});
+
+// Les fichiers qu'un verdict nomme (programme « périmètre figé », ticket 2, A-9, A-10).
+const TABLEAU = (...lignes) => `| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |\n| --- | --- | --- | --- | --- | --- |\n${lignes.join('\n')}`;
+const CORPS = (lignes, ecartes = []) => `${entete({ verdict: 'refusé', bloquants: 1 })}\n\nPR #4 vers \`develop\` : 2 fichiers.\n\n${TABLEAU(...lignes)}\n\nÉcartés au tri : ${ecartes.length}.\n${ecartes.join('\n')}\n\nHors du diff relu : aucun`;
+
+test("fichiersNommes : le gabarit rempli (l'exemple de verdict.md, posé à côté ou dans le plugin) se lit sans ligne illisible", () => {
+  // L'exemple de verdict.md : dans le plugin seulement ; posé à plat, le banc lit son propre gabarit.
+  let exemple = null;
+  try {
+    exemple = /```text\n([\s\S]*?)\n```/.exec(readFileSync(new URL('../../relecture/references/verdict.md', import.meta.url), 'utf8'))[1];
+  } catch {
+    exemple = CORPS(['| bloquant | Ticket | `T3`, `RULE_ALL_FAC-16` | `apps/api/src/facture/total.ts:42` | Une facture sans ligne. | `total.spec.ts` |'], ['- `apps/api/src/facture/total.ts:12` : sans critère — une suggestion de nommage.']);
+  }
+  const lu = fichiersNommes(corpsLu(exemple));
+  assert.equal(lu.illisibles, 0, JSON.stringify(lu));
+  assert.ok(lu.bloquants.includes('apps/api/src/facture/total.ts'));
+  assert.deepEqual(lu.faux, []);
+});
+
+test('fichiersNommes : la cellule « Fichier et ligne » et les chemins entre accents graves du constat (A-10) ; un segment qui n\'est pas un chemin est ignoré', () => {
+  const lu = fichiersNommes(CORPS([
+    '| bloquant | Documentation | `D4`, `CONTEXT.md` | `docs/a.md:12` | Le terme manque à `GLOSSARY.md`, voir `docs/adr/` et `CONTEXT.md:71` ; `D4`, `pnpm test`, `Périmètre — `. | aucun test |',
+    '| bloquant | Ticket | `T3` | — | Le ticket ne dit pas la règle. | aucun test |',
+    '| doute | Règles | `S9` | `docs/doute.md:3` | `docs/autre.md` ? | — |',
+  ]));
+  assert.deepEqual(lu, { bloquants: ['docs/a.md', 'GLOSSARY.md', 'docs/adr/', 'CONTEXT.md'], faux: [], illisibles: 0 });
+});
+
+test('fichiersNommes : les lignes piégées — un chemin qui porte « : », un intervalle de lignes, une cellule sans accent grave, une ligne coupée', () => {
+  assert.deepEqual(fichiersNommes(CORPS(['| bloquant | R | `D1` | `docs/a:b.md:12` | x | t |'])).bloquants, ['docs/a:b.md']);
+  assert.deepEqual(fichiersNommes(CORPS(['| bloquant | R | `D1` | `docs/a.md:3-7` | x | t |'])), { bloquants: ['docs/a.md'], faux: [], illisibles: 0 });
+  assert.deepEqual(fichiersNommes(CORPS(['| bloquant | R | `D1` | `docs/a.md \\| b` | x \\| y | t |'])).illisibles, 1, 'une barre échappée reste dans sa cellule');
+  for (const lieu of ['docs/a.md:12', '`docs/a.md`', '`docs/a.md:0`', '`docs/a.md:x`', '`:12`', 'aucun'])
+    assert.equal(fichiersNommes(CORPS([`| bloquant | R | \`D1\` | ${lieu} | x | t |`])).illisibles, 1, lieu);
+  assert.equal(fichiersNommes(CORPS(['| bloquant | R | `D1` | `docs/a.md:1` | x |'])).illisibles, 1, 'cinq cellules');
+});
+
+test('fichiersNommes : les écartés « faux » sous « Écartés au tri », les six motifs ; la liste finit à une ligne vide, puis à une ligne qui n\'est pas une puce', () => {
+  assert.deepEqual(MOTIFS_ECARTES, ['sans critère', 'faux', 'arbitrage', 'develop', 'doublon', 'suite']);
+  const ecartes = MOTIFS_ECARTES.map((m, i) => `- \`docs/${i}.md:4\` : ${m} — \`D2\`, pourquoi en une phrase`);
+  assert.deepEqual(fichiersNommes(CORPS([], ecartes)), { bloquants: [], faux: ['docs/1.md'], illisibles: 0 });
+  assert.deepEqual(fichiersNommes(CORPS([], ['- — : faux — une remarque sans fichier'])).faux, []);
+  for (const puce of ['- `docs/f.md:4` : la définition est juste', '- `docs/f.md:4` : faux, la définition est juste', '- `docs/f.md:4` : Faux — x', '- docs/f.md:4 : faux — x', '- `docs/f.md:4` : erroné — x'])
+    assert.equal(fichiersNommes(CORPS([], [puce])).illisibles, 1, puce);
+  // Fin de liste : la ligne vide, puis une ligne qui n'est pas une puce ; ce qui suit n'est pas lu.
+  const fin = `${TABLEAU()}\n\nÉcartés au tri : 1.\n- \`docs/f.md:4\` : faux — x\n\n- \`docs/g.md:1\` : faux — x`;
+  assert.deepEqual(fichiersNommes(fin).faux, ['docs/f.md']);
+  const finTexte = `Écartés au tri : 1.\n- \`docs/f.md:4\` : faux — x\nHors du diff relu : aucun\n- \`docs/g.md:1\` : pas une puce lue`;
+  assert.deepEqual(fichiersNommes(finTexte), { bloquants: [], faux: ['docs/f.md'], illisibles: 0 });
+  assert.deepEqual(fichiersNommes(`Écartés au tri : <n>.\n- \`<fichier>:<ligne>\` : <motif>`), { bloquants: [], faux: [], illisibles: 0 }, 'le gabarit non rempli : aucune liste lue');
+});
+
+test('fichiersNommes : lireVerdict et ecrireVerdict ne changent pas, le corps lu ou non', () => {
+  const corps = CORPS(['| bloquant | R | `D1` | pas un lieu | x | t |']);
+  const v = lireVerdict(corps);
+  assert.equal(v.illisible, false);
+  assert.equal(v.verdict, 'refusé');
+});
+
+test('fichiersNommes : les entrées piégées — fins de ligne CRLF (lues par corpsLu, comme la machine les lit), dernière ligne sans fin de ligne', () => {
+  const corps = CORPS(['| bloquant | R | `D1` | `docs/a.md:12` | voir `GLOSSARY.md` | t |'], ['- `docs/f.md:4` : faux — `D2`, la définition est juste']);
+  const attendu = { bloquants: ['docs/a.md', 'GLOSSARY.md'], faux: ['docs/f.md'], illisibles: 0 };
+  assert.deepEqual(fichiersNommes(corpsLu(corps.replace(/\n/g, '\r\n'))), attendu);
+  assert.deepEqual(fichiersNommes(corpsLu(`${corps.replace(/\n/g, '\r\n')}\r\n\r\n---\r\n${PIED}\r\n`)), attendu, 'le pied des sessions cloud, en CRLF');
+  // La dernière ligne lue, sans fin de ligne : un bloquant, puis une puce.
+  assert.deepEqual(fichiersNommes('| bloquant | R | `D1` | `docs/a.md:12` | x | t |'), { bloquants: ['docs/a.md'], faux: [], illisibles: 0 });
+  assert.deepEqual(fichiersNommes('Écartés au tri : 1.\n- `docs/f.md:4` : faux — x'), { bloquants: [], faux: ['docs/f.md'], illisibles: 0 });
 });

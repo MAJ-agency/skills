@@ -1,6 +1,6 @@
 # Le verdict d'une session de relecture
 
-Un commentaire de la PR, neuf, écrit une fois, jamais modifié. Son en-tête est lu par la machine (`scripts/chaine/verdict.mjs`) : la marque, puis six lignes, dans cet ordre, sans rien entre elles ni avant la marque, puis une ligne vide. Ce qui suit la ligne vide est pour l'auteur de la PR : la machine ne le lit pas.
+Un commentaire de la PR, neuf, écrit une fois, jamais modifié. Son en-tête est lu par la machine (`scripts/chaine/verdict.mjs`) : la marque, puis six lignes, dans cet ordre, sans rien entre elles ni avant la marque, puis une ligne vide. Ce qui suit la ligne vide est pour l'auteur de la PR : la machine n'en lit que les fichiers que nomment les bloquants du tableau (la cellule « Fichier et ligne » et les chemins entre accents graves de la cellule « Constat ») et les écartés « faux » (`fichiersNommes`, pour le périmètre d'une PR de documentation), ces endroits seuls.
 
 ```markdown
 <!-- relecture:verdict -->
@@ -30,7 +30,7 @@ Agent des axes : <maj-skills:axe-de-relecture | agent générique, maj-skills:ax
 | <bloquant ou doute> | <axe> | <critère, et la règle écrite qu'il applique> | `<fichier>:<ligne>` | <le constat, une phrase> | <pour un bloquant : le test ; pour un doute : —> |
 
 Écartés au tri : <n>.
-- `<fichier>:<ligne>` : <le critère cité, ou « sans critère »>, <pourquoi il est écarté, en une phrase>
+- `<fichier>:<ligne>` : <motif : sans critère, faux, arbitrage, develop ou doublon> — <le critère cité, s'il y en a un>, <pourquoi il est écarté, en une phrase>
 
 Hors du diff relu : <`<fichier>`, et pourquoi : lockfile, snapshot, sans écart contre la base, binaire, binaire illisible, binaire sous un chemin sensible | aucun>
 
@@ -58,11 +58,12 @@ Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de c
 - « Agent des axes » s'écrit **toujours** : `maj-skills:axe-de-relecture` quand chaque axe s'est lancé par ce nom ; `agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli)` quand l'outil a répondu « Agent type … not found » et que la session a relancé le même message par l'agent générique (étape 6 de `SKILL.md`) ; si un axe a eu la définition et un autre non, la ligne nomme les axes du repli ; `sans objet` quand aucun axe ne s'est lancé. Un repli n'est pas un « non exécuté » : l'axe est joué. La ligne permet de compter les replis.
 - Une ligne du tableau par constat gardé au tri, les bloquants d'abord. Sans constat : le tableau se remplace par la phrase « Aucun constat. ».
 - Le critère est cité par son identifiant (`S3`, `P2`, `T1`, `D4`, `K5`, `M2`, `C3`) et par la règle écrite qu'il applique.
+- Tout fichier cité dans un constat s'écrit entre accents graves. La cellule « Fichier et ligne » d'un bloquant est `` `<fichier>:<ligne>` `` (un numéro, ou un intervalle `<n>-<m>`), ou `—` quand le constat n'a pas de fichier : la machine lit les fichiers qu'un bloquant nomme, dans cette cellule et entre accents graves dans le constat, pour admettre leur correction au tour suivant.
 - Pour un bloquant, la dernière colonne dit le test qui l'aurait attrapé : l'auteur corrige le bloquant avec ce test, ou le conteste. Quand aucun test ne peut le tenir (un écart de documentation, un ticket), elle dit « aucun test », et pourquoi.
-- « Écartés au tri » dit combien de constats la session a écartés, et pourquoi en une phrase chacun : sans critère cité, faux, écarté par un arbitrage, ligne venue de `develop`, doublon d'un autre axe.
+- « Écartés au tri » dit combien de constats la session a écartés, et pourquoi en une phrase chacun : sans critère cité, faux, écarté par un arbitrage, ligne venue de `develop`, doublon d'un autre axe. Chaque puce s'écrit `` - `<fichier>:<ligne>` : <motif> — <le critère cité, s'il y en a un>, <pourquoi, en une phrase> ``, le motif écrit `sans critère`, `faux`, `arbitrage`, `develop` ou `doublon`, et la liste suit la ligne `Écartés au tri : <n>.` sans ligne vide. La machine lit les fichiers des écartés `faux` : leur clarification est admise au tour suivant. La commande de contrôle refuse une puce hors de cette forme.
 - « Hors du diff relu » nomme chaque fichier changé que les axes n'ont pas lu, et pourquoi, **toujours**, quel que soit le verdict : `pnpm-lock.yaml` ou un fichier `.snap` (`hors.txt`), un fichier sans écart contre la base (`sans-ecart.txt`), un fichier binaire (`binaires.txt` : le diff n'en porte que le nom). Un binaire sous un chemin sensible se dit tel, et le verdict est alors `incomplet` : un fichier sensible que personne ne peut lire ne se valide pas. De même un binaire illisible (`illisibles.txt` : git le dit binaire, et son extension n'est ni celle d'une image, ni d'une police, ni d'une archive) : du code avec un octet nul ou un texte en UTF-16 que personne ne lit ne se valide pas. Un index à commande, que `C1` vérifie, ne s'y nomme pas.
 - « Index à régénérer par le capitaine » nomme chaque index à commande que `C1` trouve périmé et que la base et la tête déclarent par un chemin littéral : ce n'est pas un constat, le capitaine le régénère avant que rien n'entre dans develop.
-- Aucune ligne du corps ne commence par `Relecture — `, `Relecture en panne`, `À relire — `, `Plafond — `, `Décision de plafond`, `Arbitrage — ` ni `Lecture illisible` : ce sont les marques du Relecteur, de l'auteur et de l'arbitre.
+- Aucune ligne du corps ne commence par `Relecture — `, `Relecture en panne`, `À relire — `, `Plafond — `, `Décision de plafond`, `Arbitrage — `, `Lecture illisible`, `Périmètre — `, `Périmètre absent`, `Périmètre dépassé` ni `Suite — ` : ce sont les marques du Relecteur, de l'auteur et de l'arbitre.
 
 ## Un exemple
 
@@ -95,7 +96,7 @@ Agent des axes : maj-skills:axe-de-relecture
 | doute | Règles | `S9`, `apps/api/CLAUDE.md` de la base § « Invariants » | `apps/api/src/facture/total.ts:57` | Le total est-il relu sous le verrou de la facture ? Le diff ne montre pas l'appelant. | — |
 
 Écartés au tri : 1.
-- `apps/api/src/facture/total.ts:12` : sans critère, une suggestion de nommage.
+- `apps/api/src/facture/total.ts:12` : sans critère — une suggestion de nommage.
 
 Hors du diff relu : `apps/web/public/logo.png`, binaire ; `pnpm-lock.yaml`, lockfile
 
