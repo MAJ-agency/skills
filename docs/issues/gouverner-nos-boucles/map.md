@@ -1570,3 +1570,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 07 h 33 UTC. Contrôle de vie : capitaine au repos (541 615 tokens, 8,16 $, réveil 07 h 44, il prendra la #179) ; ticket 106 fini. Rédacteur lancé pour le ticket 117 (un saut non déclaré dans un banc posé rougit la suite).
 - 2026-11-28 — 07 h 40 UTC. Ticket 117 relu (un bloquant : un « todo » qui échoue sort en `test:fail`, confirmé sous Node 22.23), corrigé, `ready-for-agent`. **Session lancée** : ticket 117 → session_012xRpgZgVz7g6YzX11rNTsY (Sonnet).
 - 2026-11-28 — 07 h 59 UTC. **PR #179 fusionnée** (ticket 106) : `main` à `6009e57`, parent `36accb9`, arbre égal au sommet ordonné `dbd67dd`, plugin 8.9.3 ; vérifié à la source. Session 106 archivée (1,37 $). Session du ticket 107 lancée (Sonnet).
+- 2026-11-28 — 08 h 00 UTC. Ticket 107 → session_012xRpgaNfiGZUJfvWG8h9mj (Sonnet). En vol : 107 et 117.
