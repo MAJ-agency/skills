@@ -321,6 +321,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgZ3p7QKTGQMk6PCpGn` | ticket   | 112-113 | 2,24  | 185 557           |
 | `session_012xRpgYmSs5i82jVB5gBscL` | ticket   | 97     | 1,10   | 150 108           |
 | `session_012xRpgaV6v5hPdomx3qHQqc` | ticket   | 101    | 1,30   | 162 508           |
+| `session_012xRpgbPf2VeDJ9gzUXrSpZ` | ticket   | 104    | 1,52   | 152 980           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1558,3 +1559,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 05 h 40 UTC. PR #177 : tour 2 (delta `d743758..0b6062b`, texte et bancs de texte) lu par l'architecte, conforme ; suite entière 1561/1564 (trois rouges de `main`). Verdict écrit au sommet `0b6062b` ; ordre tenu jusqu'à l'entrée de la #175 de « périmètre figé » (accord), au plus une heure.
 - 2026-11-28 — 05 h 41 UTC. L'architecte de « périmètre figé » lève l'accord : sa #175 est au plafond de trois renvois et attend une décision de son produit ; mes PR passent devant. PR #177 : `CodeQL` et `Analyze` verts au sommet `0b6062b`, base égale à `main` ; ordre et label posés ; `bancs` en cours.
 - 2026-11-28 — 05 h 50 UTC. PR #178 (ticket 105, 8.9.1, sommet `42abe91`) : tour 1 conforme (agent neuf) ; le choix de la session (la sous-PR qui prend le sujet dans le même tour est contrôlée alors) compatible avec `A-104` et `A-256` (1). Elle passe après #177 (même version), puis se remet sur `main` en 8.9.2. Remarques laissées pour une suite : le banc du régime illisible accepte `(7|illisible)` ; la clé d'un `origin/sujet/*` non rapatrié n'est pas lue (côté sûr) ; un `pr_json` en échec dans `traiter_rouges` relance sans ligne au journal.
+- 2026-11-28 — 06 h 06 UTC. **PR #177 fusionnée** (ticket 104) : `main` à `533b64b`, parent `c15f90a`, arbre égal au sommet ordonné `0b6062b`, plugin 8.9.1 ; vérifié à la source. Session 104 archivée (1,52 $). Capitaine au repos, 503 954 tokens, 7,03 $. PR #178 : gestes de remise sur `main` envoyés (section 8.9.2 sha256 `6ace5fd…`, arbre attendu `0f6c4ae…`).
