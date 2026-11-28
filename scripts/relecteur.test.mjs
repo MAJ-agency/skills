@@ -177,7 +177,7 @@ test("fusionner/references/CONTENU.md décrit les trois calculs de la relecture 
 });
 
 test("le périmètre figé (ticket 2) : le Relecteur ne lit toujours rien, la machine lit pour lui le périmètre", () => {
-  exigerDans(`${SKILL}/SKILL.md`, ["Il ne lit ni le diff, ni les constats, ni le corps d'un verdict", "la machine lit les fichiers du diff et ceux qu'un verdict nomme", "| `etiqueter`, `plafonner`, `perimetre`, `panne`, `illisible` | `jouer <n>`"]);
+  exigerDans(`${SKILL}/SKILL.md`, ["Il ne lit ni le diff, ni les constats, ni le corps d'un verdict", "la machine lit les fichiers du diff et ceux qu'un verdict nomme", "| `etiqueter`, `plafonner`, `perimetre`, `panne`, `illisible` | `jouer <n>`", "le commentaire du plafond, du périmètre (`Périmètre absent` ou `Périmètre dépassé — <fichiers>`", "Le commentaire du périmètre rend ses lignes comme celui du plafond"]);
   exigerDans(`${SKILL}/references/CONTENU.md`, ["la PR de documentation par `revue-exigee.mjs`, le delta par git", "les cas du périmètre"]);
 });
 
