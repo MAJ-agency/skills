@@ -445,11 +445,12 @@ cle_relecture_sur() {
   git show "$1:.claude/chaine.json" 2>/dev/null | jq -e 'type == "object" and has("relecture")' >/dev/null 2>&1
 }
 
-# La demande de relecture d'un auteur, en régime 8, à la forme exacte que lit le Relecteur (`FORME_DEMANDE` de
-# decision-relecteur.mjs), pour les messages qui la font écrire (`renvoyer.sh`, `sujet.sh demarrer`) : un commentaire qui
-# commence par `À relire — ` sans cette forme est une marque presque à la forme, et la PR est sautée sans renvoi à chaque
-# passage du capitaine (A-113) tant qu'il reste.
-DEMANDE_DE_RELECTURE="le commentaire \`À relire — sommet <sha> — Session: <id> — Conducteur: <id>\`, seul dans son commentaire, sur une ligne : le sha entier (40 caractères) du dernier push, ton id de session, celui de ton conducteur (\`—\` sans conducteur)"
+# La demande de relecture d'un auteur, en régime 8, pour les messages qui la font écrire (`renvoyer.sh`, `sujet.sh
+# demarrer`) : la forme exacte que lit le Relecteur (`FORME_DEMANDE` de decision-relecteur.mjs) ne vit que dans
+# `demande.mjs`, qui la fabrique ; le message nomme la commande, jamais la forme. Un commentaire qui commence par
+# `À relire — ` sans cette forme est une marque presque à la forme, et la PR est sautée sans renvoi à chaque passage
+# du capitaine (A-113) tant qu'il reste.
+DEMANDE_DE_RELECTURE="le commentaire que rend \`node scripts/chaine/demande.mjs --session <ton id de session> --conducteur <celui de ton conducteur, — sans conducteur>\`, copié tel quel, seul dans son commentaire (le script lit le sommet dans git et refuse un sommet non poussé)"
 
 # Le régime d'une PR (A-97) : `regime_de_la_pr <base> <created_at>` écrit 7, 8, ou `illisible` (clé mal formée, date),
 # par `regimeDeLaPr` de `revue-exigee.mjs`, sur `origin/<base>` tel qu'il est là. Pour les messages et les renvois
