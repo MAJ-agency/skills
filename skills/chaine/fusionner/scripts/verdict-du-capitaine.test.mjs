@@ -565,18 +565,18 @@ test("régime 8, passer.sh --eligibilite : sans tour validé pour le sommet, sor
 
 test("régime 7 (sans la clé, ou PR ouverte avant `depuis`) et régime illisible, passer.sh --eligibilite : sortie 0, les commentaires jamais lus", () => {
   const cas = [
-    [{ cheminsSensibles: [] }, {}],
-    [CONTRAT, { created_at: "2026-11-17T08:59:00Z" }],
-    [{ relecture: { depuis: "jamais" } }, {}],
+    [{ cheminsSensibles: [] }, {}, "7"],
+    [CONTRAT, { created_at: "2026-11-17T08:59:00Z" }, "7"],
+    [{ relecture: { depuis: "jamais" } }, {}, "illisible"],
   ];
-  for (const [contrat, plus] of cas) {
+  for (const [contrat, plus, regime] of cas) {
     const d = monter(contrat);
     // Sans section de revue et sans verdict : un jugement les refuserait. La route des commentaires en panne : une lecture
     // sortirait en 5.
     versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x", fil: () => [], plus, autres: { pannes: [{ route: "^issues/30/comments", fois: 2 }] } });
     const r = d.lancer(PASSER, "--eligibilite", "30");
     assert.equal(r.status, 0, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
-    assert.match(dernier(r), /éligibilité avant la CI : régime (7|illisible), rien à juger avant le passage/);
+    assert.equal(dernier(r).includes(`éligibilité avant la CI : régime ${regime}, rien à juger avant le passage`), true, dernier(r));
     assert.equal(d.etat().pannes?.length, 1, "la panne des commentaires n'a pas été consommée");
     assert.deepEqual(d.journal(), []);
   }
@@ -741,5 +741,51 @@ test("boucle.sh, régime 7 : une PR « CI en cours » sans section de revue n'es
   assert.doesNotMatch(r.stdout, /RENVOI/);
   assert.match(r.stdout, /^\[#31\] RELANCE des jobs rouges/m);
   assert.ok(d.journal().some((e) => e.route === "actions/runs/7/rerun-failed-jobs"), "jobs relancés");
+  assert.deepEqual(labelsDe(d, 30), ["à-fusionner"]);
+});
+
+// Le faux `gh` : tout va au faux GitHub ; la lecture des runs laisse un témoin, et, le témoin présent, la lecture de
+// `pulls/30` tombe en 502 une fois (le témoin est retiré : les lectures suivantes, celles de la file, passent). La lecture fautive est celle qui suit les runs, quel que soit le nombre de lectures avant elle.
+function pannePrApresLesRuns(d) {
+  Object.assign(d.env, { BANC_FAUX_GH: scriptDe("sujet", "faux-gh.mjs") });
+  writeFileSync(
+    join(d.racine, "bin/gh"),
+    '#!/bin/sh\ncase "$*" in *"-X "*) ;; *actions/runs?*) touch "$FAUX_GH/runs-lus" ;; *pulls/30) if [ -e "$FAUX_GH/runs-lus" ]; then rm -f "$FAUX_GH/runs-lus"; echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; fi ;; esac\nexec node "$BANC_FAUX_GH" "$@"\n',
+  );
+}
+
+test("boucle.sh, régime 8 : une PR « CI rouge » illisible après la lecture des runs n'est ni relancée ni renvoyée, et le journal le dit", () => {
+  const d = monterBoucle();
+  d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "FAILURE" } },
+    runs: { "#30": [{ id: 7, conclusion: "failure", run_attempt: 1 }] },
+    pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires: [] }],
+  });
+  pannePrApresLesRuns(d);
+  const r = tourDeBoucle(d);
+  assert.match(r.stdout, /^\[#30\] PR illisible avant la relance de ses jobs rouges \(cause ci-dessus\) : ni relance ni renvoi, reprise au tour suivant$/m);
+  assert.doesNotMatch(r.stdout, /\[#30\] RELANCE|RENVOI/);
+  assert.ok(!d.journal().some((e) => /rerun-failed-jobs$/.test(e.route)), "aucune relance des jobs");
+  assert.deepEqual(labelsDe(d, 30), ["à-fusionner"]);
+});
+
+test("boucle.sh, régime 7 : une PR « CI rouge » illisible après la lecture des runs n'est pas relancée, et le journal le dit", () => {
+  const d = monterBoucle(null);
+  d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "FAILURE" } },
+    runs: { "#30": [{ id: 7, conclusion: "failure", run_attempt: 1 }] },
+    pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires: [] }],
+  });
+  pannePrApresLesRuns(d);
+  const r = tourDeBoucle(d);
+  assert.match(r.stdout, /^\[#30\] PR illisible avant la relance de ses jobs rouges/m);
+  assert.doesNotMatch(r.stdout, /\[#30\] RELANCE|RENVOI/);
+  assert.ok(!d.journal().some((e) => /rerun-failed-jobs$/.test(e.route)), "aucune relance des jobs");
   assert.deepEqual(labelsDe(d, 30), ["à-fusionner"]);
 });
