@@ -26,6 +26,12 @@
 #                         PR de mise à jour (la fusion de develop dans le sujet, conflit résolu, puis des
 #                         retouches) : entre par avance rapide, sans squash, si elle a cette forme (voir « PR de
 #                         mise à jour » plus bas), sinon sortie 4
+#   fusionner --eligibilite <pr>
+#                         (capitaine, A-243) éligibilité avant la CI : la PR lue, le sujet rapatrié, le régime lu d'abord
+#                         sur origin/<base> (régime 7 ou `illisible` : sortie 0, rien d'autre) ; en régime 8, tout ce qui
+#                         précède le verrou (revue, gardes des fichiers sensibles, liens sur un index), puis sortie 0,
+#                         sans verrou ni écriture ; mêmes codes que `fusionner` à ces étapes (4, 7, 5, 11, 69).
+#                         `CAPITAINE_ID` n'est pas exigé : rien ne se signe
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
@@ -912,11 +918,23 @@ verdict_avant_fusion() {
 }
 
 fusionner() {
+  local eligibilite=0
+  [ "${1:-}" != --eligibilite ] || { eligibilite=1; shift; }
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
-  capitaine_id_valide "${CAPITAINE_ID-}" ||
+  [ "$eligibilite" = 1 ] || capitaine_id_valide "${CAPITAINE_ID-}" ||
     sortir 64 "CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, lettres, chiffres, - et _ : skill fusionner, « Mise en place ») : aucun passage"
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+  # Éligibilité avant la CI (A-243, A-256) : le régime d'abord, sur la base rapatriée, avant tout autre contrôle. Régime 7
+  # ou `illisible` : rien à juger avant la CI, le passage jugera.
+  if [ "$eligibilite" = 1 ]; then
+    local regime_eligibilite
+    base=$(jq -r .base.ref <<<"$pr")
+    git_masque fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base" ||
+      sortir 5 "#$n : origin illisible au rapatriement de $base (éligibilité avant la CI) : reprise au tour suivant, aucun renvoi"
+    regime_eligibilite=$(regime_de_la_pr "$base" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime_eligibilite=illisible
+    [ "$regime_eligibilite" = 8 ] || sortir 0 "#$n : éligibilité avant la CI : régime $regime_eligibilite, rien à juger avant le passage"
+  fi
   [ "$(jq -r .state <<<"$pr")" = open ] || sortir 7 "#$n n'est pas ouverte"
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
   # Une PR de fourche : sautée sans renvoi, comme dans passer.sh (A-192, point 2), avant tout fetch de sa tête.
@@ -993,6 +1011,8 @@ fusionner() {
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
+  # Éligibilité avant la CI : tout ce qui précède le verrou est joué ; rien n'est écrit.
+  [ "$eligibilite" = 0 ] || sortir 0 "#$n : éligibilité avant la CI : régime 8, éligible au sommet $sommet"
   # Avant le premier contrôle d'ascendance et avant le chemin de la PR de mise à jour : un seul passage à la fois.
   verrouiller "$n" "$pr"
 
@@ -1693,5 +1713,5 @@ case "$commande" in
   a-juger) a_juger "$@" ;;
   est-livraison) est_livraison "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket> | a-juger <sommet> <base> [<pr>] | est-livraison <tête> <sommet>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner [--eligibilite] <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket> | a-juger <sommet> <base> [<pr>] | est-livraison <tête> <sommet>" ;;
 esac
