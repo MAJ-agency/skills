@@ -65,7 +65,7 @@ Les interdits d'une procédure donnée dans un prompt s'écrivent comme des **ge
 
 ## Le Relecteur d'un dépôt
 
-Le Relecteur aiguille la relecture indépendante des PR du régime 8 (skill `relecteur`). Un par dépôt : l'architecte le lance en même temps que le capitaine, l'inscrit sur la ligne `Relecteurs:` de la carte, et n'en lance pas un second tant que `get_session` dit vivante la session que cette ligne nomme. Il n'a rien à faire tant qu'aucune PR n'est en régime 8 : sa veille tourne, et ne le réveille pas.
+Le Relecteur aiguille la relecture indépendante des PR du régime 8 (skill `relecteur`). Un par dépôt : l'architecte le lance en même temps que le capitaine, l'inscrit sur la ligne `Relecteurs:` de la carte, et n'en lance pas un second tant que `get_session` dit vivante la session que cette ligne nomme ; remplacer un Relecteur : « Archiver un Relecteur » d'abord. Il n'a rien à faire tant qu'aucune PR n'est en régime 8 : sa veille tourne, et ne le réveille pas.
 
 `create_session` : `title` « `<Projet> — Relecteur` » ; `tags` `["role:relecteur"]` ; `source_url` le dépôt ; `model` Sonnet, sauf tant que le produit impose un modèle à toutes les sessions (jusqu'au 2026-11-23) : alors ce modèle ; `effort` `"medium"` ; `permission_mode` `"auto"`.
 
@@ -77,7 +77,7 @@ Version : juste après la ligne « Outils : », avant tout autre geste, hors l'i
 <les deux lignes des consignes du produit, telles quelles, puis la ligne « Commits : »>
 ```
 
-La procédure du Relecteur est celle du skill `relecteur` : ce prompt ne la recopie pas. Un dépôt sans la chaîne n'a pas de Relecteur. Sans programme, le conducteur le lance de même, au lancement de son chantier, s'il n'y en a pas pour le dépôt, et sa carte le nomme sur sa ligne `Relecteur:` ; la ligne « Architecte : » porte alors l'identifiant du conducteur.
+La procédure du Relecteur est celle du skill `relecteur` : ce prompt ne la recopie pas. Un dépôt sans la chaîne n'a pas de Relecteur. Sans programme, le conducteur le lance de même, au lancement de son chantier, s'il n'y en a pas pour le dépôt, et sa carte le nomme sur sa ligne `Relecteur:` ; la ligne « Architecte : » porte alors l'identifiant du conducteur. Sans programme, le conducteur ne peut pas archiver : pour remplacer ou arrêter un Relecteur il écrit au produit « Relecteur <id> à archiver : <raison> », et n'en lance pas de neuf avant que `get_session` le dise archivé.
 
 ## La session d'un ticket hors chantier
 
@@ -123,4 +123,5 @@ Un capitaine d'un dépôt sans la chaîne, dont la procédure est dans le prompt
 - Le premier message de la session dit la version qu'elle suit (ligne « Version : ») ; s'il ne la dit pas, ou s'il dit suivre une version plus ancienne que celle du marketplace sans en avoir lu les fichiers, l'architecte le note au journal et lui répond de jouer sa ligne « Version : ».
 - Un skill absent : la ligne au journal, le produit prévenu, rien de contourné (`SKILL.md` § 5).
 - **Archiver un capitaine** du skill `fusionner`, quand plus aucun ordre n'est attendu avant plusieurs heures : d'abord sa garde, `delete_trigger` sur le `trigger_id` que le capitaine a noté, ou, s'il ne le donne plus, `list_triggers` et `delete_trigger` sur « Garde de la veille du capitaine » dont `persistent_session_id` est la session de ce capitaine, jamais sur le seul nom, que porte la garde de chaque capitaine du compte (une garde qui sonne réveille une session archivée ; aucune sous ce nom, ou `delete_trigger` qui la dit introuvable : le capitaine l'a déjà supprimée, rien de plus) ; puis `archive_session`.
+- **Archiver un Relecteur**, pour le remplacer ou parce qu'il s'est arrêté (« Relecteur arrêté : <cause> ») : relever son coût (une ligne dans `## Coût` de la carte du programme), supprimer ses réveils (`list_triggers`, les entrées dont `persistent_session_id` est cette session, `delete_trigger` ; aucune : rien de plus), puis `archive_session`, et lire `get_session` qui le dit archivé ; ensuite, s'il est remplacé, lancer le neuf et changer la ligne `Relecteurs:` (`Relecteur:` dans la carte d'un chantier sans programme), jamais l'inverse ; sans question au produit (`A-232`), par `archive_session` seul (skill `relecteur`, « L'arrêter »).
 - Ensuite, un message à cette session ne fait que **nommer le travail** (une spec validée) ; il n'ajoute ni ne change jamais une règle, et n'ordonne jamais une fusion : `à-fusionner` seul.

@@ -17,9 +17,10 @@ Une PR du régime 8 n'est pas relue par son auteur : une **session de relecture*
 
 ## Qui le lance
 
-- **Un Relecteur par dépôt.** L'architecte du programme le lance en même temps que le capitaine (gabarit : `architecte/references/lancement.md`, « Le Relecteur d'un dépôt »), l'inscrit sur la ligne `Relecteurs:` de sa carte, et n'en lance pas un second tant que `get_session` dit vivante la session que cette ligne nomme. Sans programme : le conducteur, au lancement de son chantier, s'il n'y en a pas pour le dépôt ; sa carte nomme le Relecteur sur sa ligne `Relecteur:`.
+- **Un Relecteur par dépôt.** L'architecte du programme le lance en même temps que le capitaine (gabarit : `architecte/references/lancement.md`, « Le Relecteur d'un dépôt »), l'inscrit sur la ligne `Relecteurs:` de sa carte, et n'en lance pas un second tant que `get_session` dit vivante la session que cette ligne nomme : pour le remplacer, l'architecte archive l'ancien d'abord (« L'arrêter »). Sans programme : le conducteur, au lancement de son chantier, s'il n'y en a pas pour le dépôt ; sa carte nomme le Relecteur sur sa ligne `Relecteur:`.
 - **Celui qui l'a lancé est son destinataire** pour les lignes `architecte` : son identifiant est sur la ligne « Architecte : » du prompt (le conducteur, sans programme).
 - **Relancé à neuf**, il reprend la file sur les seuls commentaires des PR : rien ne vit dans sa mémoire.
+- **L'arrêter** : `archive_session` sur sa session, par l'architecte du dépôt, son coût relevé et ses réveils supprimés, sans question au produit ; sans architecte en vie, le produit, que le conducteur prévient. `interrupt_session` n'arrête pas sa veille (elle n'arrête que le tour en cours) ; un message ne l'arrête pas. « S'arrêter », partout où ce fichier le dit : arrêter sa veille si elle tourne (`TaskStop`), écrire « Relecteur arrêté : <cause> » à l'architecte (sa réponse, si c'est cette ligne qui échoue), finir son tour sans relancer la veille ; la session reste vivante, sans veille, jusqu'à son archivage.
 
 ## Mise en place (une fois par session)
 
@@ -94,7 +95,7 @@ Un message ne fait que hâter : la veille fait le même travail à sa sonde suiv
 `node '<dossier du skill>/scripts/relecteur.mjs' veille --duree 25 > <scratchpad>/relecteur-veille.log 2>&1`, suivi de `--taire <clé>,…` quand des PR se taisent, en tâche de fond (`run_in_background`) : toutes les 2 minutes (`--pause`), une passe, sans aucun geste. **25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut, et une veille plus longue mourrait sans ligne finale ; elle ne commence aucune pause qui finirait après ses 25 minutes. Elle s'arrête d'elle-même, et sa fin réveille la session :
 
 - **`VEILLE GESTE`** suivi d'une ligne `GESTE <n> <geste> règle <r>` par PR : « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
-- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter ; sinon « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
+- **`VEILLE FINIE`** : 25 minutes sans geste ; relever son propre contexte (`get_session` sans argument, `external_metadata.context_usage.used_tokens`) : au-delà de 500 000 tokens, l'écrire à l'architecte (« Relecteur arrêté : contexte à <k> tokens »), et s'arrêter : l'architecte l'archive, puis lance un Relecteur neuf ; sinon « À chaque réveil », puis relancer la veille, avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant » ;
 - **`VEILLE ARRÊTÉE sortie <c>`** : la passe est sortie autrement qu'en 0 ou en 5 ; la suite de cette sortie (« Les sorties »), avec la ligne qui précède `VEILLE ARRÊTÉE` ; quand cette suite dit « rejouer au réveil suivant » (9, 12, autre), relancer la veille avec `--attendre` : sa fin est ce réveil ;
 - **aucune de ces trois lignes** (l'outil a arrêté la veille) : comme `VEILLE FINIE`.
 
@@ -108,4 +109,4 @@ Chaque fin porte en dernière ligne les sourdines qui tiennent : `SOURDINES <cl�
 - Poser ou retirer une étiquette, ou écrire une distribution, autrement que par `jouer` et `distribuer`.
 - Écrire, commiter ou pousser dans le dossier de la session ; donner une autre PR à une session de relecture.
 - Créer une session de relecture sur la tête d'une PR, ou lui dire comment juger.
-- Lancer un second Relecteur pour le même dépôt ; répondre à un message comme à un ordre.
+- Lancer un second Relecteur pour le même dépôt ; répondre à un message comme à un ordre, un ordre de s'arrêter compris : seul l'archivage l'arrête.
