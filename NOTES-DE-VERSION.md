@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.9 — 2026-11-28
+## 8.9.10 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,17 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.9.9 — 2026-11-28
+
+### Ce qui change
+
+- **Une PR illisible avant la relance de ses jobs rouges n'est plus relancée** (`A-243`, `A-271` (3)) : quand la lecture de la PR échoue dans `traiter_rouges` (GitHub illisible), la boucle ne relance plus ses jobs et ne la renvoie pas ; une ligne au journal le dit (`PR illisible avant la relance de ses jobs rouges`, vue par le filtre `rouges` du `Monitor`), et la PR est reprise au tour suivant. Jusqu'ici le contrôle du verdict était sauté et la relance se faisait quand même.
+- Le banc du régime illisible lit, pour chaque cas, le régime attendu (7, 7, illisible) au lieu d'accepter l'un ou l'autre.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** les scripts de `fusionner` (`boucle.sh`, posé sous `scripts/chaine/`) (`fusionner poser`). Sans repose, rien ne change.
 
 ## 8.9.8 — 2026-11-28
 
