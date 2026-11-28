@@ -1,6 +1,6 @@
 # Critères de l'axe Tickets (liste fermée)
 
-L'axe reçoit le **diff** et lit dans l'arbre à part les tickets, la spec et la carte que le diff touche, les autres tickets du même chantier, et tout fichier, règle, ADR ou décision qu'ils citent. Il est joué quand le diff écrit ou modifie un ticket (`*.issue.md`), une spec (`*.spec.md`) ou une carte (`*.map.md`) ; un ticket dont seules la ligne `Status:` et la section `## Comments` changent ne le déclenche pas. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**.
+L'axe reçoit le **diff**, et la déclaration de périmètre de la PR (le commentaire `Périmètre — …`) quand elle existe, et lit dans l'arbre à part les tickets, la spec et la carte que le diff touche, les autres tickets du même chantier, et tout fichier, règle, ADR ou décision qu'ils citent. Il est joué quand le diff écrit ou modifie un ticket (`*.issue.md`), une spec (`*.spec.md`) ou une carte (`*.map.md`) ; un ticket dont seules la ligne `Status:` et la section `## Comments` changent ne le déclenche pas. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**.
 
 Le gate `tickets` juge déjà la présence des lignes et des sections ; ces critères jugent ce qu'il ne lit pas : leur contenu.
 
@@ -46,4 +46,10 @@ K6  Fichier chaud en double dans une vague — docs/agents/chaine-de-production.
     le nomment tous deux sur leur ligne `Fichiers chauds:` ; un tel fichier absent de l'une des
     deux lignes, ou deux tickets que la carte range dans la même vague avec un fichier chaud
     commun, sont des écarts. Les index générés ne comptent pas.
+K7  Périmètre — docs/agents/chaine-de-production.md § 5 (« Périmètre, règle 3 »). Seulement si la
+    PR porte une déclaration de périmètre (l'entrée « Déclaration de périmètre »). Une décision,
+    un fait ou une ADR que la déclaration ne nomme pas est un bloquant. Sa correction est le
+    retrait, jamais l'ajout de ce qui manque autour. Écart : une décision ou un fait nouveau
+    qu'un ticket, une spec ou une carte du diff énonce, et que ni la ligne `Décisions:` ni la
+    ligne `Sujets:` de la déclaration ne nomment.
 ```

@@ -32,6 +32,9 @@ Agent des axes : <maj-skills:axe-de-relecture | agent générique, maj-skills:ax
 Écartés au tri : <n>.
 - `<fichier>:<ligne>` : <motif : sans critère, faux, arbitrage, develop ou doublon> — <le critère cité, s'il y en a un>, <pourquoi il est écarté, en une phrase>
 
+Relevés tardifs : <n | sans objet>.
+- `<fichier>:<ligne>` : <le critère cité>, <le constat, une phrase>
+
 Hors du diff relu : <`<fichier>`, et pourquoi : lockfile, snapshot, sans écart contre la base, binaire, binaire illisible, binaire sous un chemin sensible | aucun>
 
 Index à régénérer par le capitaine : <`<index>` | aucun>
@@ -60,7 +63,8 @@ Aucune ligne ne s'ajoute à l'en-tête, aucune ne s'y déplace. La commande de c
 - Le critère est cité par son identifiant (`S3`, `P2`, `T1`, `D4`, `K5`, `M2`, `C3`) et par la règle écrite qu'il applique.
 - Tout fichier cité dans un constat s'écrit entre accents graves. La cellule « Fichier et ligne » d'un bloquant est `` `<fichier>:<ligne>` `` (un numéro, ou un intervalle `<n>-<m>`), ou `—` quand le constat n'a pas de fichier : la machine lit les fichiers qu'un bloquant nomme, dans cette cellule et entre accents graves dans le constat, pour admettre leur correction au tour suivant.
 - Pour un bloquant, la dernière colonne dit le test qui l'aurait attrapé : l'auteur corrige le bloquant avec ce test, ou le conteste. Quand aucun test ne peut le tenir (un écart de documentation, un ticket), elle dit « aucun test », et pourquoi.
-- « Écartés au tri » dit combien de constats la session a écartés, et pourquoi en une phrase chacun : sans critère cité, faux, écarté par un arbitrage, ligne venue de `develop`, doublon d'un autre axe. Chaque puce s'écrit `` - `<fichier>:<ligne>` : <motif> — <le critère cité, s'il y en a un>, <pourquoi, en une phrase> ``, le motif écrit `sans critère`, `faux`, `arbitrage`, `develop` ou `doublon`, et la liste suit la ligne `Écartés au tri : <n>.` sans ligne vide. La machine lit les fichiers des écartés `faux` : leur clarification est admise au tour suivant. La commande de contrôle refuse une puce hors de cette forme.
+- « Écartés au tri » dit combien de constats la session a écartés, et pourquoi en une phrase chacun : sans critère cité, faux, écarté par un arbitrage, ligne venue de `develop`, doublon d'un autre axe, renvoyé en suite. Chaque puce s'écrit `` - `<fichier>:<ligne>` : <motif> — <le critère cité, s'il y en a un>, <pourquoi, en une phrase> ``, le motif écrit `sans critère`, `faux`, `arbitrage`, `develop`, `doublon` ou `suite`, et la liste suit la ligne `Écartés au tri : <n>.` sans ligne vide. La machine lit les fichiers des écartés `faux` : leur clarification est admise au tour suivant. La commande de contrôle refuse une puce hors de cette forme. Le sixième motif, `suite`, ne vaut que sur une PR de documentation à déclaration retenue, pour un bloquant qui remplit les deux conditions de l'étape 7 de `SKILL.md` : le lever demande une décision, un fait ou un fichier hors du périmètre déclaré, et un commentaire `Suite` nomme un ticket ou une PR qui existe ; sa puce s'écrit `` - `<fichier>:<ligne>` : suite — <le critère cité>, <le ticket ou la PR que le commentaire `Suite` nomme> ``. Un bloquant de `D9`, `K7` ou `M5` ne se renvoie jamais en suite.
+- « Relevés tardifs » dit combien de constats la borne des tours suivants a ramenés à un doute (étape 7 de `SKILL.md`), une puce chacun, `` - `<fichier>:<ligne>` : <le critère cité>, <le constat, une phrase> `` ; « sans objet » quand la borne ne joue pas (une PR de code, une PR sans déclaration retenue, pas de tour précédent). Ces constats ne sont pas dans le tableau et ne comptent pas dans `Bloquants:`. La ligne suit la liste « Écartés au tri », et la ligne vide qui la précède est exigée : la liste des écartés finit à la première ligne vide, et une puce tardive collée à elle se lirait comme un écarté. Quand `depuis` reste en échec, la borne ne joue pas pour ce tour : la ligne s'écrit « Relevés tardifs : sans objet. », et la même ligne dit la cause à la suite : « `depuis` en échec : <cause> ; chaque constat garde sa gravité. »
 - « Hors du diff relu » nomme chaque fichier changé que les axes n'ont pas lu, et pourquoi, **toujours**, quel que soit le verdict : `pnpm-lock.yaml` ou un fichier `.snap` (`hors.txt`), un fichier sans écart contre la base (`sans-ecart.txt`), un fichier binaire (`binaires.txt` : le diff n'en porte que le nom). Un binaire sous un chemin sensible se dit tel, et le verdict est alors `incomplet` : un fichier sensible que personne ne peut lire ne se valide pas. De même un binaire illisible (`illisibles.txt` : git le dit binaire, et son extension n'est ni celle d'une image, ni d'une police, ni d'une archive) : du code avec un octet nul ou un texte en UTF-16 que personne ne lit ne se valide pas. Un index à commande, que `C1` vérifie, ne s'y nomme pas.
 - « Index à régénérer par le capitaine » nomme chaque index à commande que `C1` trouve périmé et que la base et la tête déclarent par un chemin littéral : ce n'est pas un constat, le capitaine le régénère avant que rien n'entre dans develop.
 - Aucune ligne du corps ne commence par `Relecture — `, `Relecture en panne`, `À relire — `, `Plafond — `, `Décision de plafond`, `Arbitrage — `, `Lecture illisible`, `Périmètre — `, `Périmètre absent`, `Périmètre dépassé` ni `Suite — ` : ce sont les marques du Relecteur, de l'auteur et de l'arbitre.
@@ -97,6 +101,8 @@ Agent des axes : maj-skills:axe-de-relecture
 
 Écartés au tri : 1.
 - `apps/api/src/facture/total.ts:12` : sans critère — une suggestion de nommage.
+
+Relevés tardifs : sans objet.
 
 Hors du diff relu : `apps/web/public/logo.png`, binaire ; `pnpm-lock.yaml`, lockfile
 
