@@ -90,6 +90,8 @@ Décisions de l'architecte : A-1 à A-19, écrites avec leur raison dans la spec
 - 2026-11-28 03 h 42 UTC — Ticket 3 livré : PR #175 (8.9.0), ordre au sommet `1b5d188`. Fichiers lus à la source : ceux du ticket, plus `CONTEXT.md` (A-16), l'ADR de la relecture indépendante et son banc `scripts/bascule.test.mjs` (A-18). Question de sa revue (D6) : A-16 à A-19 reportées dans la spec par cette branche.
 - 2026-11-28 03 h 45 UTC — Question posée au produit : l'accord sur `scripts/chaine/**` d'`essai-relecture-8`, pour le ticket 4.
 - 2026-11-28 04 h 13 UTC — PR #175 renvoyée par le capitaine à 04 h 07 UTC : conflit avec `main` après la #174 (8.8.1, « gouverner nos boucles »). Session du ticket 3 prévenue : fusion de `main` par commit de merge, version suivante, ordre reposé. Accord du produit pour le ticket 4 toujours attendu.
+- 2026-11-28 04 h 30 UTC — #175 reprise par sa session au sommet `7d6b49a` (main fusionné, 8.9.0), lue à la source : mêmes 19 fichiers, seule la note de version change.
+- 2026-11-28 04 h 47 UTC — La #176 (« gouverner nos boucles ») entre à `c15f90a` et prend 8.9.0 : la session du ticket 3 est priée de fusionner `main` sans attendre le renvoi et de prendre 8.10.0. Recoupement dit à l'autre architecte : `scripts/bascule.test.mjs` seul (une assertion, A-18) avec son ticket 104.
 
 ## Source
 
