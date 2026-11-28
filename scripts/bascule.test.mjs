@@ -86,7 +86,7 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
     "- **Recevoir un plafond** (trois tours refusés : `Plafond — décision attendue` sur la PR, une ligne du Relecteur)",
     "- **Une règle haute** (deux verdicts validés exigés) : le message d'information au produit part de lui",
     "- **À chaque réveil**, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes",
-    "il pose lui-même la demande, la ligne que rend `node scripts/chaine/demande.mjs --branche <tête de la PR> --session — --conducteur <la sienne>`, copiée telle quelle, puis `à-relire`",
+    "restée muette après ce message, ou archivée, `completed` ou `failed`", "`A-241` (5)", "il pose lui-même la demande, la ligne que rend `node scripts/chaine/demande.mjs --branche <tête de la PR> --session — --conducteur <la sienne>`, copiée telle quelle, puis `à-relire`",
     "« session de relecture <id> remplacée au plafond de contexte, PR <n> » se note dans `## Dépassements` comme un plafond",
     // Contre-relecture de la PR 151, tour 1 : l'arbitrage et la décision de plafond sont dits à la fille ; la règle sans
     // étiquette ne prend ni un brouillon ni une PR en régime 7.
@@ -217,7 +217,8 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   const etapes = s5.split("\n").filter((l) => /^\d\. \*\*/.test(l));
   assert.deepEqual(etapes.map((l) => l.slice(0, l.indexOf("**", 5) + 2)), ["1. **Environnement.**", "2. **Réserver**", "3. **Lire**", "4. **Coder**", "5. **Demander la relecture.**", "6. **Sur `à-reprendre`**", "7. **Rendre la main**"]);
   exiger(etapes[4], ["La fille ne se relit pas et ne lance aucun relecteur", "la ligne que rend `node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur>`, copiée telle quelle, seule dans son commentaire", "`À relire — sommet <sha> — Session: <id ou —> — Conducteur: <id ou —>`", "`node ~/.claude/plugins/marketplaces/maj/skills/chaine/fusionner/scripts/demande.mjs`", "**Jamais `à-fusionner`**", "le sha entier du dernier push"], "§ 5, étape 5");
-  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur."], "§ 5, étape 6");
+  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur.", "une demande neuve, par le script (étape 5), au nouveau sommet"], "§ 5, étape 6");
+  exiger(entre(cdp, "Renvoyée par le capitaine (`fusion-bloquée`)", "\n", ), ["une demande neuve par le script (étape 5) au nouveau sommet"], "§ 5, le renvoi");
   // Le périmètre figé (ticket 2, A-13) : les règles 1 à 3 et la partie auteur de la règle 4, mot pour mot, avec leur numéro.
   exiger(etapes[4], ["Périmètre, règle 1 : **Déclaration.** Avant sa première demande de relecture, l'auteur écrit un commentaire dont la première ligne est `Périmètre — <objet en une ligne>`, suivie de trois lignes : `Fichiers:` (chemins ou dossiers), `Décisions:` (identifiants des décisions et des ADR que la PR écrit, ou « aucune ») et `Sujets:`. Seul le premier commentaire de cette forme compte, et il n'est jamais modifié. Au tour 1, tout fichier du diff est couvert par la ligne `Fichiers:`.", "le Relecteur écrit `Périmètre absent`"], "§ 5, étape 5, périmètre");
   exiger(etapes[5], [
@@ -275,7 +276,7 @@ test("les textes nomment la commande de la demande, la forme une fois à l'étap
   assert.ok(reveil.indexOf("get_session") < reveil.indexOf("send_message"), "à chaque réveil : get_session avant send_message");
   assert.ok(reveil.indexOf(D) < reveil.indexOf("puis `à-relire`"), "la demande par le script avant à-relire");
   const arch = fichiers.architecte;
-  exiger(arch, [`${D} --session <la sienne> --conducteur —`, `${D} --branche <tête de la PR> --session — --conducteur —`], "architecte");
+  exiger(entre(arch, "- **En régime 8, une PR livrée**", "- **Une PR livrée, en régime 7"), [`${D} --session <la sienne> --conducteur —`, `${D} --branche <tête de la PR> --session — --conducteur —`], "architecte, PR livrée");
   exiger(entre(arch, "**S'ouvre sans question**", "En régime 7 ou dans un dépôt"), [`${D} --session <la sienne> --conducteur —`], "architecte, PR de documentation");
   exiger(entre(arch, "- **En régime 8**, une PR étrangère", "\n"), [`${D} --branche <tête de la PR> --session — --conducteur —`, "à-relire"], "architecte, PR étrangère");
 });

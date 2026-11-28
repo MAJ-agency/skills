@@ -12,7 +12,7 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 ### Ce qu'un projet fait pour en profiter
 
-Reposer les documents du régime 8 (`chaine-de-production.md`, le fragment `claude-md-fusion.md`, `issue-tracker.md`) pour avoir les textes neufs ; les skills se lisent dans le plugin.
+Un projet en régime 8 repose `chaine-de-production.md`, le fragment `CLAUDE.md` de la fusion et `issue-tracker.md` (PR de code, sur un ticket dont la ligne `Sensibles:` les couvre) ; un projet en régime 7 ne les repose qu'avec la clé `relecture`, par la repose, jamais seuls (`A-196` (4)). Les skills se lisent dans le plugin.
 
 ## 8.9.0 — 2026-11-28
 
