@@ -1575,3 +1575,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 08 h 14 UTC. PR #180 : commit de fusion `270c69d` à l'arbre attendu `dd29590` (8.9.4) ; retouches (titre de la note, JSDoc de `conclure`, comparateur par points de code) lues par l'architecte, justes ; sommet `6865fce` ; l'ordre attend CodeQL.
 - 2026-11-28 — 08 h 24 UTC. PR #180 (ticket 117, 8.9.4) : `CodeQL` et `Analyze` verts au sommet `6865fce` ; verdict, ordre et label posés ; `bancs` en cours (il joue `references-posees.test.mjs`, non prouvé en local).
 - 2026-11-28 — 08 h 30 UTC. Ticket 107 livré : PR #181 (sommet `5207c7b`, 8.9.4, collision avec #180 à régler à la remise sur `main`). Tour 1 lancé (agent neuf, diff et ticket sous `/home/user/agents/pr181/`).
+- 2026-11-28 — 08 h 36 UTC. PR #181 : tour 1, un écart (texte du point 3 du réveil de garde, `SKILL.md:101`, ne dit ni la PR illisible ni le témoin d'un autre capitaine), vérifié par l'architecte et renvoyé à la session par un commit de plus.
