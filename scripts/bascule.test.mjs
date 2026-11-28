@@ -324,6 +324,12 @@ test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle 
   assert.ok(lire(`${C}/relecture/SKILL.md`).includes("## Étape 0 — poser"), "le skill relecture a son étape 0");
 });
 
+test("relecteur : la sortie 6 nomme `gh` absent, dans le skill (« Les sorties ») et dans l'en-tête du script (ticket 122, A-203)", () => {
+  const ligne6 = lire(`${C}/relecteur/SKILL.md`).split("\n").find((l) => l.startsWith("| 6 |"));
+  assert.match(ligne6 ?? "", /`gh` ou `flock` manque[^|]*l'architecte, et s'arrêter/);
+  assert.ok(plat(lire(`${C}/relecteur/scripts/relecteur.mjs`).split("\n").slice(90, 108).join(" ").replace(/\/\/ ?/g, "")).includes("`gh` absent"), "en-tête : `gh` absent");
+});
+
 test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée (ticket 106, A-236)", () => {
   const section = entre(lire(`${C}/fusionner/SKILL.md`), "## Renvoyer une PR", "## Fin de passage");
   const huit = section.slice(section.indexOf("**Régime 8**"));
@@ -337,4 +343,14 @@ test("fusionner/SKILL.md : la boucle relancée relit les passages interrompus, u
   exiger(entre(texte, "- **Arrêter la veille (`TaskStop`)", "- **Rouge réelle ou instable"), ["Une action manuelle jouée pendant le démarrage de la boucle serait lue comme un passage mort"], "Arrêter la veille avant toute action manuelle");
   exiger(entre(texte, "- **Plusieurs capitaines**", "Commentaires illisibles à la relecture"), ["**sauf si la boucle du même capitaine redémarre avant : elle le termine**"], "Plusieurs capitaines");
   exiger(lire(`${C}/fusionner/references/CONTENU.md`), ["Un passage interrompu se relit sur GitHub (A-245, ticket 107", "La fusion vit sur GitHub, la ligne meurt avec le processus"], "CONTENU.md");
+});
+
+test("relecteur/SKILL.md et fusionner/references/CONTENU.md : un tour refusé n'annonce son refus qu'avec tous ses verdicts, à l'échéance, ou une attendue morte ou au plafond (ticket 118, A-265 (1), A-269, A-270)", () => {
+  const texte = lire(`${C}/relecteur/SKILL.md`);
+  assert.ok(texte.split("\n").length <= 200, "relecteur/SKILL.md sous 200 lignes");
+  exiger(entre(texte, "## À chaque réveil", "## L'état des sessions"), ["`rien` avec la raison `attente` (règles 1, 4 et 5) : « L'état des sessions »"], "la table des gestes");
+  interdire(texte, ["`rien` avec la raison `attente` (règle 5)"], "relecteur/SKILL.md");
+  exiger(entre(texte, "## L'état des sessions", "## Les lignes"), ["Il se lit par `get_session`, pour les règles 1, 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`) ou en règle 1 ou 4 (`rien` avec la raison `attente` : un tour refusé qui attend ses verdicts), chaque session attendue,", "En règle 1 ou 4, une attendue `morte` ou `plafond` finit l'attente : `jouer <n> --sessions <fichier>` annonce le refus ; `couple` ne la finit pas."], "L'état des sessions");
+  exiger(entre(texte, "## Les lignes", "## Les messages des sessions de relecture"), ["Un tour refusé ne s'annonce qu'avec tous ses verdicts sur la PR", "ou à l'échéance de l'attente, ", "(sans le verdict de <id>[, <id>…])", "Un verdict écrit après l'annonce, avant la distribution suivante, compte contre le tour, mais aucune ligne ne part de plus"], "Les lignes");
+  exiger(entre(lire(`${C}/fusionner/references/CONTENU.md`), "## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "\n## "), ["Un tour refusé n'annonce son refus qu'avec tous ses verdicts (`A-265` (1), `A-269`, `A-270`)"], "CONTENU.md");
 });
