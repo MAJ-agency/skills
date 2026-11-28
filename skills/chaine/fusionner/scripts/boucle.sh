@@ -2,7 +2,9 @@
 # =============================================================================
 # Passe la file de fusion jusqu'à ce qu'elle soit vide (skill /fusionner).
 # Avant chaque passage, une PR dont la CI est rouge sur son sommet (`file.sh --rouges`) voit
-# ses jobs rouges relancés une fois (instabilité), puis est renvoyée s'ils retombent.
+# ses jobs rouges relancés une fois (instabilité), puis est renvoyée s'ils retombent. En régime 8 (A-243), avant cette
+# relance, et dès qu'une PR « CI en cours » est dans la file (la sous-PR qui tient ou prend son sujet), son verdict est
+# contrôlé une fois par sommet (`eligibilite`) : sans tour validé pour son sommet, renvoyée sans attendre sa CI.
 # Un refus corrigeable par l'auteur (sortie 4 : titre, revue…) renvoie la PR avec son motif
 # (refus.sh) ; une PR non éligible sans correction possible (sortie 7) est sautée sans renvoi ; une PR sans CI déclenchée (sortie 3, déjà à jour,
 # rien à pousser) est mise de côté jusqu'à la prochaine fusion, dont la mise à jour la poussera
@@ -273,16 +275,57 @@ rafraichir_outils() {
 sortie=
 rafraichir_outils "$@"
 
+# Éligibilité avant la CI (A-243, A-256), en régime 8 : le premier contrôle du verdict ne coûte qu'une lecture des
+# commentaires, il se joue dès que la PR est dans la file, sans attendre sa CI. `eligibilite <n> <base> [memoire]` joue
+# `passer.sh --eligibilite` (vers develop) ou `sujet.sh fusionner --eligibilite` (vers un sujet), seulement si la clé
+# `relecture` est sur origin/<base> (lecture locale, comme renvoyer.sh), l'entrée sur /dev/null. Avec la mémoire (défaut),
+# une fois par sommet : `ELIGIBLES`, une ligne « numéro sommet » par contrôle fait, comme `TENUS` ; le sommet lu par
+# `pr_sommet`, illisible : aucun contrôle à ce tour, rien de noté. Chaque contrôle écrit `[#n] éligibilité avant la CI :
+# sortie <k>` (et le motif sur 4). Sortie 4 : renvoi (refus.sh), noté, code 1 (la sous-PR rend son sujet). 0 et 7 : notées.
+# 6, 64, 69 : dites, rien de noté, aucun renvoi. 5, 3, 11 et toute autre : rien de noté, rejouée au tour suivant.
+ELIGIBLES="$COMMUN/boucle-eligibles"
+eligibilite() {
+  local n=$1 base=$2 memoire=${3:-1} sommet='' rc fin
+  case $base in develop | sujet/*) ;; *) return 0 ;; esac
+  cle_relecture_sur "origin/$base" || return 0
+  if [ "$memoire" = 1 ]; then
+    sommet=$(pr_sommet "$n") || return 0
+    ! grep -qxF "$n $sommet" "$ELIGIBLES" 2>/dev/null || return 0
+  fi
+  if [[ "$base" == sujet/* ]]; then
+    bash "$SUJET" fusionner --eligibilite "$n"
+  else
+    bash "$outils/passer.sh" --eligibilite "$n"
+  fi >"$sortie" 2>&1 </dev/null && rc=0 || rc=$?
+  fin=$({ grep . "$sortie" || true; } | tail -n 1 | tr -d '\r')
+  fin=${fin#"[#$n] "}
+  if [ "$rc" = 4 ]; then echo "[#$n] éligibilité avant la CI : sortie 4 : $fin"; else echo "[#$n] éligibilité avant la CI : sortie $rc"; fi
+  case $rc in
+    0 | 7) [ -z "$sommet" ] || echo "$n $sommet" >>"$ELIGIBLES" ;;
+    4)
+      bash "$outils/refus.sh" "$n" "$sortie" </dev/null
+      [ -z "$sommet" ] || echo "$n $sommet" >>"$ELIGIBLES"
+      return 1 ;;
+    6 | 64 | 69) echo "[#$n] éligibilité avant la CI non jugée : $fin (aucun renvoi, rejouée au tour suivant)" ;;
+  esac
+  return 0
+}
+
 # CI rouge sur le sommet d'une PR de la file : une relance des jobs rouges, puis renvoi.
 # Tous les workflows du sommet comptent : « Secret Detection » vit dans « Security Scan », pas
 # dans « CI » (cas vécu : quatre PR restées rouges, jamais relancées ni renvoyées).
+# Régime 8 (A-243) : avant toute relance, l'éligibilité de la PR (`eligibilite`, sans mémoire, la clé `relecture` sur sa
+# base) ; une sortie 4 la renvoie avec son motif, sans relance.
 traiter_rouges() {
-  local n checks sommet runs id tentative relance
+  local n checks sommet runs id tentative relance pr
   bash "$outils/file.sh" --rouges | while IFS="$(printf '\t')" read -r n checks; do
     sommet=$(pr_sommet "$n") || continue
     runs=$(gh api "$DEPOT/actions/runs?head_sha=$sommet&per_page=50" \
-      --jq '.workflow_runs[] | select(.conclusion == "failure") | "\(.id) \(.run_attempt)"' 2>/dev/null) || continue
+      --jq '.workflow_runs[] | select(.conclusion == "failure") | "\(.id) \(.run_attempt)"' 2>/dev/null </dev/null) || continue
     [ -n "$runs" ] || continue # runs encore en cours, ou API muette : on reverra au prochain tour
+    if pr=$(pr_json "$n" </dev/null); then
+      eligibilite "$n" "$(jq -r '.base.ref // ""' <<<"$pr")" 0 </dev/null || continue
+    fi
     relance=0
     while read -r id tentative; do
       if [ "${tentative:-1}" -lt 2 ]; then
@@ -389,6 +432,11 @@ traiter_sujets() {
   bash "$SUJET" regrouper-series 2>&1 | sed 's#^série #[sujets] REGROUPÉE série #; s#^#  #'
   # La file, lue une fois. Illisible (file.sh en 5, rien sur sa sortie) : aucun geste, et `TENUS` reste tel quel.
   liste=$(bash "$outils/file.sh") && lue=1 || lue=''
+  # La mémoire de l'éligibilité ne garde que les PR encore « CI en cours » de la file (file illisible : gardée telle quelle).
+  if [ -n "$lue" ] && [ -f "$ELIGIBLES" ]; then
+    awk -F '\t' 'NR == FNR { if ($2 == "CI en cours" || $2 ~ /^sujet\/[^ ]+ : CI en cours$/) k[$1]; next } { split($0, c, " ") } c[1] in k' \
+      <(printf '%s\n' "$liste") "$ELIGIBLES" >"$ELIGIBLES.nouveau" && mv "$ELIGIBLES.nouveau" "$ELIGIBLES"
+  fi
   # Sous-PR en route, « sujet<TAB>numéro<TAB>état », dans l'ordre de file.sh (numéro croissant).
   enroute=$(awk -F '\t' -v s="$sautees" 'index(s, " " $1 " ") == 0 && match($2, /^sujet\/[^ ]+ : /) {
       e = substr($2, RLENGTH + 1)
@@ -451,6 +499,15 @@ traiter_sujets() {
         esac ;;
     esac
     case "$etat" in
+      # Régime 8 (A-243) : une PR « CI en cours » vers develop, ou la sous-PR « CI en cours » qui tient ou prend son sujet
+      # (les autres attendent leur tour, plus haut, sans lecture), voit son verdict contrôlé avant sa CI, une fois par
+      # sommet ; renvoyée (sortie 4), elle rend son sujet.
+      'CI en cours') eligibilite "$n" develop ;;
+      sujet/*' : CI en cours')
+        if ! eligibilite "$n" "$tient"; then
+          geste='renvoyée'
+          tenus=${tenus/" $tient:$n "/ }
+        fi ;;
       'vers sujet/'*)
         sujet=${etat#vers sujet/}
         bash "$SUJET" regrouper "$sujet" "$n" 2>&1 | sed "s#^#[\#$n] #"

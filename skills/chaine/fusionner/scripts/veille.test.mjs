@@ -807,3 +807,19 @@ test("--etat lit l'état sous le verrou de la veille : aucune veille ne l'écrit
   assert.match(e.stdout, /^VEILLE MORTE \(lancée à \d\d:\d\d, sans ligne finale\)/);
   assert.deepEqual(readFileSync(note, "utf8").trim().split("\n"), ["tenu"], "l'heure de « lancee » se lit verrou tenu");
 });
+
+test("régime 8 (clé `relecture` sur develop) : une PR qui passe en « CI en cours » relance la boucle une fois ; sans la clé, aucune relance", () => {
+  const enCours = "31\tCI en cours\t\n";
+  const sous = "80\tsujet/lot : CI en cours\t\n";
+  // La clé sur develop : l'entrée en « CI en cours » est une ligne neuve (une relance), la même ligne ensuite n'en est pas
+  // une (un second push pendant la CI ne change rien) ; une sous-PR aussi.
+  const r = veilleJouet(["", enCours, enCours, enCours + sous], { contrat: { relecture: { depuis: "2026-11-17T09:00:00Z" } } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.lancements, 3, r.stdout);
+  assert.match(r.stdout, /file à traiter \(31 en-cours\), boucle relancée/);
+  assert.match(r.stdout, /file à traiter \(80 en-cours\), boucle relancée/);
+  // Sans la clé (un contrat sans elle) : la sonde d'aujourd'hui.
+  const r2 = veilleJouet(["", enCours, enCours + sous], { contrat: { cheminsSensibles: [] } });
+  assert.equal(r2.status, 0, r2.stderr);
+  assert.equal(r2.lancements, 1, r2.stdout);
+});
