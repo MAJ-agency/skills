@@ -26,6 +26,7 @@ const SCRIPTS = [
   { nom: "mutation-regles-synthese", fichier: "skills/monorepo/socle-tests/references/scripts/verify/mutation-regles-synthese.mjs", args: [], statut: 0, sortie: /Mutation sur les règles prouvées et partielles : périmètre vide/ },
   { nom: "contexte-regle", fichier: "skills/chaine/criticite/scripts/contexte-regle.mjs", args: [], statut: 2, sortie: /usage : node contexte-regle\.mjs/ },
   { nom: "double-relecture", fichier: "skills/chaine/fusionner/scripts/double-relecture.mjs", args: [], statut: 21, sortie: /^illisible\n$/m },
+  { nom: "demande", fichier: "skills/chaine/fusionner/scripts/demande.mjs", args: [], statut: 2, sortie: /usage : node demande\.mjs/ },
   { nom: "relecteur", fichier: "skills/chaine/relecteur/scripts/relecteur.mjs", args: [], statut: 2, sortie: /relecteur : usage : relecteur\.mjs passe/ },
   { nom: "chemins-sensibles", fichier: "skills/chaine/revue-adversariale/scripts/chemins-sensibles.mjs", args: ["--garde"], statut: 2, sortie: /^usage : chemins-sensibles\.mjs --garde --base/ },
 ];
