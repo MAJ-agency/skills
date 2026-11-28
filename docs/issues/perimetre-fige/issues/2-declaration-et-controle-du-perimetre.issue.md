@@ -1,6 +1,6 @@
 # Une PR de documentation déclare son périmètre, et le Relecteur le contrôle avant de distribuer (8.7.0 attendue, A-14)
 
-Status: ready-for-agent
+Status: Fait — PR #173
 Type: task
 Modèle: opus — quatre marques neuves dans une fonction pure que deux rôles lisent, un calcul de delta par git dans le script du Relecteur, la lecture par la machine d'un corps de verdict qu'elle ne lisait pas, des bancs qui figent des textes à compléter sans les assouplir, et la compatibilité avec un projet qui n'a pas reposé ses scripts.
 Blocked by: 1
