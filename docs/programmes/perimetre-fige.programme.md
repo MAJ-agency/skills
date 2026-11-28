@@ -4,7 +4,7 @@ Une PR de documentation déclare son périmètre à l'ouverture et le garde jusq
 
 ## Fiche
 
-Phase: suivi — ticket 1 fusionné (#172) ; ticket 2 en cours
+Phase: suivi — ticket 1 fusionné (#172) ; ticket 2 livré (#173)
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le produit le 2026-11-27, mode « Auto », dépôts `skills`, `anchorpost`, `fedora` ; `essai-relecture-8` à ajouter pour le ticket 4) ; précédente : session_01BxuG31gJXv41A7jRRFEAWi
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; ticket 2 en cours (session_012xRpgavCXiUbFQrAWtdNLG) |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; ticket 2 livré, PR #173 (8.8.0), à fusionner |
 
 ## Decisions-so-far
 
@@ -30,6 +30,9 @@ Décisions du produit :
 Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec (`## Décisions de conception`). Après la fusion de la spec :
 
 - A-16 — (2026-11-27) L'entrée `**Suite**:` du glossaire (`CONTEXT.md`, § « Relecture indépendante ») est écrite par le ticket 3, qui porte le tri « renvoyé en suite » ; elle se donne dans la ligne de situation de son prompt. Raison : la revue de ticket du ticket 1 a relevé que la marque `Suite — <objet> — <ticket ou PR>` n'a pas d'entrée au glossaire ; le ticket 2 n'ajoute que « PR de documentation » et « Périmètre ».
+- A-17 — (2026-11-27) Le ticket 2 part de `main` après la fusion de la PR #170 du programme « gouverner nos boucles », relue à la source. Ordre d'entrée convenu : #169, #172, #170, #171. Raison : #170 modifie en profondeur `decision-relecteur.mjs`, `relecteur.mjs`, `relecteur/SKILL.md`, les deux `CONTENU.md`, l'étape 5 de `chaine-de-production.md` et `scripts/relecteur.test.mjs`, que le ticket 2 touche ; partir après elle évite de les recouper.
+- A-18 — (2026-11-28) L'ADR de la relecture indépendante (point 2) est amendée d'une phrase par le ticket 3, donnée dans la ligne de situation de son prompt : le Relecteur pose aussi `à-reprendre` sur un périmètre absent ou dépassé, sans session de relecture (A-2). Raison : la session du ticket 2 l'a relevé ; l'ADR n'est pas dans le périmètre du ticket 2.
+- A-19 — (2026-11-28) Les tickets 2 et 3 montent la version mineure, non la majeure. Raison : comme pour 8.4.0 à 8.7.0, un projet qui ne repose pas ses scripts ne voit rien changer, et un projet qui les repose le fait par une PR qu'il relit.
 
 ## Fog
 
@@ -81,6 +84,7 @@ Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec
 - 2026-11-27 23 h 45 UTC — A-17 convenue avec l'architecte de « gouverner nos boucles » : le ticket 2 attend la fusion de #170.
 - 2026-11-28 00 h 16 UTC — PR #172 fusionnée par le capitaine le 2026-11-27 à 23 h 54 UTC (`7e63b12`, 8.6.0) ; arbre fusionné identique au sommet ordonné `78a4f81`, lu à la source. Session du ticket 1 archivée (finie, aucun réveil en attente ; 2,12 $). Le ticket 2 attend la fusion de #170 (A-17).
 - 2026-11-28 01 h 41 UTC — #169 (8.6.1) et #170 (8.7.0, `6f05d71`) fusionnées, lues sur `main` ; l'architecte de « gouverner nos boucles » l'a écrit. Ticket 2 lancé depuis `main` (session_012xRpgavCXiUbFQrAWtdNLG, opus) : repères à relire à la source après #170, version 8.8.0 attendue (A-14), entrée `Suite` laissée au ticket 3 (A-16).
+- 2026-11-28 02 h 40 UTC — Ticket 2 livré : PR #173 (8.8.0 ; `main` passé en 8.7.1 par #171, fusionné par la session), ordre au sommet `344a7db`. Fichiers lus à la source : tous dans `Fichiers chauds:` du ticket, hors le ticket lui-même. Deux questions tranchées : A-18 (ADR point 2 au ticket 3), A-19 (mineure). Neuf choix par défaut prudent notés sous `## Comments` du ticket.
 
 ## Source
 
