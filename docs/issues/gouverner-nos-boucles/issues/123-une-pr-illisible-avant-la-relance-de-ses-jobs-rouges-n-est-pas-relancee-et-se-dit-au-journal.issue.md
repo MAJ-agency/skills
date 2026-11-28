@@ -1,6 +1,6 @@
 # Une PR illisible avant la relance de ses jobs rouges n'est pas relancée et se dit au journal ; le banc du régime illisible lit le régime de chaque cas
 
-Status: ready-for-agent
+Status: Fait — PR 186 (`1fb26fa`, plugin 8.9.9)
 Type: défaut
 Modèle: sonnet — une branche de `traiter_rouges` dans `boucle.sh`, une ligne au journal, un banc sur un faux `gh` qui tombe en panne à la lecture qui suit celle des runs, et l'assertion d'un banc existant resserrée ; la règle est `A-243` (« avant toute relance d'une CI rouge »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
