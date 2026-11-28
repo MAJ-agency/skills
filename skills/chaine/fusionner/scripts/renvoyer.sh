@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Renvoie une PR de la file à sa session (skill `fusionner`) : retire `à-fusionner`,
-# pose `fusion-bloquée`, commente la cause et donne le worktree propriétaire, pour
-# que le capitaine prévienne la session (list_sessions → send_message). La suite que le commentaire donne suit le régime
+# pose `fusion-bloquée`, commente la cause et nomme qui prévenir. Régime 7 : le worktree propriétaire (list_sessions →
+# send_message). Régime 8 (A-244) : `session de la demande` et `conducteur de la demande`, ceux de la dernière demande
+# `À relire` intacte de la PR, ou une ligne « aucune demande À relire intacte » / « demande illisible » qui renvoie au
+# conducteur du chantier, sinon à son lanceur. La suite que le commentaire donne suit le régime
 # de la PR (A-97) : en régime 8, corriger puis redemander la relecture (`à-relire`), jamais `à-fusionner`.
 #
 # Usage : bash scripts/chaine/renvoyer.sh <numéro> <cause>
@@ -68,7 +70,10 @@ if [ "$regime" = 8 ]; then
   # propre conteneur, le worktree d'un propriétaire n'existe pas chez le capitaine. Sans demande lisible, le renvoi va
   # au lanceur (A-256 (3)) ; le renvoi lui-même est déjà posé.
   rc=0
-  ligne=$(demande_de_la_pr "$N" 2>&1) || rc=$?
+  erreur=$(mktemp)
+  ligne=$(demande_de_la_pr "$N" 2>"$erreur") || rc=$?
+  cause_demande=$(grep . "$erreur" | tail -n 1 || :)
+  rm -f "$erreur"
   case $rc in
     0)
       echo "[#$N] session de la demande : ${ligne%% *}"
@@ -78,7 +83,7 @@ if [ "$regime" = 8 ]; then
       echo "[#$N] conducteur de la demande : —"
       echo "[#$N] aucune demande À relire intacte sur la PR : prévenir le conducteur du chantier, sinon son lanceur" ;;
     *)
-      echo "[#$N] demande illisible ($(printf '%s' "$ligne" | grep . | tail -n 1)) : prévenir le conducteur du chantier, sinon son lanceur" ;;
+      echo "[#$N] demande illisible (${cause_demande:-code $rc}) : prévenir le conducteur du chantier, sinon son lanceur" ;;
   esac
 else
   branche=$(gh api "$DEPOT/pulls/$N" --jq .head.ref)
