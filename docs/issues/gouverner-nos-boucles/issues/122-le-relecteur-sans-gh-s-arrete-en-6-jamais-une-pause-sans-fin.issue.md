@@ -2,10 +2,10 @@
 
 Status: ready-for-agent
 Type: défaut
-Modèle: sonnet — une lecture de `gh` en tête de `preparer`, sur le modèle de celle de `flock` (`relecteur.mjs:564`), une ligne de l'en-tête, une cellule du skill, et leurs bancs sur le modèle du banc sans `jq` ; la règle est `A-203` (3) et `A-192` (1). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
+Modèle: sonnet — une lecture de `gh` en tête de `preparer`, sur le modèle de celle de `flock` (`relecteur.mjs:564`), une ligne de l'en-tête, une cellule du skill, et leurs bancs sur le modèle du banc sans `jq` ; la règle est `A-203` (3), la sortie 6 sur le modèle d'`A-197` (1). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
 Dépendances: —
-Fichiers chauds: `skills/chaine/relecteur/scripts/relecteur.mjs` (en-tête, les sorties, 97-101 ; `preparer` 166-168) ; `skills/chaine/relecteur/scripts/relecteur.test.mjs` (le banc sans `jq`, 826-861 ; un test neuf après lui) ; `skills/chaine/relecteur/SKILL.md` (« Les sorties », la ligne 6, 59) ; `scripts/bascule.test.mjs` (un test neuf, après 325) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. **Seul dans sa PR.** `scripts/relecteur.test.mjs:234` exige un morceau de la ligne 6 du skill : la phrase neuve le garde tel quel. La PR de 119 à 121 touche `scripts/bascule.test.mjs` (deux tests neufs) et les fichiers de version ; la PR du ticket 123, les fichiers de version : la seconde à entrer se remet sur `main`. Lignes lues sur `origin/main` à `b5c7ac3` (plugin 8.9.5).
+Fichiers chauds: `skills/chaine/relecteur/scripts/relecteur.mjs` (en-tête, les sorties, 97-101 ; `preparer` 166-168) ; `skills/chaine/relecteur/scripts/relecteur.test.mjs` (le banc sans `jq`, 827-862 ; un test neuf après lui, après 862) ; `skills/chaine/relecteur/SKILL.md` (« Les sorties », la ligne 6, 59) ; `scripts/bascule.test.mjs` (un test neuf, après 325) ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. **Seul dans sa PR.** `scripts/relecteur.test.mjs:240` exige un morceau de la ligne 6 du skill : la phrase neuve le garde tel quel. La PR de 119 à 121 touche `scripts/bascule.test.mjs` (deux tests neufs) et les fichiers de version ; la PR du ticket 123, les fichiers de version : la seconde à entrer se remet sur `main`. Lignes lues sur `origin/main` à `b5c7ac3` (plugin 8.9.5).
 
 ## Le besoin
 
@@ -27,11 +27,11 @@ Lignes lues sur `origin/main` à `b5c7ac3` (plugin 8.9.5).
 
 ## Décisions
 
-Décidées par l'architecte : **`A-203` (3)**, dans le sens d'**`A-192` (1)** (un outil absent du poste est une panne du poste, sortie 6, jamais une lecture illisible). Ce qui suit les applique ; rien n'y est à trancher.
+Décidées par l'architecte : **`A-203` (3)** (`gh` absent : `preparer` le vérifie et sort en 6, hors `A-192`), la sortie 6 sur le modèle d'**`A-197` (1)** (un outil de la chaîne qui manque au poste : l'architecte, et s'arrêter ; jamais une lecture illisible). Ce qui suit les applique ; rien n'y est à trancher.
 
 1. **`preparer`**, en tête, avant `OUTILS` : `if (spawnSync('gh', ['--version']).error) arreter(6, "gh (GitHub CLI) est requis par le Relecteur : l'installer sur le poste");`. Le test porte sur la présence seule (`error`, donc `ENOENT`), comme pour `flock` : un `gh` présent qui répond mal reste une lecture, jugée par `lire`.
 2. **L'en-tête** (`:97-101`) : la sortie 6 compte « `gh` absent du poste », à côté de « `flock` manque ».
-3. **Le skill** (`SKILL.md:59`) : la ligne 6 dit « `gh` ou `flock` manque » à la place de « ou `flock` manque », sa suite inchangée (« l'architecte, et s'arrêter »). Le morceau qu'exige `scripts/relecteur.test.mjs:234` ne change pas.
+3. **Le skill** (`SKILL.md:59`) : la ligne 6 dit « `gh` ou `flock` manque » à la place de « ou `flock` manque », sa suite inchangée (« l'architecte, et s'arrêter »). Le morceau qu'exige `scripts/relecteur.test.mjs:240` ne change pas.
 4. **La version** : la suivante de `main` au moment de livrer, au troisième chiffre. La note dit que le Relecteur s'arrête en 6 sans `gh`. `relecteur.mjs` se lance depuis le dossier du skill (`README.md:173`), jamais posé : un projet n'a rien à reposer, la mise à jour du plugin suffit.
 
 ## Où
@@ -41,12 +41,12 @@ Décidées par l'architecte : **`A-203` (3)**, dans le sens d'**`A-192` (1)** (u
 | `skills/chaine/relecteur/scripts/relecteur.mjs:166-168` | la lecture de `gh` (décision 1) |
 | `skills/chaine/relecteur/scripts/relecteur.mjs:97-101` | l'en-tête (décision 2) |
 | `skills/chaine/relecteur/SKILL.md:59` | la ligne 6 (décision 3) |
-| `skills/chaine/relecteur/scripts/relecteur.test.mjs`, après 861 | un test neuf (« Surfaces ») |
+| `skills/chaine/relecteur/scripts/relecteur.test.mjs`, après 862 | un test neuf (« Surfaces ») |
 | `scripts/bascule.test.mjs`, après 325 | un test neuf de texte (« Surfaces ») |
-| `scripts/relecteur.test.mjs:234` | **inchangé** |
+| `scripts/relecteur.test.mjs:240` | **inchangé** |
 | `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md` | la version, la note |
 
-Modèle : `relecteur.test.mjs:826-861`, le banc sans `jq`. Le PATH sans `gh` se construit de même, avec deux différences : le faux `gh` du jouet vit dans `<racine>/bin` (`depot-jouet.mjs:116-124`), que le PATH du banc sans `jq` met en tête ; et le poste du banc peut porter un vrai `gh` (`/usr/bin/gh`). Le dossier du banc reçoit donc en liens les entrées de `<racine>/bin`, puis celles des dossiers du PATH, `node` en lien direct, toutes sauf `gh` ; le banc vérifie `command -v gh` en échec sous ce PATH.
+Modèle : `relecteur.test.mjs:827-862`, le banc sans `jq`. Le PATH sans `gh` se construit de même, avec deux différences : le faux `gh` du jouet vit dans `<racine>/bin` (`depot-jouet.mjs:116-124`), que le PATH du banc sans `jq` met en tête ; et le poste du banc peut porter un vrai `gh` (`/usr/bin/gh`). Le dossier du banc reçoit donc en liens les entrées de `<racine>/bin`, puis celles des dossiers du PATH, `node` en lien direct, toutes sauf `gh` ; le banc vérifie `command -v gh` en échec sous ce PATH.
 
 ## À faire, dans l'ordre
 
@@ -89,3 +89,4 @@ Chacune seule, le fichier remis après : chacune rouge.
 
 - 2026-11-28 — Écrit par un agent rédacteur sur `origin/main` à `b5c7ac3` (plugin 8.9.5), sur `A-203` (3) et `A-249`. Chaque ligne citée a été relue à ce sommet. `Status: ready-for-agent` ; la question 1 attend l'architecte.
 - 2026-11-28 — Question de l'architecte tranchée sur la recommandation du rédacteur : `A-271` (2) ; la section « Questions à l'architecte » est retirée.
+- 2026-11-28 — Relu (agent neuf) ; trois écarts corrigés par l'architecte : numéros du banc sans `jq` (827-862) et de l'exigence de la ligne 6 (`relecteur.test.mjs:240`), fondement `A-203` (3) avec le modèle d'`A-197` (1), plus `A-192` (1).
