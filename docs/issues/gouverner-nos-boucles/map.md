@@ -318,6 +318,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgZYu68zGNEriduvkFx` | ticket   | 93     | 1,35   | 171 870           |
 | `session_012xRpgaWJ75kvDQygZXdA7p` | ticket   | 110    | 4,27   | 277 915           |
 | `session_012xRpgZQxMdGWQVpZLwjW26` | ticket   | 94-96  | 12,15  | 352 223           |
+| `session_012xRpgZ3p7QKTGQMk6PCpGn` | ticket   | 112-113 | 2,24  | 185 557           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1541,3 +1542,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 01 h 43 UTC. **PR #170 fusionnée** (tickets 94 à 96) : `main` à `6f05d71`, parent `7a0af35`, arbre égal au sommet ordonné `ae2bb8f`, plugin 8.7.0 ; vérifié à la source. Session 94-96 archivée (12,15 $, 352 223 tokens). Architecte de « périmètre figé » prévenu : son ticket 2 peut partir. PR #171 : gestes de remise sur `main` envoyés (section en 8.7.1 sha256 `c73e3c6…`, arbre attendu `9408f90…`). Mes tickets 97 et 101 attendent la fusion de son ticket 2, qui touche aussi `relecteur/SKILL.md`, `scripts/relecteur.test.mjs` et `bascule.test.mjs`.
 - 2026-11-28 — 01 h 44 UTC. « Périmètre figé » : son ticket 2 est lancé depuis `6f05d71` (session_012xRpgavCXiUbFQrAWtdNLG) ; son architecte m'écrira sa fusion.
 - 2026-11-28 — 01 h 55 UTC. PR #171 : `CodeQL` et `Analyze` verts au sommet `029fbc5` ; verdict, ordre et label posés ; `bancs` en cours. Après elle, plus aucune PR de ce programme en file ; prochaines sessions (97, 101) après la fusion du ticket 2 de « périmètre figé ».
+- 2026-11-28 — 02 h 27 UTC. **PR #171 fusionnée** (tickets 112 et 113) : `main` à `b0e112d`, parent `6f05d71`, arbre égal au sommet ordonné `029fbc5`, plugin 8.7.1 (le titre du squash dit encore « 8.5.2 », reste du titre de la PR : libellé seul) ; vérifié à la source. Session 112-113 archivée (2,24 $). Plus aucune PR de ce programme en file. Capitaine gardé en vie (341 504 tokens, 3,50 $) : le ticket 2 de « périmètre figé » arrive. Fusionnés ce jour : tickets 93, 94 à 96, 110, 112, 113 (8.5.1 à 8.7.1). Restent prêts : 97, 101, 104, 100, 103, 105 à 109, 115, 116 (après le ticket 2 de « périmètre figé ») ; `needs-info` : 102, 111, 114 ; `wontfix` : 98, 99.
