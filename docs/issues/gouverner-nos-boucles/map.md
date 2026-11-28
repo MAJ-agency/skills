@@ -324,6 +324,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgbPf2VeDJ9gzUXrSpZ` | ticket   | 104    | 1,52   | 152 980           |
 | `session_012xRpgbK3DXsBFXGCoTwUbQ` | ticket   | 105    | 7,31   | 287 135           |
 | `session_012xRpgXtNoYaPq3vofqG6U2` | ticket   | 106    | 1,37   | 169 677           |
+| `session_012xRpgZgVz7g6YzX11rNTsY` | ticket   | 117    | 1,29   | 148 548           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1577,3 +1578,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 08 h 30 UTC. Ticket 107 livré : PR #181 (sommet `5207c7b`, 8.9.4, collision avec #180 à régler à la remise sur `main`). Tour 1 lancé (agent neuf, diff et ticket sous `/home/user/agents/pr181/`).
 - 2026-11-28 — 08 h 36 UTC. PR #181 : tour 1, un écart (texte du point 3 du réveil de garde, `SKILL.md:101`, ne dit ni la PR illisible ni le témoin d'un autre capitaine), vérifié par l'architecte et renvoyé à la session par un commit de plus.
 - 2026-11-28 — 08 h 40 UTC. PR #181 : correction au sommet `b6e8a4b` (texte et son test de bascule), lue par l'architecte (A-211), conforme. Remise sur `main` en 8.9.5 après la fusion de #180 (ordre posé, `clean`, en attente du capitaine).
+- 2026-11-28 — 08 h 50 UTC. Contrôle de vie. PR #180 fusionnée : `bfa7fc0`, arbre égal au sommet ordonné `6865fce`, parent `6009e57`, 8.9.4 ; session 117 archivée (coût ci-dessus). Capitaine vivant (592 k tokens). Session 107 : remise de #181 sur `main` en 8.9.5 demandée (arbre attendu `ee413b9`).
