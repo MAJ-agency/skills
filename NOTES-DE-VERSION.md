@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.5.1 — 2026-11-27
+## 8.7.0 — 2026-11-27
 
 ### Ce qui change
 
@@ -17,6 +17,44 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `fusionner`** (étape 0) avant que son Relecteur joue la note ou `signaler` : le script de la décision est celui de `scripts/chaine/` sur son `develop`. Le skill `relecteur` est lu dans le plugin.
 - **Un Relecteur en cours** relancé après la mise à jour : ses `--taire <n>` d'avant sortent en 2 ; il relance la veille sans sourdine, et une PR dont la cause tient se re-tait sous sa clé après deux échecs.
+
+## 8.6.1 — 2026-11-27
+
+### Ce qui change
+
+- **`criticite` : une spec trop longue entre par son en-tête et les sections qui citent la règle.** Sous 300 000 caractères, le message est celui d'avant, octet pour octet. Au-delà, chaque spec est réduite à son en-tête et aux sections (titre de niveau 1 ou 2, en colonne 0, hors clôture de code) qui portent l'identifiant exact de la règle ; le plafond reste 300 000.
+- **Le message nomme ce qui est retenu** : `<nom> (extrait : en-tête, « ## A » ; écartées : k) :`. Une puce du prompt dit au sous-agent qu'une spec peut n'arriver qu'en extrait, et que ce qu'une section écartée dirait ne se suppose pas : la situation va dans « Questions ».
+- **La sortie d'erreur dit le tri**, en sortie 0 : la taille avant et après, puis une ligne par spec réduite. La section `## Criticité` de la PR la recopie sous la commande jouée.
+- **Le refus ne vient plus qu'après le tri** : toujours au-delà du plafond, le script refuse en sortie 2, avec les tailles avant et après, celle de la règle et, par spec, sa taille entière et en extrait.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien** : le script et le prompt sont lus dans le plugin, aucun `poser`.
+
+## 8.6.0 — 2026-11-27
+
+### Ce qui change
+
+- **Au plafond de sa propre PR, l'architecte écrit la décision de plafond** (`A-5`, `P-1`) : `Décision de plafond — …`, bloquant par bloquant (corrigé dans la PR, parti en suite avec son commentaire `Suite`, ou écarté avec son `Arbitrage`), et le produit en est informé en une ligne. Avant, les skills la renvoyaient au produit.
+- **Trois limites**, écrites dans `architecte/SKILL.md` § 5 seul : un bloquant sur une règle de criticité haute reste décidé par le produit (l'architecte lit le niveau dans le fichier de la règle, dans le doute le produit décide) ; l'arbitrage d'une contestation sur une PR de l'architecte reste au produit ; le produit est informé en une ligne.
+- **Rien ne change** pour la PR d'une fille ou d'un conducteur. Aucun script ne change.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Le skill `architecte`** est lu dans le plugin : rien à reposer pour lui.
+- Un projet en régime 8 qui veut la règle dans ses propres documents amende le point 5 de son ADR de la relecture indépendante et repose `docs/agents/chaine-de-production.md` (tableau des rôles), dans une PR de son dépôt.
+
+## 8.5.1 — 2026-11-27
+
+### Ce qui change
+
+- **`C1` ne juge plus un index dispensé, sur toute PR** (`A-223`, qui amende `A-144`) : un index à commande que la base et la tête déclarent par un chemin littéral (`dispenses.txt`, celui que « même contenu propre » dispense) va dans `c1/au-capitaine.txt`, « Index à régénérer par le capitaine », sans bloquant ni tour compté. Avant, seul l'index que la fusion avait touché, sur une PR de mise à jour, était laissé au capitaine : une ADR ajoutée sans son index régénéré faisait refuser la PR, et la correction, que « même contenu propre » dispense, ne levait pas le refus.
+- **`dispenses.txt` s'écrit dans tous les cas**, liste vide comprise : `C1` le lit sur toute PR, y compris une PR de mise à jour sans conflit ni retouche.
+- **`c1/index-fusion.txt` n'est plus écrit.** Tout autre fichier que la régénération change reste un bloquant, une vérification rouge aussi.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien** : la session de relecture lit le skill du plugin.
 
 ## 8.5.0 — 2026-11-27
 
