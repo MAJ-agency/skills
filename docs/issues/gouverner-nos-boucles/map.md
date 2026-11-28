@@ -1535,3 +1535,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 00 h 19 UTC. PR #169 : sommet `86276ef` (fusion de `7e63b12`, 8.6.1), arbre `503f486` vérifié ; l'ordre attend CodeQL.
 - 2026-11-28 — 00 h 30 UTC. PR #169 : `CodeQL` et `Analyze` verts au sommet `86276ef` ; verdict, ordre et label posés ; `bancs` en cours (le capitaine l'attend).
 - 2026-11-28 — 01 h 03 UTC. **PR #169 fusionnée** (ticket 110) : `main` à `7a0af35`, parent `7e63b12`, arbre égal au sommet ordonné `86276ef`, plugin 8.6.1 ; vérifié à la source. Session du ticket 110 archivée (4,27 $, 277 915 tokens). PR #170 : gestes de remise sur `main` envoyés (section de note en 8.7.0 sha256 `84ef7cc…`, arbre attendu `c67c8c2…`, calculés à part ; seuls `plugin.json` et la note en conflit).
+- 2026-11-28 — 01 h 06 UTC. PR #170 : sommet `ae2bb8f` (fusion de `7a0af35`, 8.7.0), arbre `c67c8c2` vérifié ; bancs ciblés 156/156 selon sa session ; l'ordre attend CodeQL.
