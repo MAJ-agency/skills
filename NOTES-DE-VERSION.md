@@ -20,6 +20,17 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **Reposer** `boucle.sh`, `veille.sh` et `lot.sh` avec leurs bancs (`fusionner poser`), et `faux-gh.mjs` (`sujet poser`), dans une PR du projet. `curl` doit être sur le poste du capitaine.
 - **Un humain** crée un jeton personnel CircleCI et le pose sous `CIRCLECI_TOKEN` dans l'environnement de la session du capitaine (skill `fusionner`, « Relance CircleCI »). Sans lui, rien ne change.
 - **Le produit** répond aux questions de `references/lots.md` avant que la boucle compose des lots.
+
+## 8.9.6 — 2026-11-28
+
+### Ce qui change
+
+- **Le Relecteur s'arrête en 6 sans `gh`** (`A-203` (3)) : `preparer` vérifie la présence de `gh` et sort en 6, « gh (GitHub CLI) est requis par le Relecteur », comme pour `flock`. Avant, chaque lecture de GitHub échouait en 5 et la veille faisait une pause sans fin, sans une ligne à l'architecte.
+
+### Ce qu'un projet fait pour en profiter
+
+- Rien : `relecteur.mjs` se lance depuis le dossier du skill, jamais posé ; la mise à jour du plugin suffit.
+
 ## 8.9.5 — 2026-11-28
 
 ### Ce qui change
