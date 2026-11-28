@@ -20,6 +20,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **Reposer** `boucle.sh`, `veille.sh` et `lot.sh` avec leurs bancs (`fusionner poser`), et `faux-gh.mjs` (`sujet poser`), dans une PR du projet. `curl` doit être sur le poste du capitaine.
 - **Un humain** crée un jeton personnel CircleCI et le pose sous `CIRCLECI_TOKEN` dans l'environnement de la session du capitaine (skill `fusionner`, « Relance CircleCI »). Sans lui, rien ne change.
 - **Le produit** répond aux questions de `references/lots.md` avant que la boucle compose des lots.
+## 8.9.5 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 comme en régime 7 : le verrou du passage est celui de tous les passages du capitaine.
+
+- **Un passage interrompu se relit sur GitHub et se dit au journal** (`A-245`, `A-256` (4)) : `prendre_passage` écrit un témoin `<git-common-dir>/capitaine-passages/<n>` (id du commentaire, `CAPITAINE_ID`, epoch) que `finir_passage` retire, sauf si son PATCH échoue. Au démarrage, verrou `flock` pris, la boucle relit la PR de chaque témoin : `FUSIONNÉE (passage interrompu…)` avec le sha de fusion, ou « rien n'est entré » ; elle termine le commentaire de passage si le `CAPITAINE_ID` est le sien. Une PR illisible garde le témoin. Cas 14 bis de l'essai réel : une fusion n'est plus perdue avec le conteneur du capitaine.
+- Le faux GitHub des bancs garde et rend `merge_commit_sha`.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `github.sh` et `boucle.sh` (`fusionner poser`). Sans repose, rien ne change.
+
 ## 8.9.4 — 2026-11-28
 
 ### Ce qui change

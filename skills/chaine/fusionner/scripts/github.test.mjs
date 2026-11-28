@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // Posé dans un projet, depot-jouet.mjs est à côté (scripts/chaine/) ; dans le plugin, il est dans le skill sujet.
 const { depotJouet, script } = await import(
@@ -550,6 +550,50 @@ test("prendre_passage : commentaire non posé (écriture refusée) : 2 ; comment
   assert.match(r.stdout, /rc=3 commentaire=$/m, r.stdout + r.stderr);
   assert.match(r.stderr, /verrou du passage : commentaires de #7 illisibles/);
   assert.deepEqual(d.journal().map((e) => `${e.methode} ${e.route}`).slice(-2), ["POST issues/7/comments", "DELETE issues/comments/7001"]);
+});
+
+// ── Le témoin d'un passage (A-245, ticket 107) : `<git-common-dir>/capitaine-passages/<n>`, « id capitaine epoch »,
+// posé par `prendre_passage`, retiré par `finir_passage` sauf PATCH en échec, par `retirer_passage` toujours. ────────
+const temoin = (d, n = 7) => join(d.travail, ".git", "capitaine-passages", String(n));
+const temoinLu = (d, n = 7) => (existsSync(temoin(d, n)) ? readFileSync(temoin(d, n), "utf8").trim() : null);
+const jouerTemoin = (d, corps, env = d.env) =>
+  spawnSync("bash", ["-c", `source ${GITHUB}; ${corps}`], { cwd: d.travail, env, encoding: "utf8" });
+
+test("prendre_passage pris : le témoin porte l'id du commentaire, le CAPITAINE_ID et l'epoch ; finir_passage le retire ; PR tenue par un autre ou relecture illisible : aucun témoin ne reste", () => {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 7, title: "t", base: "develop", head: "x", labels: [] }] });
+  const r = jouerTemoin(d, `prendre_passage 7 && echo "rc=0" || echo "rc=$?"; cat "$(git rev-parse --git-common-dir)/capitaine-passages/7"`);
+  assert.match(r.stdout, /rc=0/, r.stdout + r.stderr);
+  assert.equal(temoinLu(d), `7001 capitaine-banc ${d.env.PASSAGE_HORLOGE_BANC}`);
+  assert.deepEqual(readdirSync(join(d.travail, ".git", "capitaine-passages")), ["7"], "aucun fichier temporaire ne reste");
+  const f = jouerTemoin(d, `PASSAGE_PR=7 PASSAGE_COMMENTAIRE=7001 finir_passage`);
+  assert.equal(f.status, 0, f.stderr);
+  assert.equal(temoinLu(d), null, "terminé : plus de témoin");
+  // Tenue par un autre capitaine (sortie 1) : son commentaire retiré, aucun témoin.
+  const e = passage([{ body: marque("autre", false, le17(11, 59, 0)), auteur: "autre" }]);
+  assert.equal(e.rc, 1, e.r.stdout + e.r.stderr);
+  assert.equal(temoinLu(e.d), null, "PR tenue par un autre : aucun témoin");
+  // Relecture illisible (3) : son commentaire retiré, aucun témoin.
+  const i = depotJouet();
+  i.github({ pulls: [{ number: 7, title: "t", base: "develop", head: "x", labels: [] }], pannes: [{ route: "^issues/7/comments" }] });
+  const ri = jouerTemoin(i, `prendre_passage 7 && echo rc=0 || echo "rc=$?"`);
+  assert.match(ri.stdout, /rc=3/, ri.stdout + ri.stderr);
+  assert.equal(temoinLu(i), null, "relecture illisible : aucun témoin");
+});
+
+test("finir_passage dont le PATCH échoue : le témoin reste, le démarrage suivant de la boucle réessaie", () => {
+  const d = depotJouet();
+  d.github({ pulls: [{ number: 7, title: "t", base: "develop", head: "x", labels: [] }] });
+  assert.match(jouerTemoin(d, `prendre_passage 7 && echo rc=0`).stdout, /rc=0/);
+  // `gh` de remplacement : le PATCH d'un commentaire échoue, le reste passe au faux GitHub.
+  const bin = join(d.racine, "bin-panne");
+  mkdirSync(bin);
+  writeFileSync(join(bin, "gh"), `#!/bin/sh\ncase "$*" in *"-X PATCH"*issues/comments/*) echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1;; esac\nexec "${join(d.racine, "bin", "gh")}" "$@"\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const f = jouerTemoin(d, `PASSAGE_PR=7 PASSAGE_COMMENTAIRE=7001 finir_passage`, { ...d.env, PATH: `${bin}:${d.env.PATH}` });
+  assert.equal(f.status, 0, f.stderr);
+  assert.match(f.stderr, /commentaire 7001 de #7 non terminé/);
+  assert.equal(temoinLu(d), `7001 capitaine-banc ${d.env.PASSAGE_HORLOGE_BANC}`, "PATCH en échec : le témoin reste");
 });
 
 // ── `mentions_de_fusion <réf>` (ticket 3 de capitaine-a-jour-et-teste, A-8) : la mention qu'un commit de fusion du
