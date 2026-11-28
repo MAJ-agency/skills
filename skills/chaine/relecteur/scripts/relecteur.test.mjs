@@ -224,12 +224,93 @@ test('« même contenu propre » : une PR que le capitaine a mise à jour avec d
   d.git('switch', '-q', 'feat/a');
   d.git('merge', '-q', '--no-edit', 'develop');
   d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  // Le tour validé vaut pour la tête, l'étiquette est en place : la note seule (`noter`, ticket 94), puis rien.
+  const tete = d.git('rev-parse', 'HEAD').trim();
+  assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.note?.tour, x.note?.sommet, x.note?.verdict]), [[2, 'noter', 1, sha, 'validé']]);
+  const n = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([n.regle, n.geste, n.joue, n.lignes], [2, 'noter', true, []]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/comments'], 'la note seule, aucune étiquette');
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, new RegExp(`^Même contenu — sommet ${tete} — tour 1 validé au sommet ${sha} — \\S`));
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-fusionner']);
   assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.raison]), [[2, 'rien', 'etiquette-en-place']]);
   // Un commit de l'auteur après le verdict : le contenu a changé, `à-reprendre` (r3).
   d.ecrire('src/a.mjs', 'export const a = 2;\n');
   d.commit('fix: a');
   d.git('push', '-q', 'origin', 'HEAD:feat/a');
   assert.deepEqual(d.json(d.lancer('passe')).map((x) => [x.regle, x.geste, x.poser]), [[3, 'etiqueter', 'à-reprendre']]);
+});
+
+// Ticket 94 : un tour refusé au sommet V, develop fusionné dans la branche (tête T, même contenu propre), `à-relire`
+// reposée. Rend la PR montée, V et T.
+function refusGarde() {
+  const d = monter();
+  const sha = pr(d);
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'refusé'), 3]);
+  d.git('switch', '-q', 'develop');
+  d.ecrire('README.md', 'jouet, develop avance\n');
+  d.commit('docs: develop avance');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('switch', '-q', 'feat/a');
+  d.git('merge', '-q', '--no-edit', 'develop');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const tete = d.git('rev-parse', 'HEAD').trim();
+  ajouter(d, [DEMANDE(tete), 4]);
+  return { d, sha, tete };
+}
+// La raison que rend le même calcul joué par le banc, dans le dossier du Relecteur (posé sur develop).
+const raisonDuCalcul = (d, sommet, tete) => {
+  const r = spawnSync('bash', ['scripts/chaine/meme-contenu.sh', sommet, tete, 'develop'], { cwd: d.dossier, env: d.env, encoding: 'utf8' });
+  return r.stderr.split('\n').map((l) => l.trim()).filter(Boolean).at(-1);
+};
+const reposer = (d) => d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire'] }] });
+
+test('ticket 94 — un refus gardé (#17) : `à-reprendre`, puis la note de même contenu, puis le retrait de `à-relire` ; une seule note par tête et par tour', () => {
+  const { d, sha, tete } = refusGarde();
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.poser, g.joue], [4, 'etiqueter', 'à-reprendre', true]);
+  assert.deepEqual(g.lignes.map((l) => [l.a, l.texte]), [['auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'verdict écrit sur la PR 12 : refusé']]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/labels à-reprendre', 'POST issues/12/comments', 'DELETE issues/12/labels/à-relire']);
+  const raison = raisonDuCalcul(d, sha, tete);
+  assert.ok(raison, 'le calcul écrit sa raison');
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, `Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — ${raison}`, 'la raison à l’octet');
+  // Le retrait perdu (la PR garde `à-relire` et `à-reprendre`), rejoué : l'étiquette est posée avant la note, mais la note
+  // n'est pas une marque, la pose suit la marque la plus récente : aucune ligne ne repart, aucune seconde note.
+  d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire', 'à-reprendre'] }] });
+  const perdu = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([perdu.geste, perdu.lignes, Object.hasOwn(perdu, 'note')], ['etiqueter', [], false]);
+  assert.deepEqual(ecritures(d).slice(3), ['DELETE issues/12/labels/à-relire']);
+  // `à-relire` reposée une deuxième fois : l'étiquette, aucune seconde note.
+  reposer(d);
+  const avant = d.journal().length;
+  const encore = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([encore.regle, encore.geste, encore.poser], [4, 'etiqueter', 'à-reprendre']);
+  assert.deepEqual(ecritures(d).slice(avant), ['POST issues/12/labels à-reprendre', 'DELETE issues/12/labels/à-relire']);
+});
+
+test('ticket 94 — la note refusée : la ligne JSON et ses lignes d’abord, puis la sortie 7, `à-relire` reste ; le refus levé, la note écrite sans renvoyer de ligne', () => {
+  const { d, sha, tete } = refusGarde();
+  d.github({ commentairesRefuses: '^Même contenu — ' });
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 7, r.stderr);
+  const g = d.json(r)[0];
+  assert.deepEqual([g.geste, g.joue], ['etiqueter', true]);
+  assert.deepEqual(g.lignes.map((l) => [l.a, l.session, l.texte]), [['auteur', 'session_auteur', 'verdict écrit sur la PR 12 : refusé'], ['conducteur', 'session_conducteur', 'verdict écrit sur la PR 12 : refusé']]);
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-relire', 'à-reprendre']);
+  d.github({ commentairesRefuses: false });
+  const rejoue = d.lancer('jouer', '12');
+  assert.equal(rejoue.status, 0, rejoue.stderr);
+  const h = d.json(rejoue)[0];
+  assert.deepEqual([h.geste, h.lignes], ['etiqueter', []], 'l’étiquette posée après la marque la plus récente : aucune ligne ne repart');
+  assert.match(d.etat().pulls[0].commentaires.at(-1).body, new RegExp(`^Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — \\S`));
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre']);
+});
+
+test('ticket 94 — la raison manque (un calcul qui sort en 0 sans rien sur sa sortie d’erreur) : la note dit `sans raison écrite`', () => {
+  const { d, sha, tete } = refusGarde();
+  d.talon('meme-contenu.sh', '#!/usr/bin/env bash\necho même\nexit 0\n');
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, `Même contenu — sommet ${tete} — tour 1 refusé au sommet ${sha} — sans raison écrite`);
 });
 
 test('une sous-PR vers un sujet : le diff propre est celui de `sujet.sh a-juger`, depuis le départ sur le sujet, pas tout ce que le sujet apporte à develop', () => {
@@ -309,7 +390,7 @@ test('une installation en échec : sa sortie d’erreur au journal de la veille 
   d.branche('sujet/demo', 'origin/develop', { 'docs/demo.md': 'demo\n' }, 'chore(sujet): demo');
   pr(d, { base: 'sujet/demo', depuis: 'sujet/demo', tete: 'feat/b', fichiers: { 'src/b.mjs': 'export const b = 1;\n' } });
   const r = d.lancer('veille', '--pause', '0', '--sondes', '1');
-  assert.equal(r.stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\n', r.stderr);
+  assert.equal(r.stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n', r.stderr);
   assert.match(r.stderr, /pnpm install en échec \(sortie 1\) :\nERR_PNPM_FROZEN_LOCKFILE/, 'la passe de la veille a installé : son erreur est au journal (A-180)');
 });
 
@@ -317,19 +398,176 @@ test('la veille : un geste à jouer la réveille (`VEILLE GESTE`), `--taire` la 
   assert.match(readFileSync(RELECTEUR, 'utf8'), /Number\(lireOption\('--duree', '25'\)\)/, 'sous les 30 minutes de l’outil Bash');
   const d = monter();
   pr(d);
+  const sha = d.git('rev-parse', 'origin/feat/a').trim();
   const r = d.lancer('veille', '--pause', '0', '--sondes', '2');
-  assert.deepEqual([r.status, r.stdout], [0, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\n'], r.stderr);
-  assert.deepEqual(d.lancer('veille', '--pause', '0', '--sondes', '2', '--taire', '12').stdout, 'VEILLE FINIE\n');
+  assert.deepEqual([r.status, r.stdout], [0, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n'], r.stderr);
+  assert.deepEqual(d.lancer('veille', '--pause', '0', '--sondes', '2', '--taire', `12:distribuer:6:${sha}`).stdout, `VEILLE FINIE\nSOURDINES 12:distribuer:6:${sha}\n`);
+  assert.equal(d.lancer('veille', '--pause', '0', '--sondes', '2', '--taire', '12').status, 2, 'un numéro seul ne se tait plus');
   const attente = monter();
   pr(attente);
   assert.equal(distribuer(attente, attente.etat().pulls[0].sha ?? attente.git('rev-parse', 'origin/feat/a'), 'opus/medium', 'session_rel1').status, 0);
-  assert.deepEqual(attente.lancer('veille', '--pause', '0', '--sondes', '2').stdout, 'VEILLE FINIE\n', 'une attente (règle 5, rien) ne réveille personne');
+  assert.deepEqual(attente.lancer('veille', '--pause', '0', '--sondes', '2').stdout, 'VEILLE FINIE\nSOURDINES aucune\n', 'une attente (règle 5, rien) ne réveille personne');
   d.github({ pannes: [{ route: '^pulls\\?', fois: 1 }] });
   const p = d.lancer('veille', '--pause', '0', '--sondes', '2');
-  assert.match(p.stdout, /^PAUSE GitHub illisible : .*\nVEILLE GESTE\nGESTE 12 distribuer règle 6\n$/);
+  assert.match(p.stdout, /^PAUSE GitHub illisible : .*\nVEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n$/);
   writeFileSync(join(d.dossier, 'brouillon.txt'), 'x\n');
   const arret = d.lancer('veille', '--pause', '0', '--sondes', '2');
-  assert.deepEqual([arret.status, /VEILLE ARRÊTÉE sortie 6\n$/.test(arret.stdout)], [6, true]);
+  assert.deepEqual([arret.status, /VEILLE ARRÊTÉE sortie 6\nSOURDINES aucune\n$/.test(arret.stdout)], [6, true]);
+});
+
+// --- Ticket 95 : la sourdine de la veille tombe avec sa cause (A-225, A-239 (2) et (3)) ---------------------------------
+
+const veiller = (d, sondes, ...cles) => d.lancer('veille', '--pause', '0', '--sondes', String(sondes), ...(cles.length ? ['--taire', cles.join(',')] : []));
+// La liste des PR que GitHub rend, telle que le faux la rend, retouchée : la réponse d'une passe (une panne à code 0).
+const listeRetouchee = (d, retouche) => {
+  const r = spawnSync('gh', ['api', 'repos/{owner}/{repo}/pulls?state=open&per_page=100'], { cwd: d.dossier, env: d.env, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  return JSON.stringify(JSON.parse(r.stdout).map(retouche));
+};
+const pousser = (d, contenu) => {
+  d.git('switch', '-q', 'feat/a');
+  d.ecrire('src/a.mjs', contenu);
+  d.commit('fix: a');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  return d.git('rev-parse', 'HEAD').trim();
+};
+
+test('ticket 95 — une PR tue sous sa clé ne réveille pas tant que la passe la rend ; une autre tête, un autre geste ou une autre règle la lèvent et réveillent', () => {
+  const d = monter();
+  const sha = pr(d);
+  const cle = `12:distribuer:6:${sha}`;
+  assert.deepEqual([veiller(d, 2, cle).status, veiller(d, 2, cle).stdout], [0, `VEILLE FINIE\nSOURDINES ${cle}\n`]);
+  // Une autre règle : la passe rend `distribuer` règle 6, la clé dit 4.
+  assert.equal(veiller(d, 1, `12:distribuer:4:${sha}`).stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n');
+  // Une autre clé d'une autre PR ne la tait pas, et reste dans la liste.
+  assert.equal(veiller(d, 1, `7:distribuer:6:${sha}`).stdout, `VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n`, 'la PR 7 ne paraît plus : levée');
+  // Un autre geste, la même tête : une distribution et un verdict validé, `etiqueter` règle 2.
+  const g = monter();
+  const s2 = pr(g);
+  ajouter(g, [distribution(1, s2, ['session_rel1']), 2], [verdict(s2, 1, 'session_rel1', 'validé'), 3]);
+  assert.equal(veiller(g, 1, `12:distribuer:6:${s2}`).stdout, 'VEILLE GESTE\nGESTE 12 etiqueter règle 2\nSOURDINES aucune\n');
+  // Un push sur la PR : une autre tête.
+  const t = monter();
+  const s3 = pr(t);
+  pousser(t, 'export const a = 3;\n');
+  assert.equal(veiller(t, 1, `12:distribuer:6:${s3}`).stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n');
+});
+
+test('ticket 95 — `rien`, `hors-regime` ou une PR qui ne paraît plus lèvent la sourdine sans réveil ; `pause` la garde ; une levée ne revient pas dans la même veille', () => {
+  const d = monter();
+  const sha = pr(d, { labels: [] });
+  const cle = `12:distribuer:6:${sha}`;
+  assert.equal(veiller(d, 1, cle).stdout, 'VEILLE FINIE\nSOURDINES aucune\n', '`rien` (hors de la file)');
+  const regime = monter();
+  const s1 = pr(regime, { ouverte: '2026-11-20T08:59:00Z' });
+  assert.equal(veiller(regime, 1, `12:distribuer:6:${s1}`).stdout, 'VEILLE FINIE\nSOURDINES aucune\n', '`hors-regime`');
+  const fermee = monter();
+  const s2 = pr(fermee);
+  fermee.github({ pulls: [] });
+  assert.equal(veiller(fermee, 1, `12:distribuer:6:${s2}`).stdout, 'VEILLE FINIE\nSOURDINES aucune\n', 'fermée : la passe ne la nomme plus');
+  // `pause` : des commentaires que la décision ne lit pas (un commentaire hors de l'ordre de création) ; la sourdine tient.
+  const pause = monter();
+  const s3 = pr(pause);
+  ajouter(pause, ['un commentaire daté d’avant la demande', 0]);
+  assert.equal(pause.json(pause.lancer('passe'))[0].geste, 'pause');
+  assert.equal(veiller(pause, 1, `12:distribuer:6:${s3}`).stdout, `VEILLE FINIE\nSOURDINES 12:distribuer:6:${s3}\n`);
+  // `--sondes 2` : levée à la première passe (l'étiquette absente de la liste), la PR de nouveau sous l'ancienne clé à
+  // la seconde : elle réveille.
+  const deux = monter();
+  const s4 = pr(deux);
+  deux.github({ pannes: [{ route: '^pulls\\?', fois: 1, code: 0, erreur: '', sortie: listeRetouchee(deux, (p) => ({ ...p, labels: [] })) }] });
+  assert.equal(veiller(deux, 2, `12:distribuer:6:${s4}`).stdout, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n');
+});
+
+test('ticket 95 — `contrat-illisible` se tait sous `*` : un push ne la lève pas ; le geste `noter` sous une autre clé réveille et lève', () => {
+  const c = monter({ contrat: { relecture: null } });
+  pr(c);
+  pousser(c, 'export const a = 4;\n');
+  assert.equal(veiller(c, 1, '12:contrat-illisible:—:*').stdout, 'VEILLE FINIE\nSOURDINES 12:contrat-illisible:—:*\n');
+  // Le cas de #15 : un tour validé, `à-fusionner` en place, develop fusionné dans la branche : `noter` (règle 2).
+  const d = monter();
+  const sha = pr(d, { labels: ['à-fusionner'] });
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+  d.git('switch', '-q', 'develop');
+  d.ecrire('README.md', 'jouet, develop avance\n');
+  d.commit('docs: develop avance');
+  d.git('push', '-q', 'origin', 'HEAD:develop');
+  d.git('switch', '-q', 'feat/a');
+  d.git('merge', '-q', '--no-edit', 'develop');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const tete = d.git('rev-parse', 'HEAD').trim();
+  assert.equal(veiller(d, 1, `12:etiqueter:2:${tete}`).stdout, 'VEILLE GESTE\nGESTE 12 noter règle 2\nSOURDINES aucune\n');
+});
+
+test('ticket 95 — une clé mal formée sort en 2, la cause dite, sans aucune passe', () => {
+  const d = monter();
+  const sha = pr(d);
+  for (const taire of ['12', '12:distribuer:6', `12:distribuer:6:*`, `12:distribuer:6:${sha},12:etiqueter:2:${sha}`, `12:distribuer:six:${sha}`, `12:distribuer:6:${sha.toUpperCase()}`, `12:contrat-illisible:—:${sha}`]) {
+    const r = d.lancer('veille', '--pause', '0', '--sondes', '1', '--taire', taire);
+    assert.deepEqual([r.status, r.stdout], [2, ''], taire);
+    assert.match(r.stderr, /^relecteur : --taire : /, taire);
+  }
+});
+
+test('ticket 95 — `SOURDINES` dit la liste telle que la dernière passe lue l’a laissée : après une levée suivie d’un arrêt, sans elle ; après des passes toutes en `PAUSE`, la liste reçue', () => {
+  const d = monter();
+  const sha = pr(d);
+  const cle = `12:distribuer:6:${sha}`;
+  // La seconde passe rend une PR sans base : une erreur du script, sortie 1.
+  d.github({ pannes: [{ route: '^pulls\\?', fois: 1, code: 0, erreur: '', sortie: listeRetouchee(d, (p) => ({ ...p, labels: [] })) }, { route: '^pulls\\?', fois: 1, code: 0, erreur: '', sortie: '[{"number": 12}]' }] });
+  const r = veiller(d, 2, cle);
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stdout, /\nVEILLE ARRÊTÉE sortie 1\nSOURDINES aucune\n$/);
+  d.github({ pannes: [{ route: '^pulls\\?', fois: 2 }] });
+  const p = veiller(d, 2, cle, '7:distribuer:6:' + sha);
+  assert.match(p.stdout, new RegExp(`^PAUSE GitHub illisible : .*\nPAUSE GitHub illisible : .*\nVEILLE FINIE\nSOURDINES ${cle},7:distribuer:6:${sha}\n$`));
+});
+
+// --- Ticket 96 : une demande `À relire` modifiée se dit, sur la PR et à qui l'a écrite (A-227, A-228) ---------------------
+
+// La PR 12 dont la seule demande (commentaire 12001) a été modifiée sept secondes après sa création.
+function demandeModifiee() {
+  const d = monter();
+  const sha = pr(d, { commentaires: [] });
+  const p = d.etat().pulls[0];
+  p.commentaires = [{ body: DEMANDE(sha), created_at: minute(1), updated_at: iso(DEBUT + 60_000 + 7_000) }];
+  d.github({ pulls: [p] });
+  return { d, sha };
+}
+const TRACE_ECART = "Demande écartée — commentaire 12001 modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié";
+
+test('ticket 96 — `jouer` écrit la trace d’une demande modifiée et rend ses lignes à qui l’a écrite ; rejoué aussitôt, il rend le geste de la PR', () => {
+  const { d, sha } = demandeModifiee();
+  const g = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([g.regle, g.geste, g.joue], [null, 'signaler', true]);
+  const texte = 'PR 12 : demande de relecture écartée (commentaire 12001 modifié après sa création) : en écrire une neuve, jamais modifiée';
+  assert.deepEqual(g.lignes, [{ a: 'auteur', session: 'session_auteur', texte }, { a: 'conducteur', session: 'session_conducteur', texte }]);
+  assert.deepEqual(ecritures(d), ['POST issues/12/comments']);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, TRACE_ECART);
+  const suite = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([suite.regle, suite.geste, suite.sommet, suite.faits.auteur], [6, 'distribuer', sha, null], 'la demande modifiée ne donne pas ses destinataires');
+});
+
+test('ticket 96 — la trace n’est pas une marque : l’étiquette posée après elle, rejouée sur un retrait perdu, ne renvoie pas ses lignes', () => {
+  const { d, sha } = demandeModifiee();
+  ajouter(d, [distribution(1, sha, ['session_rel1']), 2], [verdict(sha, 1, 'session_rel1', 'validé'), 3]);
+  assert.equal(d.json(d.lancer('jouer', '12'))[0].geste, 'signaler');
+  const pose = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([pose.regle, pose.geste, pose.poser], [2, 'etiqueter', 'à-fusionner']);
+  assert.deepEqual(pose.lignes.map((l) => l.session), [null, null], 'aucune demande intacte : aucun destinataire');
+  d.github({ pulls: [{ ...d.etat().pulls[0], labels: ['à-relire', 'à-fusionner'] }] });
+  const rejoue = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([rejoue.geste, rejoue.lignes], ['etiqueter', []]);
+});
+
+test('ticket 96 — la trace refusée sort en 7, rien d’écrit ; la veille se réveille sur `signaler`', () => {
+  const { d } = demandeModifiee();
+  assert.equal(d.lancer('veille', '--pause', '0', '--sondes', '1').stdout, 'VEILLE GESTE\nGESTE 12 signaler règle —\nSOURDINES aucune\n');
+  d.github({ commentairesRefuses: '^Demande écartée — ' });
+  const r = d.lancer('jouer', '12');
+  assert.equal(r.status, 7, r.stderr);
+  assert.equal(r.stdout, '', 'aucune ligne : la trace n’est pas écrite, le rejeu les rendra');
+  assert.deepEqual(d.etat().pulls[0].commentaires.map((c) => c.body), [d.etat().pulls[0].commentaires[0].body], 'la trace n’est pas sur la PR');
 });
 
 test('une écriture refusée par GitHub sort en 7, et rien n’est retiré avant que la nouvelle étiquette soit posée', () => {
@@ -566,7 +804,7 @@ test('suite du lot 5 — un calcul sorti en 69 (un outil de la chaîne manque au
   assert.deepEqual(ecritures(q), [], 'ni trace, ni étiquette : la PR n’y est pour rien');
   const v = q.lancer('veille', '--pause', '0', '--sondes', '1');
   assert.equal(v.status, 6, v.stdout + v.stderr);
-  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\nSOURDINES aucune\n$/);
   const m = monter();
   m.talon('meme-contenu.sh', 'echo illisible\necho "git ≥ 2.41 requis, ici 2.40" >&2\nexit 69\n');
   const ancien = pr(m);
@@ -619,7 +857,7 @@ test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe 
   assert.equal(q.lancer('jouer', '12').status, 6);
   const v = q.lancer('veille', '--pause', '0', '--sondes', '2');
   assert.doesNotMatch(v.stdout, /^PAUSE /m);
-  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\n$/);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\nSOURDINES aucune\n$/);
   assert.deepEqual(ecritures(q), []);
 });
 
@@ -684,10 +922,11 @@ test('contre-relecture — la veille finit à sa durée : elle ne commence aucun
   pr(d, { labels: [] });
   const t0 = Date.now();
   const r = d.lancer('veille', '--pause', '20', '--duree', '0.02');
-  assert.deepEqual([r.status, r.stdout], [0, 'VEILLE FINIE\n'], r.stderr);
+  assert.deepEqual([r.status, r.stdout], [0, 'VEILLE FINIE\nSOURDINES aucune\n'], r.stderr);
   assert.ok(Date.now() - t0 < 15_000, `une veille de 1,2 s, pause de 20 s : finie en ${Date.now() - t0} ms`);
   const sans = spawnSync(process.execPath, [RELECTEUR, 'veille', '--pause', '0', '--duree', '0.02'], { cwd: d.dossier, env: d.env, encoding: 'utf8', timeout: 30_000 });
-  assert.deepEqual([sans.status, sans.stdout.split('\n').filter(Boolean).at(-1)], [0, 'VEILLE FINIE'], 'sans `--sondes`, la durée seule l’arrête');
+  const fin = sans.stdout.split('\n').filter(Boolean);
+  assert.deepEqual([sans.status, fin.at(-2), fin.at(-1)], [0, 'VEILLE FINIE', 'SOURDINES aucune'], 'sans `--sondes`, la durée seule l’arrête');
 });
 
 test('contre-relecture — le plafond se dit à l’auteur, au conducteur et à l’architecte même quand `à-reprendre` est restée posée', () => {
@@ -817,15 +1056,15 @@ test('suite 66 — R5 : `veille --attendre` met une pause avant sa première pas
   // Un `git` tué en plein travail a laissé son verrou : toute passe sort en 12.
   writeFileSync(join(d.dossier, '.git/index.lock'), '');
   const sans = d.lancer('veille', '--pause', '3', '--duree', '0.01');
-  assert.deepEqual([sans.status, sans.stdout.trim().split('\n').at(-1)], [12, 'VEILLE ARRÊTÉE sortie 12']);
+  assert.deepEqual([sans.status, sans.stdout.trim().split('\n').at(-2), sans.stdout.trim().split('\n').at(-1)], [12, 'VEILLE ARRÊTÉE sortie 12', 'SOURDINES aucune']);
   const t0 = Date.now();
   const avec = d.lancer('veille', '--pause', '3', '--duree', '0.01', '--attendre');
-  assert.deepEqual([avec.status, avec.stdout], [0, 'VEILLE FINIE\n'], 'une pause qui finirait après la durée ne commence pas, même la première : aucune passe');
+  assert.deepEqual([avec.status, avec.stdout], [0, 'VEILLE FINIE\nSOURDINES aucune\n'], 'une pause qui finirait après la durée ne commence pas, même la première : aucune passe');
   assert.ok(Date.now() - t0 < 2500, 'aucune pause jouée au-delà de la durée');
   execFileSync('rm', [join(d.dossier, '.git/index.lock')]);
   const t1 = Date.now();
   const geste = d.lancer('veille', '--pause', '1', '--sondes', '1', '--attendre');
-  assert.deepEqual([geste.status, geste.stdout], [0, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\n'], geste.stderr);
+  assert.deepEqual([geste.status, geste.stdout], [0, 'VEILLE GESTE\nGESTE 12 distribuer règle 6\nSOURDINES aucune\n'], geste.stderr);
   assert.ok(Date.now() - t1 >= 1000, 'la première passe vient après une pause');
 });
 
