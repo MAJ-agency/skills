@@ -323,6 +323,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgaV6v5hPdomx3qHQqc` | ticket   | 101    | 1,30   | 162 508           |
 | `session_012xRpgbPf2VeDJ9gzUXrSpZ` | ticket   | 104    | 1,52   | 152 980           |
 | `session_012xRpgbK3DXsBFXGCoTwUbQ` | ticket   | 105    | 7,31   | 287 135           |
+| `session_012xRpgXtNoYaPq3vofqG6U2` | ticket   | 106    | 1,37   | 169 677           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1568,3 +1569,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 07 h 34 UTC. PR #179 (ticket 106, 8.9.3) : tour 2 (delta `19a7d33..dbd67dd`, code shell compris) relu par le même agent, conforme ; `CodeQL` et `Analyze` verts au sommet `dbd67dd`, base égale à `main` ; verdict, ordre et label posés ; `bancs` en cours.
 - 2026-11-28 — 07 h 33 UTC. Contrôle de vie : capitaine au repos (541 615 tokens, 8,16 $, réveil 07 h 44, il prendra la #179) ; ticket 106 fini. Rédacteur lancé pour le ticket 117 (un saut non déclaré dans un banc posé rougit la suite).
 - 2026-11-28 — 07 h 40 UTC. Ticket 117 relu (un bloquant : un « todo » qui échoue sort en `test:fail`, confirmé sous Node 22.23), corrigé, `ready-for-agent`. **Session lancée** : ticket 117 → session_012xRpgZgVz7g6YzX11rNTsY (Sonnet).
+- 2026-11-28 — 07 h 59 UTC. **PR #179 fusionnée** (ticket 106) : `main` à `6009e57`, parent `36accb9`, arbre égal au sommet ordonné `dbd67dd`, plugin 8.9.3 ; vérifié à la source. Session 106 archivée (1,37 $). Session du ticket 107 lancée (Sonnet).
