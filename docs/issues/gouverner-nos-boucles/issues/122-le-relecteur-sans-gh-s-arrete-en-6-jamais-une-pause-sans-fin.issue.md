@@ -1,6 +1,6 @@
 # Le Relecteur sur un poste sans `gh` s'arrête en 6 avec sa cause, jamais une pause sans fin
 
-Status: ready-for-agent
+Status: Fait — PR 184 (`384876c`, plugin 8.9.6)
 Type: défaut
 Modèle: sonnet — une lecture de `gh` en tête de `preparer`, sur le modèle de celle de `flock` (`relecteur.mjs:564`), une ligne de l'en-tête, une cellule du skill, et leurs bancs sur le modèle du banc sans `jq` ; la règle est `A-203` (3), la sortie 6 sur le modèle d'`A-197` (1). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

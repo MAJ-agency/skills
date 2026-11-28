@@ -326,6 +326,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgXtNoYaPq3vofqG6U2` | ticket   | 106    | 1,37   | 169 677           |
 | `session_012xRpgZgVz7g6YzX11rNTsY` | ticket   | 117    | 1,29   | 148 548           |
 | `session_012xRpgaNfiGZUJfvWG8h9mj` | ticket   | 107    | 3,92   | 271 649           |
+| `session_012xRpgZ1BN1M2TbMNqrNAMG` | ticket   | 122    | 0,78   | 118 980           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1594,3 +1595,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 10 h 17 UTC. PR #184 (ticket 122, 8.9.6) : `CodeQL` et `Analyze` verts au sommet `86785f3` ; verdict, ordre et label posés ; `bancs` en cours. Remise de #183 en 8.9.7 calculée sur l'arbre de #184 : section sha256 `b4759357…`, arbre attendu `335012a9a73cc623528254a0af20636f06f7f8c9` (conflit sur les notes seules). Sessions 118, 122, 123, 119-121 vivantes.
 - 2026-11-28 — 10 h 25 UTC. Tickets 119 à 121 livrés : PR #185 (sommet `0ea9102`, 8.9.6, trois commits ; mutations rouges ; bancs de 119 et 120 écrits avec le correctif, dit sous `## Comments`). Tour 1 lancé (agent neuf, `/home/user/agents/pr185/`). Ordre d'entrée prévu : #184, #183 (8.9.7), puis #185 et #123 selon leur arrivée.
 - 2026-11-28 — 10 h 30 UTC. PR #185 : tour 1 non conforme, trois écarts (le banc de la boucle ne lit pas la ligne de `passer.sh` ; le cas 3 de `demande.test.mjs` ne lit pas le message neuf ; `regrouper` relit la base au lieu de la lecture qui juge la fourche) et un quatrième de l'architecte (`regrouper` garde une PR dont la lecture échoue) ; renvoyés à la session.
+- 2026-11-28 — 10 h 34 UTC. PR #184 fusionnée : `384876c`, arbre égal au sommet ordonné `86785f3` (`974e352`), parent `b5c7ac3`, 8.9.6 ; session 122 archivée (coût ci-dessus). Remise de #183 en 8.9.7 demandée (arbre attendu `335012a`). #185 : constats 1 à 4 corrigés au sommet `982c0ab`, lus ; un dernier renvoyé (la boucle ne nomme pas la sortie 5 neuve de `regrouper`).
