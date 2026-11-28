@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.8.1 — 2026-11-28
+## 8.8.2 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,18 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.8.1 — 2026-11-28
+
+### Ce qui change
+
+- **Un Relecteur s'arrête par l'archivage de sa session, jamais par `interrupt_session`** (`A-229`) : l'interruption n'arrête que le tour en cours, pas la veille de fond, qui le réveille à sa fin ; un message ne l'arrête pas non plus. Le skill `relecteur` écrit le geste (puce « L'arrêter ») et ce que vaut « s'arrêter » : veille arrêtée, ligne « Relecteur arrêté : <cause> » à l'architecte, session vivante sans veille jusqu'à son archivage.
+- **Qui archive** (`A-231`, `A-232`) : l'architecte du dépôt, sans question au produit, son coût relevé et ses réveils supprimés (puce « Archiver un Relecteur » de `lancement.md`) ; le Relecteur n'est jamais `completed`, exception à la lecture d'« Archiver ». Sans architecte en vie, le conducteur écrit au produit « Relecteur <id> à archiver : <raison> ».
+- **L'ordre du remplacement** : archiver l'ancien, lire `get_session` qui le dit archivé, puis lancer le neuf. Au-delà de 500 000 tokens, l'architecte archive puis relance.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien à reposer : du texte de skill, lu dans le marketplace. Un Relecteur déjà lancé relit son skill à son prochain lancement à neuf.
 
 ## 8.8.0 — 2026-11-28
 
