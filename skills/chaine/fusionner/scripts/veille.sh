@@ -88,6 +88,9 @@
 # `--sondes <n>` (pour les tests seulement) : VEILLE FINIE après n sondes, durée ou pas, pour qu'un test
 # compte des sondes sans dépendre de l'horloge. Défaut : pas de limite.
 # =============================================================================
+# Le jeton CircleCI (skill fusionner, « Relance CircleCI ») : retiré de l'environnement avant tout processus fils (la
+# préparation du capitaine joue une commande du projet), et donné à la seule boucle, en préfixe.
+export -n CIRCLECI_TOKEN 2>/dev/null || true
 outils=$(cd "$(dirname "$0")" && pwd)
 heure() { date +%H:%M; }
 heure_de() { date -d "@$1" +%H:%M 2>/dev/null || date -r "$1" +%H:%M; }
@@ -266,7 +269,7 @@ trap 'rm -f "$journal_boucle"' EXIT
 # `--reprendre` a retiré le fichier d'arrêt avant la préparation, et un arrêt posé depuis tient la boucle (sortie 10).
 lancer() {
   preparer_si_besoin
-  bash "$outils/boucle.sh" 7>&- | tee "$journal_boucle" 7>&-
+  CIRCLECI_TOKEN="${CIRCLECI_TOKEN:-}" bash "$outils/boucle.sh" 7>&- | tee "$journal_boucle" 7>&-
   local rc=${PIPESTATUS[0]} agies
   [ "$rc" = 0 ] || finir "$rc" "VEILLE ARRÊTÉE $(heure) : la boucle est sortie en $rc"
   agies=$(sed -nE 's/^\[#([0-9]+)\] (RENVOI|RELANCE).*/\1/p' "$journal_boucle" | sort -u)

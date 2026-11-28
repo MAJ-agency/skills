@@ -116,6 +116,10 @@
 # de la chaîne fusionné pendant la boucle est vu au tour suivant. Dossier fixe hors du worktree
 # (sous `.git`, partagé par les worktrees) ; `BOUCLE_COPIE` le remplace. Le dossier voisin
 # `.nouveau` est extrait puis échangé d'un coup : un bash qui lit encore l'ancien fichier le garde.
+# Le jeton CircleCI (« Relance CircleCI ») ne sert qu'à `relancer_circleci`, qui le passe à curl par son entrée
+# standard : retiré de l'environnement avant tout processus fils. `passer.sh` pousse sous les hooks du projet, qui jouent
+# le code des PR ; un jeton exporté y serait lisible. Seul l'`exec` de relance le reçoit, en préfixe.
+export -n CIRCLECI_TOKEN 2>/dev/null || true
 empreinte=$(git hash-object "$0")
 COMMUN=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 COPIE=${BOUCLE_COPIE:-$COMMUN/boucle-outils}
@@ -266,7 +270,7 @@ rafraichir_outils() {
   if [ "$(git hash-object "$outils/boucle.sh")" != "$empreinte" ]; then
     echo "[boucle] boucle.sh a changé sur develop : relance sur la nouvelle version"
     rm -f "${sortie:-}"
-    BOUCLE_SAUTEES="${sautees:- }" BOUCLE_ATTENTE="${attente_fusion:- }" exec bash "$outils/boucle.sh" "$@"
+    CIRCLECI_TOKEN="${CIRCLECI_TOKEN:-}" BOUCLE_SAUTEES="${sautees:- }" BOUCLE_ATTENTE="${attente_fusion:- }" exec bash "$outils/boucle.sh" "$@"
   fi
   SUJET="$outils/sujet.sh"
   [ -f "$SUJET" ] || SUJET="$outils/../../sujet/scripts/sujet.sh"
@@ -311,30 +315,120 @@ eligibilite() {
   return 0
 }
 
+# Relance CircleCI (fedora depuis le 2026-11-28, ADR_ALL_ARC-89). Les checks y sont des statuts de commit
+# `ci/circleci: <job>`, dont le `target_url` est `https://app.circleci.com/workflow/<workflow>/job/<job>` : la relance
+# GitHub Actions n'y fait rien. `workflows_circleci_rouges <sommet>` rend, un par ligne et sans doublon, les workflows
+# des statuts rouges (`failure`, `error`) du sommet ; un `target_url` d'une autre forme est ignoré, et l'identifiant
+# n'est retenu qu'à la forme d'un UUID (il entre dans une URL). Statuts illisibles : sortie 5, rien sur la sortie.
+# `relancer_circleci <workflow>` appelle `POST https://circleci.com/api/v2/workflow/<workflow>/rerun`, corps
+# `{"from_failed": true}`, jeton `CIRCLECI_TOKEN` dans l'en-tête `Circle-Token`, passé à curl par son entrée standard
+# (`-H @-`) : il ne paraît ni dans la liste des processus, ni dans le journal, ni dans un fichier. Sur une réponse 2xx,
+# sortie 0 et l'identifiant du workflow neuf (`workflow_id` de la réponse) sur la sortie, `?` s'il ne s'y lit pas en
+# UUID ; sinon sortie 1 et « HTTP <code> » (000 : aucune réponse). Le jeton, un humain le crée et le pose dans
+# l'environnement de la session du capitaine (skill fusionner, « Relance CircleCI ») ; aucun script ne le crée ni ne
+# l'écrit.
+CIRCLECI_API='https://circleci.com/api/v2'
+UUID='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+workflows_circleci_rouges() {
+  local statuts
+  statuts=$(lire_github "$DEPOT/commits/$1/status?per_page=100" 2>/dev/null) || return 5
+  jq -r --arg u "$UUID" '.statuses[]? | select(.state == "failure" or .state == "error") | (.target_url // "")
+    | capture("^https://app\\.circleci\\.com/workflow/(?<id>" + $u + ")(/|$)")?
+    | .id' <<<"$statuts" 2>/dev/null | sort -u
+}
+relancer_circleci() {
+  local code corps neuf
+  corps=$(mktemp)
+  code=$(printf 'Circle-Token: %s\n' "$CIRCLECI_TOKEN" |
+    curl -sS -o "$corps" -w '%{http_code}' --max-time 30 -X POST -H @- -H 'Content-Type: application/json' \
+      --data '{"from_failed": true}' "$CIRCLECI_API/workflow/$1/rerun" 2>/dev/null) || true
+  case $code in
+    2[0-9][0-9])
+      neuf=$(jq -r '.workflow_id // ""' "$corps" 2>/dev/null) || neuf=''
+      rm -f "$corps"
+      [[ "$neuf" =~ ^$UUID$ ]] || neuf='?'
+      echo "$neuf"
+      return 0 ;;
+  esac
+  rm -f "$corps"
+  echo "HTTP ${code:-000}"
+  return 1
+}
+# Une relance CircleCI par workflow rouge d'un sommet de PR. CircleCI relance dans un workflow neuf, dont les statuts
+# remplacent ceux de l'ancien : la mémoire est un fichier, comme `ELIGIBLES`, une ligne « numéro sommet epoch ancien
+# neuf » par relance acceptée (`neuf` : `?` si la réponse ne le disait pas). Au tour suivant, pour chaque workflow rouge
+# du sommet : le neuf d'une relance notée, la relance est retombée (renvoi) ; l'ancien d'une relance notée, le neuf n'a
+# pas encore écrit ses statuts (attente, sans renvoi, `BOUCLE_CIRCLECI_DELAI` secondes au plus après la relance, 1 200
+# par défaut ; au-delà, relance sans effet : renvoi) ; un autre, sur un sommet dont une relance a un neuf inconnu (`?`),
+# retombée aussi (dans le doute, jamais une seconde relance) ; sinon un premier échec, relancé. Une relance refusée n'est
+# pas notée : elle se rejoue au tour suivant, sans renvoi. Limite : la mémoire est celle d'un clone ; deux capitaines sur
+# deux clones peuvent relancer chacun une fois le même sommet.
+RELANCES_CIRCLECI="$COMMUN/boucle-relances-circleci"
+CIRCLECI_DELAI=${BOUCLE_CIRCLECI_DELAI:-1200}
+
 # CI rouge sur le sommet d'une PR de la file : une relance des jobs rouges, puis renvoi.
 # Tous les workflows du sommet comptent : « Secret Detection » vit dans « Security Scan », pas
 # dans « CI » (cas vécu : quatre PR restées rouges, jamais relancées ni renvoyées).
+# Deux CI : GitHub Actions (runs du sommet en échec, `rerun-failed-jobs`, la tentative 2 est la relance) et CircleCI
+# (statuts rouges du sommet, ci-dessus). Un dépôt peut avoir les deux ; la PR est relancée si l'une l'est, renvoyée si
+# l'une a déjà eu sa relance et qu'aucune ne l'est à ce tour. Sans `CIRCLECI_TOKEN`, ou une relance CircleCI refusée
+# (jeton expiré, workflow trop ancien), la ligne le dit et la PR reste rouge dans la file, sans renvoi : son auteur n'y
+# peut rien ; elle se rejoue au tour suivant.
 # Régime 8 (A-243) : avant toute relance, l'éligibilité de la PR (`eligibilite`, sans mémoire, la clé `relecture` sur sa
 # base) ; une sortie 4 la renvoie avec son motif, sans relance.
 traiter_rouges() {
-  local n checks sommet runs id tentative relance pr
+  local n checks sommet runs id tentative relance epuise pr workflows notes neuf quand maintenant sans_jeton
   bash "$outils/file.sh" --rouges | while IFS="$(printf '\t')" read -r n checks; do
     sommet=$(pr_sommet "$n") || continue
     runs=$(gh api "$DEPOT/actions/runs?head_sha=$sommet&per_page=50" \
-      --jq '.workflow_runs[] | select(.conclusion == "failure") | "\(.id) \(.run_attempt)"' 2>/dev/null </dev/null) || continue
-    [ -n "$runs" ] || continue # runs encore en cours, ou API muette : on reverra au prochain tour
+      --jq '.workflow_runs[] | select(.conclusion == "failure") | "\(.id) \(.run_attempt)"' 2>/dev/null </dev/null) || runs=''
+    workflows=$(workflows_circleci_rouges "$sommet" </dev/null) || workflows=''
+    # Runs encore en cours, statuts pas encore rouges, ou API muette : on reverra au prochain tour.
+    [ -n "$runs$workflows" ] || continue
     if pr=$(pr_json "$n" </dev/null); then
       eligibilite "$n" "$(jq -r '.base.ref // ""' <<<"$pr")" 0 </dev/null || continue
     fi
     relance=0
-    while read -r id tentative; do
-      if [ "${tentative:-1}" -lt 2 ]; then
-        gh api -X POST "$DEPOT/actions/runs/$id/rerun-failed-jobs" >/dev/null 2>&1 && relance=1
-      fi
-    done <<<"$runs"
+    epuise=0
+    if [ -n "$runs" ]; then
+      epuise=1
+      while read -r id tentative; do
+        if [ "${tentative:-1}" -lt 2 ]; then
+          gh api -X POST "$DEPOT/actions/runs/$id/rerun-failed-jobs" >/dev/null 2>&1 </dev/null && { relance=1; epuise=0; }
+        fi
+      done <<<"$runs"
+    fi
+    if [ -n "$workflows" ]; then
+      notes=$(awk -v n="$n" -v s="$sommet" 'NF == 5 && $1 == n && $2 == s && $3 ~ /^[0-9]+$/' "$RELANCES_CIRCLECI" 2>/dev/null) || notes=''
+      maintenant=$(date +%s)
+      sans_jeton=0
+      while read -r id; do
+        if [ -n "$notes" ] && awk -v w="$id" '$5 == w { t = 1 } END { exit !t }' <<<"$notes"; then
+          epuise=1
+        elif [ -n "$notes" ] && quand=$(awk -v w="$id" '$4 == w { q = $3 } END { if (q == "") exit 1; print q }' <<<"$notes"); then
+          if [ $((maintenant - quand)) -ge "$CIRCLECI_DELAI" ]; then
+            echo "[#$n] relance CircleCI sans effet : aucun statut neuf depuis $CIRCLECI_DELAI s (workflow $id)"
+            epuise=1
+          else
+            echo "[#$n] relance CircleCI en route (workflow $id) : statuts du workflow neuf attendus"
+          fi
+        elif [ -n "$notes" ] && awk '$5 == "?" { t = 1 } END { exit !t }' <<<"$notes"; then
+          epuise=1
+        elif [ -z "${CIRCLECI_TOKEN:-}" ]; then
+          sans_jeton=1
+        elif neuf=$(relancer_circleci "$id" </dev/null); then
+          echo "$n $sommet $maintenant $id $neuf" >>"$RELANCES_CIRCLECI"
+          relance=1
+        else
+          echo "[#$n] relance CircleCI refusée (workflow $id) : $neuf ; PR laissée rouge, rejouée au tour suivant"
+        fi
+      done <<<"$workflows"
+      [ "$sans_jeton" = 0 ] ||
+        echo "[#$n] CI rouge sur CircleCI ($checks) : aucune relance, CIRCLECI_TOKEN absent de l'environnement du capitaine (skill fusionner, « Relance CircleCI ») ; PR laissée rouge dans la file"
+    fi
     if [ "$relance" = 1 ]; then
       echo "[#$n] RELANCE des jobs rouges ($checks)"
-    else
+    elif [ "$epuise" = 1 ]; then
       bash "$outils/renvoyer.sh" "$n" "CI rouge sur le sommet de la PR, aussi à la relance : $checks"
     fi
   done
