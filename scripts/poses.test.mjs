@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { sautesAttendus } from "./sautes-admis.mjs";
 import { environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 import { availableParallelism } from "node:os";
 import { readFileSync } from "node:fs";
@@ -97,10 +98,13 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
       const r = await promesse;
       enCours.delete(promesse);
       let noms = [];
+      let sautes = [];
       try {
-        noms = readFileSync(rapport, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).nom);
+        const lignes = readFileSync(rapport, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+        noms = lignes.filter((l) => "nom" in l).map((l) => l.nom);
+        sautes = lignes.filter((l) => "saute" in l);
       } catch {}
-      return { ...r, t: travail, noms };
+      return { ...r, t: travail, noms, sautes };
     };
     const resultats = new Array(liste.length);
     const enCours = new Set();
@@ -126,7 +130,7 @@ test("les bancs posés à plat sous scripts/chaine/ tournent hors du plugin", { 
     }
     // Un travail arrêté par la garde est un travail non joué : il compte parmi les non joués, pas parmi les résultats.
     const rendus = resultats.map((r) => (depasse && r?.arrete ? undefined : r));
-    const { diagnostics, fautes } = conclure(liste, rendus, { parallele: PARALLELE, duree: Date.now() - debut, depasse, plancher: PLANCHER });
+    const { diagnostics, fautes } = conclure(liste, rendus, { parallele: PARALLELE, duree: Date.now() - debut, depasse, plancher: PLANCHER, admis: sautesAttendus(bancs) });
     for (const ligne of diagnostics) t.diagnostic(ligne);
     assert.deepEqual(fautes, [], "les bancs posés tournent hors du plugin, chaque test exactement une fois");
   } finally {

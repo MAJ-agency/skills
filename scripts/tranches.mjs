@@ -25,6 +25,8 @@ import { spawn } from "node:child_process";
 // ou `with` ; partout ailleurs (`}`, `++`, `--`, une étiquette après `break` ou `continue`, tout autre mot ECMAScript, le `)`
 // d'une `(` que précède un autre mot, une pile de parenthèses déséquilibrée), le banc est dans le doute, donc joué entier,
 // au prix du temps.
+// Les tests sautés ou en « todo » se jugent aussi (ticket 117) : le rapporteur écrit une ligne `saute`, `conclure` la compare à la
+// liste fermée de `scripts/sautes-admis.mjs`.
 // Un banc joué entier dont aucun nom n'est lu pèse 1 et a la borne minimale, quelle que soit sa taille (ticket 64).
 
 const NOM = /^test\(\s*(?:"((?:[^"\\\n]|\\["\\'`])*)"|'((?:[^'\\\n]|\\["\\'`])*)'|`((?:[^`\\$\n]|\\["\\'`]|\$(?!\{))*)`)\s*,/gm;
@@ -271,7 +273,7 @@ export function bilan(liste, resultats, { parallele, duree }) {
 }
 
 /** `{ diagnostics, fautes }` : le bilan, en vert comme en rouge ; les fautes (échecs, plafond, couverture, plancher), vides si tout va bien. */
-export function conclure(liste, resultats, { parallele, duree, depasse, plancher }) {
+export function conclure(liste, resultats, { parallele, duree, depasse, plancher, admis = [] }) {
   const fautes = [];
   for (const r of resultats) if (r && r.code !== 0) fautes.push(recit(r));
   if (depasse) {
@@ -283,7 +285,23 @@ export function conclure(liste, resultats, { parallele, duree, depasse, plancher
   fautes.push(...couverture(jouees.map(([t]) => t), jouees.map(([, r]) => r.noms)));
   const joues = jouees.reduce((n, [, r]) => n + r.noms.length, 0);
   if (joues < plancher) fautes.push(`les bancs posés ont joué ${joues} tests, plancher ${plancher} : ils ne jouent rien (NODE_TEST_CONTEXT hérité ?)`);
+  fautes.push(...sautes(jouees, admis, depasse));
   return { diagnostics: bilan(liste, resultats, { parallele, duree }), fautes };
+}
+
+// Ticket 117 (A-267) : les sauts d'un banc posé se jugent. Un saut hors de `admis` ({ banc, nom }), un « todo » (jamais
+// admis) et une entrée admise qui n'a pas sauté (couple banc/nom, « skip » seulement ; pas jugée au plafond atteint).
+function sautes(jouees, admis, depasse) {
+  const fautes = [];
+  const vus = new Set();
+  for (const [t, r] of jouees)
+    for (const { saute, sorte } of r.sautes ?? []) {
+      if (sorte === "todo") fautes.push(`${t.banc} : « ${saute} » est en todo : jamais jugé`);
+      else if (admis.some((a) => a.banc === t.banc && a.nom === saute)) vus.add(`${t.banc}\0${saute}`);
+      else fautes.push(`${t.banc} : « ${saute} » est sauté sans être dans SAUTES (scripts/sautes-admis.mjs) : le rendre jugeable une fois posé, ou l'y déclarer avec sa raison`);
+    }
+  if (!depasse) for (const a of admis) if (!vus.has(`${a.banc}\0${a.nom}`)) fautes.push(`${a.banc} : « ${a.nom} » est dans SAUTES mais n'a pas été sauté : retirer l'entrée`);
+  return fautes;
 }
 
 /**
@@ -373,11 +391,16 @@ export function couverture(liste, executes) {
 
 /**
  * Un rapporteur de `node --test`, à écrire dans un fichier `.mjs` : une ligne JSON `{ nom }` par test de premier
- * niveau joué (réussi ou en échec), le test englobant du fichier (que Node 22 rend quand rien n'a tourné) excepté.
+ * niveau joué (réussi ou en échec), le test englobant du fichier (que Node 22 rend quand rien n'a tourné) excepté ; et,
+ * pour tout test sauté (`test:pass` portant `skip`) ou en « todo » (`test:pass` ou `test:fail` portant `todo`), à tout
+ * niveau, suite comprise, une ligne `{ saute, sorte: "skip" | "todo" }` (ticket 117).
  */
 export const RAPPORTEUR = `export default async function* rapporteur(source) {
   for await (const e of source) {
-    if ((e.type !== "test:pass" && e.type !== "test:fail") || e.data.nesting !== 0 || e.data.details?.type === "suite") continue;
+    if (e.type !== "test:pass" && e.type !== "test:fail") continue;
+    const d = e.data;
+    if (d.todo || (e.type === "test:pass" && d.skip)) yield JSON.stringify({ saute: d.name, sorte: d.todo ? "todo" : "skip" }) + "\\n";
+    if (e.data.nesting !== 0 || e.data.details?.type === "suite") continue;
     if (e.data.file && (e.data.name === e.data.file || e.data.file.endsWith("/" + e.data.name))) continue;
     yield JSON.stringify({ nom: e.data.name }) + "\\n";
   }
