@@ -26,6 +26,12 @@
 #                         PR de mise à jour (la fusion de develop dans le sujet, conflit résolu, puis des
 #                         retouches) : entre par avance rapide, sans squash, si elle a cette forme (voir « PR de
 #                         mise à jour » plus bas), sinon sortie 4
+#   fusionner --eligibilite <pr>
+#                         (capitaine, A-243) éligibilité avant la CI : la PR lue, le sujet rapatrié, le régime lu d'abord
+#                         sur origin/<base> (régime 7 ou `illisible` : sortie 0, rien d'autre) ; en régime 8, tout ce qui
+#                         précède le verrou (revue, gardes des fichiers sensibles, liens sur un index), puis sortie 0,
+#                         sans verrou ni écriture ; mêmes codes que `fusionner` à ces étapes (4, 7, 5, 11, 69).
+#                         `CAPITAINE_ID` n'est pas exigé : rien ne se signe
 #   rafraichir <nom> [--abandon-si-conflit]
 #                         fusionne develop dans sujet/<nom> (jamais de rebase), index régénérés ;
 #                         `--abandon-si-conflit` (capitaine) annule la fusion au lieu de la laisser en cours
@@ -55,7 +61,8 @@
 #                         `--dry-run` affiche les regroupements sans rien écrire
 #   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
-#                         le sujet contient le sommet de develop) et la commente
+#                         le sujet contient le sommet de develop) et la commente ; une PR de fourche n'est
+#                         jamais reciblée (dite, sortie 7 après les autres ; que des fourches : ni ouvert ni rafraîchi)
 #   carte <nom>           (session qui tient la carte) pousse sur origin/sujet/<nom> les commits locaux de la branche
 #                         courante qui n'y sont pas : geste d'écriture d'une session sur un sujet, avec geler/degeler
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
@@ -110,7 +117,7 @@
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée), et en régime 8 d'une sous-PR dont la lecture est illisible (A-113) ou qui a perdu `à-fusionner`
-# juste avant la fusion ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
+# juste avant la fusion ; 7 aussi pour `regrouper` d'une liste qui compte une PR de fourche (les autres sont regroupées) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
 # commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
 # le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
 # formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
@@ -912,11 +919,23 @@ verdict_avant_fusion() {
 }
 
 fusionner() {
+  local eligibilite=0
+  [ "${1:-}" != --eligibilite ] || { eligibilite=1; shift; }
   local n=${1:?numéro de la sous-PR}
   local pr base titre sommet longueur
-  capitaine_id_valide "${CAPITAINE_ID-}" ||
+  [ "$eligibilite" = 1 ] || capitaine_id_valide "${CAPITAINE_ID-}" ||
     sortir 64 "CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, lettres, chiffres, - et _ : skill fusionner, « Mise en place ») : aucun passage"
   pr=$(pr_json "$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : reprise au tour suivant, aucun renvoi"
+  # Éligibilité avant la CI (A-243, A-256) : le régime d'abord, sur la base rapatriée, avant tout autre contrôle. Régime 7
+  # ou `illisible` : rien à juger avant la CI, le passage jugera.
+  if [ "$eligibilite" = 1 ]; then
+    local regime_eligibilite
+    base=$(jq -r .base.ref <<<"$pr")
+    git_masque fetch -q origin "+refs/heads/$base:refs/remotes/origin/$base" ||
+      sortir 5 "#$n : origin illisible au rapatriement de $base (éligibilité avant la CI) : reprise au tour suivant, aucun renvoi"
+    regime_eligibilite=$(regime_de_la_pr "$base" "$(jq -r '.created_at // ""' <<<"$pr")" 2>/dev/null) || regime_eligibilite=illisible
+    [ "$regime_eligibilite" = 8 ] || sortir 0 "#$n : éligibilité avant la CI : régime $regime_eligibilite, rien à juger avant le passage"
+  fi
   [ "$(jq -r .state <<<"$pr")" = open ] || sortir 7 "#$n n'est pas ouverte"
   [ "$(jq -r .draft <<<"$pr")" = false ] || sortir 7 "#$n est en brouillon"
   # Une PR de fourche : sautée sans renvoi, comme dans passer.sh (A-192, point 2), avant tout fetch de sa tête.
@@ -993,6 +1012,8 @@ fusionner() {
   # Lien symbolique sur un index généré ou son dossier, que la PR ajoute ou change : la régénération du capitaine
   # (mise à jour, avance, rafraichir) écrirait à travers lui.
   motif=$(liens_sur_index "$sommet" "origin/$base") || sortir 4 "#$n $motif"
+  # Éligibilité avant la CI : tout ce qui précède le verrou est joué ; rien n'est écrit.
+  [ "$eligibilite" = 0 ] || sortir 0 "#$n : éligibilité avant la CI : régime 8, éligible au sommet $sommet"
   # Avant le premier contrôle d'ascendance et avant le chemin de la PR de mise à jour : un seul passage à la fois.
   verrouiller "$n" "$pr"
 
@@ -1317,6 +1338,7 @@ relancer() {
 series() {
   gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | select(.draft | not)
     | select(any(.labels[].name; . == "hors-sujet") | not)
+    | select((.head.repo.full_name // "") == (.base.repo.full_name // ""))
     | [.number, .base.ref, .head.ref, (any(.labels[].name; . == "prio:haute")), .title] | @tsv' |
     identifiant colonne-ticket 5 3 |
     awk -F '\t' '
@@ -1349,17 +1371,34 @@ series() {
 
 regrouper() {
   local nom=${1:?nom du sujet} n base
+  local -A base_de=()
   shift
   [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
   nom=${nom#sujet/}
   ! sujet_livre "$nom" || sortir 4 "sujet/$nom est livré dans develop : on ne le rouvre pas (la PR passe vers develop, label hors-sujet)."
+  # Une PR de fourche n'est jamais reciblée (A-199, A-201) : chaque PR est lue avant d'ouvrir ou de rafraîchir le sujet.
+  local pr fourche_vue=0 gardees=()
+  for n in "$@"; do
+    n=${n#\#}
+    # Une lecture illisible arrête avant toute écriture : une PR non jugée n'est jamais regroupée.
+    pr=$(lire_github "$DEPOT/pulls/$n") || sortir 5 "#$n : GitHub illisible à la lecture de la PR (cause ci-dessus) : regroupement repris au tour suivant, aucun renvoi"
+    if [ "$(jq -r '(.head.repo.full_name // "") != (.base.repo.full_name // "")' <<<"$pr")" = true ]; then
+      echo "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, jamais reciblée sur un sujet"
+      fourche_vue=1
+    else
+      gardees+=("$n")
+      base_de[$n]=$(jq -r '.base.ref' <<<"$pr")
+    fi
+  done
+  [ "${#gardees[@]}" -gt 0 ] || exit 7
+  set -- "${gardees[@]}"
   gh api "$DEPOT/branches/$(uri "sujet/$nom")" >/dev/null 2>&1 || ouvrir "$nom"
   # Le sujet contient le sommet de develop : toute PR partie de develop s'y fusionne avec ses
   # seuls changements (fusion à trois points sur son départ), sans réécrire sa branche.
   rafraichir "$nom" --abandon-si-conflit
   for n in "$@"; do
     n=${n#\#}
-    base=$(gh api "$DEPOT/pulls/$n" --jq .base.ref)
+    base=${base_de[$n]}
     case "$base" in
       develop)
         gh api -X PATCH "$DEPOT/pulls/$n" -f base="sujet/$nom" >/dev/null
@@ -1371,6 +1410,7 @@ regrouper() {
       *) echo "#$n empilée sur $base : elle suivra sa parente dans le sujet" ;;
     esac
   done
+  [ "$fourche_vue" -eq 0 ] || return 7
 }
 
 # Regroupement automatique (capitaine, à chaque tour) : sans `prio:haute` dans la série,
@@ -1693,5 +1733,5 @@ case "$commande" in
   a-juger) a_juger "$@" ;;
   est-livraison) est_livraison "$@" ;;
   regrouper-series) regrouper_series "$@" ;;
-  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket> | a-juger <sommet> <base> [<pr>] | est-livraison <tête> <sommet>" ;;
+  *) sed -n '3,/^# =====/p' "$0" | sed '$d; s/^# \{0,1\}//'; sortir 4 "usage : sujet.sh demarrer <ticket|nom> | ouvrir <nom> [--specs <pr>] | fusionner [--eligibilite] <pr> | rafraichir <nom> | livrer <nom> <titre> | livrer-prets [--dry-run] | relancer <pr> | series | regrouper-series [--dry-run] | regrouper <nom> <pr>… | carte | carte <nom> | etat | geler <nom> \"<raison>\" | degeler <nom> | gel <nom> | clore <nom> | de <ticket> | a-juger <sommet> <base> [<pr>] | est-livraison <tête> <sommet>" ;;
 esac

@@ -177,7 +177,7 @@ skills/
       scripts/         sujet.sh, le dépôt jouet et le faux gh, les tests
     fusionner/
       SKILL.md         la règle, REST seulement, mise en place, boucle, renvoyer, fin de passage
-      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, commits-a-relire.mjs, verdict.mjs et decision-relecteur.mjs (le verdict et la décision du Relecteur), meme-contenu.sh, double-relecture.mjs, les tests
+      scripts/         github.sh, identifiant.mjs, file.sh, passer.sh, boucle.sh, renvoyer.sh, refus.sh, proprietaire.sh, revue-exigee.mjs, migrations-ordre.mjs, commits-a-relire.mjs, verdict.mjs et decision-relecteur.mjs (le verdict et la décision du Relecteur), demande.mjs (la demande `À relire`), meme-contenu.sh, double-relecture.mjs, les tests
     architecte/
       SKILL.md         lire, vérifier l'environnement, la carte du programme, le grilling, lancer, suivre, changer d'architecte
       references/      les prompts de lancement d'un conducteur, d'un capitaine et d'un Relecteur

@@ -97,15 +97,25 @@
 # pose sur elle le commentaire « Passage du capitaine <id> », relit la PR, et une seule trappe EXIT le termine à toute
 # sortie, TERM et INT compris (`boucle.sh --arreter`), même pendant sa pose ou sa relecture ; il est rafraîchi au
 # début de chaque tour (étapes 2 à 5 bis).
-# Usage : bash scripts/chaine/passer.sh <numéro>
+# Éligibilité avant la CI (A-243, A-256) : `passer.sh --eligibilite <numéro>` lit la PR, rapatrie develop, puis lit
+# d'abord le régime de la PR (`regime_de_la_pr` sur origin/develop, où une pile sera reciblée). Régime 7 ou `illisible` :
+# sortie 0, avant tout autre contrôle (aucune lecture des commentaires). Régime 8 : l'étape 1 jusqu'à l'ordre des
+# migrations (la revue, les gardes des fichiers sensibles, les liens sur un index, les migrations ; une livraison de sujet,
+# dispensée de la revue, joue les deux derniers), puis sortie, sans verrou, sans commentaire, sans label, sans push.
+# Sorties : 0 éligible, 4 refus que l'auteur corrige (motif en dernière ligne), 7 sautée, 5 illisible, 3 panne ; 6, 64 et
+# 69 comme au passage. La boucle la joue une fois par sommet sur une PR « CI en cours », et avant de relancer une CI rouge.
+# Usage : bash scripts/chaine/passer.sh [--eligibilite] <numéro>
 # =============================================================================
 set -euo pipefail
-N=${1:?usage : passer.sh <numéro de PR>}
+ELIGIBILITE=0
+OPTION_ELIGIBILITE=()
+[ "${1:-}" != --eligibilite ] || { ELIGIBILITE=1; OPTION_ELIGIBILITE=(--eligibilite); shift; }
+N=${1:?usage : passer.sh [--eligibilite] <numéro de PR>}
 # Le script change de branche : il tourne depuis une copie, pour ne pas disparaître en route.
 if [ -z "${PASSER_OUTILS:-}" ]; then
   copie=$(mktemp "${TMPDIR:-/tmp}/passer.XXXXXX")
   cp "$0" "$copie"
-  PASSER_COPIE=$copie PASSER_OUTILS=$(cd "$(dirname "$0")" && pwd) exec bash "$copie" "$@"
+  PASSER_COPIE=$copie PASSER_OUTILS=$(cd "$(dirname "$0")" && pwd) exec bash "$copie" ${OPTION_ELIGIBILITE[@]+"${OPTION_ELIGIBILITE[@]}"} "$@"
 fi
 # La copie se retire dès qu'elle tourne (bash la garde ouverte, elle reste lisible jusqu'au bout) :
 # sinon chaque PR passée laisse un passer.XXXXXX dans le dossier temporaire du capitaine.
@@ -122,6 +132,15 @@ capitaine_id_valide "${CAPITAINE_ID-}" ||
   sortir 64 "CAPITAINE_ID absent ou mal formé (l'id de la session du capitaine, lettres, chiffres, - et _ : skill fusionner, « Mise en place ») : aucun passage"
 pr=$(pr_json "$N") || sortir 5 "GitHub illisible à la lecture de la PR (cause ci-dessus) : pause, puis reprise"
 champ() { jq -r "$1" <<<"$pr"; }
+
+# Éligibilité avant la CI : le régime d'abord, lu sur origin/develop rapatrié (une PR vers develop, ou une pile qui y sera
+# reciblée), avant tout autre contrôle. Régime 7 ou `illisible` : rien à juger avant la CI, le passage jugera.
+if [ "$ELIGIBILITE" = 1 ]; then
+  git_masque fetch -q origin '+refs/heads/develop:refs/remotes/origin/develop' ||
+    sortir 5 "origin illisible au rapatriement de develop (éligibilité avant la CI) : reprise au tour suivant"
+  regime_eligibilite=$(regime_de_la_pr develop "$(champ '.created_at // ""')" 2>/dev/null) || regime_eligibilite=illisible
+  [ "$regime_eligibilite" = 8 ] || sortir 0 "éligibilité avant la CI : régime $regime_eligibilite, rien à juger avant le passage"
+fi
 
 # ── 1. Éligibilité ───────────────────────────────────────────────────────────
 [ -z "$(git status --porcelain)" ] || sortir 6 "worktree du capitaine pas propre : committer ou nettoyer d'abord"
@@ -234,6 +253,10 @@ motif=$(liens_sur_index "$origine" origin/develop) || sortir 4 "$motif"
 # de develop, sinon le migrateur refuserait la livraison. Valable pour la livraison d'un sujet comme
 # pour une PR directe ; les sous-PR vers un sujet passent par sujet.sh, hors de ce contrôle.
 motif=$(node "$PASSER_OUTILS/migrations-ordre.mjs" origin/develop "$origine") || sortir 4 "$motif"
+
+# Éligibilité avant la CI : tout ce qui précède le verrou est joué ; rien n'est écrit (ni verrou, ni commentaire, ni label,
+# ni push).
+[ "$ELIGIBILITE" = 0 ] || sortir 0 "éligibilité avant la CI : régime 8, éligible au sommet $origine"
 
 # ── Verrou du passage ───────────────────────────────────────────────────────
 # Après l'éligibilité, avant toute écriture : un autre capitaine qui tient la PR la fait sauter sans renvoi (7) ; une

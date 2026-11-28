@@ -78,7 +78,7 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
   const suivi = entre(texte, "## 6. Suivi (à chaque réveil)", "## Arrêter un chantier");
   const p5 = entre(suivi, "5. **La relecture est indépendante : le conducteur ne contre-relit rien et ne relaie aucun constat.**", "**Une sous-PR à la fois par sujet");
   exiger(p5, [
-    "Sur la PR d'une fille, le conducteur ne pose ni ne retire jamais `à-fusionner`, `à-relire` ou `à-reprendre`, hors le cas sans étiquette ci-dessous ; ses propres PR (cadrage, documentation, nettoyage) demandent leur relecture comme celle d'une fille, avec `Conducteur: —`.",
+    "Sur la PR d'une fille, le conducteur ne pose ni ne retire jamais `à-fusionner`, `à-relire` ou `à-reprendre`, hors le cas sans étiquette ci-dessous ; ses propres PR (cadrage, documentation, nettoyage) demandent leur relecture comme celle d'une fille, par `node scripts/chaine/demande.mjs --session <la sienne> --conducteur —` : les lignes du Relecteur lui arrivent par `Session:`, et son identifiant aux deux champs le réveillerait deux fois (`A-235`).",
     // Le périmètre figé (ticket 2) : le renvoi à § 5 pour la déclaration de ses PR de documentation.
     "Une PR de documentation déclare d'abord son périmètre (`docs/agents/chaine-de-production.md` § 5).",
     "- **Arbitrer** une contestation de sa fille (`Contesté — <critère, fichier et ligne> — <raison>` sur la PR, et une ligne de la fille)",
@@ -86,7 +86,7 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
     "- **Recevoir un plafond** (trois tours refusés : `Plafond — décision attendue` sur la PR, une ligne du Relecteur)",
     "- **Une règle haute** (deux verdicts validés exigés) : le message d'information au produit part de lui",
     "- **À chaque réveil**, les PR ouvertes de son sujet qui ne portent aucune des quatre étiquettes",
-    "il pose lui-même `à-relire` avec le commentaire `À relire — sommet <sha> — Session: — — Conducteur: <la sienne>`",
+    "restée muette après ce message, ou archivée, `completed` ou `failed`", "`A-241` (5)", "il pose lui-même la demande, la ligne que rend `node scripts/chaine/demande.mjs --branche <tête de la PR> --session — --conducteur <la sienne>`, copiée telle quelle, puis `à-relire`",
     "« session de relecture <id> remplacée au plafond de contexte, PR <n> » se note dans `## Dépassements` comme un plafond",
     // Contre-relecture de la PR 151, tour 1 : l'arbitrage et la décision de plafond sont dits à la fille ; la règle sans
     // étiquette ne prend ni un brouillon ni une PR en régime 7.
@@ -112,7 +112,7 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
     "En régime 8, un ticket qui cite sur sa ligne `Règles:` une règle de criticité haute porte `Relecture: double`",
     "En régime 8, un ticket qui crée un module d'authentification",
     "avec la section `## Fichiers sensibles` de la carte, dont l'accord se donne là, une fois",
-    "sa relecture se demande comme celle d'une fille (`chaine-de-production.md` § 5, étape 5 : le commentaire `À relire — sommet <sha> — Session: <la sienne> — Conducteur: —`, puis `à-relire` par `issue_write`), jamais `à-fusionner` ; en régime 7, label `à-fusionner`",
+    "sa relecture se demande comme celle d'une fille (`chaine-de-production.md` § 5, étape 5 : la ligne que rend `node scripts/chaine/demande.mjs --session <la sienne> --conducteur —`, puis `à-relire` par `issue_write`), jamais `à-fusionner` ; en régime 7, label `à-fusionner`",
   ], "chantier § 3");
   const terrain = entre(texte, "## 0. Reprendre ou démarrer", "## 1. Setup");
   assert.ok(/^5\. Vérifie qu'un capitaine tourne/m.test(terrain), "le point 5 du § 0 reste celui des capitaines (cité ailleurs)");
@@ -124,11 +124,23 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
   exiger(entre(texte, "## Ne jamais", "\n- Lancer une fille"), ["Contre-relire une PR, relayer ou résumer un constat, poser `à-fusionner` sur une PR en régime 8", "ou appeler `archive_session` (`P-62`)"], "chantier, Ne jamais");
 });
 
+test("les skills fusionner et sujet nomment la commande de la demande, le README cite demande.mjs (ticket 120, A-241)", () => {
+  const fus = lire(`${C}/fusionner/SKILL.md`);
+  const suj = lire(`${C}/sujet/SKILL.md`);
+  for (const [nom, t] of [["fusionner", fus], ["sujet", suj]]) {
+    assert.ok(!t.includes("le commentaire `À relire`"), `${nom} : « le commentaire À relire »`);
+    assert.ok(!t.includes("`À relire`, puis"), `${nom} : « À relire, puis »`);
+  }
+  exiger(entre(fus, "| Session de travail", "\n"), ["`node scripts/chaine/demande.mjs`", "puis `à-relire`"], "fusionner, Session de travail");
+  exiger(entre(suj, "La relecture se demande après le dernier push", "\n"), ["`node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur, ou —>`", "puis l'étiquette `à-relire`"], "sujet, la relecture");
+  assert.match(lire("README.md"), /decision-relecteur\.mjs[^\n]*demande\.mjs/, "README : demande.mjs");
+});
+
 test("le capitaine en régime 8 : « Le verdict », la sous-PR sautée qui garde son sujet, la table des rôles, l'archivage (A-91, A-105, A-185 point 2, A-188)", () => {
   const texte = lire(`${C}/fusionner/SKILL.md`);
   const regle = entre(texte, "## La règle (`CLAUDE.md` § « Fusion vers develop »)", "## La règle d'ascendance");
   exiger(regle, [
-    "| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push",
+    "| Session de travail   | demande la relecture (la ligne que rend `node scripts/chaine/demande.mjs`, puis `à-relire`) après son dernier push",
     "| Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus",
     "| Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
     "| remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |",
@@ -216,8 +228,9 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   const s5 = entre(cdp, "## 5. Session fille", "## 6. Économie");
   const etapes = s5.split("\n").filter((l) => /^\d\. \*\*/.test(l));
   assert.deepEqual(etapes.map((l) => l.slice(0, l.indexOf("**", 5) + 2)), ["1. **Environnement.**", "2. **Réserver**", "3. **Lire**", "4. **Coder**", "5. **Demander la relecture.**", "6. **Sur `à-reprendre`**", "7. **Rendre la main**"]);
-  exiger(etapes[4], ["La fille ne se relit pas et ne lance aucun relecteur", "le commentaire `À relire — sommet <sha> — Session: <la sienne> — Conducteur: <celle du conducteur>`", "**Jamais `à-fusionner`**", "le sha entier du dernier push"], "§ 5, étape 5");
-  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur."], "§ 5, étape 6");
+  exiger(etapes[4], ["La fille ne se relit pas et ne lance aucun relecteur", "la ligne que rend `node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur>`, copiée telle quelle, seule dans son commentaire", "`À relire — sommet <sha> — Session: <id ou —> — Conducteur: <id ou —>`", "`node ~/.claude/plugins/marketplaces/maj/skills/chaine/fusionner/scripts/demande.mjs`", "**Jamais `à-fusionner`**", "le sha entier du dernier push"], "§ 5, étape 5");
+  exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur.", "une demande neuve, par le script (étape 5), au nouveau sommet"], "§ 5, étape 6");
+  exiger(entre(cdp, "Renvoyée par le capitaine (`fusion-bloquée`)", "\n", ), ["une demande neuve par le script (étape 5) au nouveau sommet"], "§ 5, le renvoi");
   // Le périmètre figé (ticket 2, A-13) : les règles 1 à 3 et la partie auteur de la règle 4, mot pour mot, avec leur numéro.
   exiger(etapes[4], ["Périmètre, règle 1 : **Déclaration.** Avant sa première demande de relecture, l'auteur écrit un commentaire dont la première ligne est `Périmètre — <objet en une ligne>`, suivie de trois lignes : `Fichiers:` (chemins ou dossiers), `Décisions:` (identifiants des décisions et des ADR que la PR écrit, ou « aucune ») et `Sujets:`. Seul le premier commentaire de cette forme compte, et il n'est jamais modifié. Au tour 1, tout fichier du diff est couvert par la ligne `Fichiers:`.", "le Relecteur écrit `Périmètre absent`"], "§ 5, étape 5, périmètre");
   exiger(etapes[5], [
@@ -235,7 +248,7 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   assert.ok(!s5.includes("Revue de ticket** (skill"), "§ 5 : la fille ne joue plus la revue de ticket");
   exiger(cdp, ["**Le conducteur nomme ensuite ses filles et leurs sessions de relecture à l'architecte**", "`à archiver : <session>, <ticket>, <coût>`"], "Relevé des coûts");
   const fragment = lire(`${C}/socle-chaine-de-production/references/fragments/claude-md-fusion.md`);
-  exiger(fragment, ["- **Relecture indépendante.**", "**la session qui code ne se relit pas** et ne pose jamais `à-fusionner`", "`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`", "déclare d'abord son périmètre"], "fragment fusion");
+  exiger(fragment, ["- **Relecture indépendante.**", "**la session qui code ne se relit pas** et ne pose jamais `à-fusionner`", "`node scripts/chaine/demande.mjs --session <id> --conducteur <id ou —>`", "déclare d'abord son périmètre"], "fragment fusion");
   assert.ok(!fragment.includes("remettre `à-fusionner`") && !fragment.includes("Avant le label, toute PR qui réalise un ticket passe la **revue de ticket**"), "fragment : plus de revue par l'auteur ni de label remis par lui");
   exiger(lire(`${C}/tickets/references/agents/issue-tracker.md`), ["3. **Livrer, c'est demander la relecture**", "puis poser `à-relire` (sous-PR de sujet comprise) ; jamais `à-fusionner`"], "issue-tracker.md");
   exiger(lire("skills/monorepo/socle-monorepo/references/methode/conception.md"), ["la revue d'une PR est celle d'une **session de relecture** que son auteur ne contrôle pas", "Sans cette chaîne : avant le commit qui clôt une feature"], "conception.md");
@@ -245,6 +258,42 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   const github = lire(`${C}/fusionner/scripts/github.sh`);
   assert.ok(github.includes("node scripts/chaine/demande.mjs --session"), "github.sh : la commande, jamais la forme");
   assert.ok(!github.includes("À relire — sommet <sha>"), "github.sh : la commande, jamais la forme");
+});
+
+test("les textes nomment la commande de la demande, la forme une fois à l'étape 5 ; l'état d'une fille se lit avant de lui écrire (ticket 104, A-235, A-236, A-241)", () => {
+  const cdp = lire(`${C}/socle-chaine-de-production/references/docs-agents/chaine-de-production.md`);
+  const FORME = "À relire — sommet <sha>";
+  const fichiers = {
+    fragment: lire(`${C}/socle-chaine-de-production/references/fragments/claude-md-fusion.md`),
+    tracker: lire(`${C}/tickets/references/agents/issue-tracker.md`),
+    sujet: lire(`${C}/sujet/SKILL.md`),
+    chantier: lire(`${C}/chantier/SKILL.md`),
+    architecte: lire(`${C}/architecte/SKILL.md`),
+  };
+  for (const [nom, t] of Object.entries(fichiers)) assert.ok(!t.includes(FORME), `${nom} : la commande, jamais la forme`);
+  assert.equal(cdp.split(FORME).length - 1, 1, "chaine-de-production.md : la forme une fois");
+  const s5 = entre(cdp, "## 5. Session fille", "## 6. Économie");
+  assert.ok(s5.includes(FORME) && s5.split("\n").find((l) => l.includes(FORME)).startsWith("5. **Demander la relecture.**"), "la forme est à l'étape 5");
+  const D = "node scripts/chaine/demande.mjs";
+  exiger(fichiers.fragment, [`${D} --session <id> --conducteur <id ou —>`], "fragment");
+  exiger(fichiers.tracker, [`${D} --session <la sienne> --conducteur <celle du conducteur, ou —>`], "issue-tracker");
+  exiger(entre(fichiers.sujet, "**La PR de réception n'est pas exemptée de relecture**", "La session de relecture lit"), [`${D} --session <la sienne> --conducteur <celle du conducteur, ou —>`], "sujet, réception");
+  exiger(entre(fichiers.chantier, "5. « Lancer »", "`Phase: 3-specs-en-fusion`"), [`${D} --session <la sienne> --conducteur —`], "chantier, cadrage");
+  const suivi = entre(fichiers.chantier, "## 6. Suivi (à chaque réveil)", "## Arrêter un chantier");
+  const p3 = entre(suivi, "3. Une PR renvoyée", "4. Une question de fille");
+  exiger(p3, ["`get_session`", "relancer une fille sur la branche de la PR"], "chantier § 6, point 3");
+  assert.ok(p3.indexOf("get_session") < p3.indexOf("send_message"), "point 3 : get_session avant send_message");
+  const reveil = entre(suivi, "- **À chaque réveil**, les PR ouvertes", "Une ligne `Relecture en panne`");
+  exiger(reveil, ["`get_session`", D], "chantier § 6, point 5, à chaque réveil");
+  assert.ok(reveil.indexOf("get_session") < reveil.indexOf("send_message"), "à chaque réveil : get_session avant send_message");
+  assert.ok(reveil.indexOf(D) < reveil.indexOf("puis `à-relire`"), "la demande par le script avant à-relire");
+  const arch = fichiers.architecte;
+  exiger(entre(arch, "- **En régime 8, une PR livrée**", "- **Une PR livrée, en régime 7"), [`${D} --session <la sienne> --conducteur —`, `${D} --branche <tête de la PR> --session — --conducteur —`], "architecte, PR livrée");
+  exiger(entre(arch, "**S'ouvre sans question**", "En régime 7 ou dans un dépôt"), [`${D} --session <la sienne> --conducteur —`], "architecte, PR de documentation");
+  exiger(entre(arch, "- **En régime 8**, une PR étrangère", "\n"), [`${D} --branche <tête de la PR> --session — --conducteur —`, "à-relire"], "architecte, PR étrangère");
+  const etrangere = entre(arch, "- **En régime 8**, une PR étrangère", "\n");
+  exiger(etrangere, ["**Une PR de fourche**, dans les deux régimes", "`head.repo.full_name` différent de `base.repo.full_name`, ou `head.repo` nul", "ne reçoit ni demande, ni `à-relire`, ni `à-fusionner`", "`git fetch origin pull/<n>/head:<branche>`, puis `git push origin <branche>`", "ouvre depuis elle une PR neuve qui cite la première", "elle est relue comme toute PR écrite par une personne", `${D} --branche <branche> --session — --conducteur —`], "architecte, PR de fourche");
+  assert.ok(etrangere.indexOf("puis pose `à-relire`, jamais `à-fusionner`") < etrangere.indexOf("**Une PR de fourche**"), "la phrase de la fourche vient après celle d'aujourd'hui");
 });
 
 test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle quelle ; la phrase des clés du socle les compte (A-100, A-108, A-128)", async () => {
@@ -273,4 +322,35 @@ test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle 
   assert.deepEqual([...employes].filter((p) => !declares.has(p)).sort(), [], "placeholders employés et non déclarés dans SKILL.md");
   exiger(socle, ["`{{DEPUIS}}` vaut l'instant de la pose, en UTC : `date -u +%Y-%m-%dT%H:%M:%SZ`", "puis l'« Étape 0 — poser » du skill `relecture`, lue et suivie de même dans son fichier, `~/.claude/plugins/marketplaces/maj/skills/chaine/relecture/SKILL.md`", "une entrée qui pré-approuve `create_session` quand `.claude/chaine.json` porte la clé `relecture`"], "socle SKILL.md");
   assert.ok(lire(`${C}/relecture/SKILL.md`).includes("## Étape 0 — poser"), "le skill relecture a son étape 0");
+});
+
+test("relecteur : la sortie 6 nomme `gh` absent, dans le skill (« Les sorties ») et dans l'en-tête du script (ticket 122, A-203)", () => {
+  const ligne6 = lire(`${C}/relecteur/SKILL.md`).split("\n").find((l) => l.startsWith("| 6 |"));
+  assert.match(ligne6 ?? "", /`gh` ou `flock` manque[^|]*l'architecte, et s'arrêter/);
+  assert.ok(plat(lire(`${C}/relecteur/scripts/relecteur.mjs`).split("\n").slice(90, 108).join(" ").replace(/\/\/ ?/g, "")).includes("`gh` absent"), "en-tête : `gh` absent");
+});
+
+test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée (ticket 106, A-236)", () => {
+  const section = entre(lire(`${C}/fusionner/SKILL.md`), "## Renvoyer une PR", "## Fin de passage");
+  const huit = section.slice(section.indexOf("**Régime 8**"));
+  assert.ok(huit.includes("get_session") && huit.indexOf("get_session") < huit.indexOf("send_message"), section);
+  assert.match(huit, /Archivée ou introuvable[^.]*conducteur/);
+});
+
+test("fusionner/SKILL.md : la boucle relancée relit les passages interrompus, une action manuelle pendant son démarrage serait lue comme un passage mort, la boucle du même capitaine termine un verrou tué (ticket 107, A-245)", () => {
+  const texte = lire(`${C}/fusionner/SKILL.md`);
+  exiger(entre(texte, "**Réveil de garde.**", "Suivre le journal avec un `Monitor`"), ["La boucle relancée relit au démarrage les passages interrompus", "`FUSIONNÉE (passage interrompu, relue sur GitHub au démarrage de la boucle)`", "termine leur commentaire de passage s'ils sont de son `CAPITAINE_ID`", "une PR illisible (GitHub en panne) garde le témoin et son commentaire", "un témoin d'un autre `CAPITAINE_ID` est retiré sans terminer son commentaire"], "Réveil de garde, point 3");
+  exiger(entre(texte, "- **Arrêter la veille (`TaskStop`)", "- **Rouge réelle ou instable"), ["Une action manuelle jouée pendant le démarrage de la boucle serait lue comme un passage mort"], "Arrêter la veille avant toute action manuelle");
+  exiger(entre(texte, "- **Plusieurs capitaines**", "Commentaires illisibles à la relecture"), ["**sauf si la boucle du même capitaine redémarre avant : elle le termine**"], "Plusieurs capitaines");
+  exiger(lire(`${C}/fusionner/references/CONTENU.md`), ["Un passage interrompu se relit sur GitHub (A-245, ticket 107", "La fusion vit sur GitHub, la ligne meurt avec le processus"], "CONTENU.md");
+});
+
+test("relecteur/SKILL.md et fusionner/references/CONTENU.md : un tour refusé n'annonce son refus qu'avec tous ses verdicts, à l'échéance, ou une attendue morte ou au plafond (ticket 118, A-265 (1), A-269, A-270)", () => {
+  const texte = lire(`${C}/relecteur/SKILL.md`);
+  assert.ok(texte.split("\n").length <= 200, "relecteur/SKILL.md sous 200 lignes");
+  exiger(entre(texte, "## À chaque réveil", "## L'état des sessions"), ["`rien` avec la raison `attente` (règles 1, 4 et 5) : « L'état des sessions »"], "la table des gestes");
+  interdire(texte, ["`rien` avec la raison `attente` (règle 5)"], "relecteur/SKILL.md");
+  exiger(entre(texte, "## L'état des sessions", "## Les lignes"), ["Il se lit par `get_session`, pour les règles 1, 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`) ou en règle 1 ou 4 (`rien` avec la raison `attente` : un tour refusé qui attend ses verdicts), chaque session attendue,", "En règle 1 ou 4, une attendue `morte` ou `plafond` finit l'attente : `jouer <n> --sessions <fichier>` annonce le refus ; `couple` ne la finit pas."], "L'état des sessions");
+  exiger(entre(texte, "## Les lignes", "## Les messages des sessions de relecture"), ["Un tour refusé ne s'annonce qu'avec tous ses verdicts sur la PR", "ou à l'échéance de l'attente, ", "(sans le verdict de <id>[, <id>…])", "Un verdict écrit après l'annonce, avant la distribution suivante, compte contre le tour, mais aucune ligne ne part de plus"], "Les lignes");
+  exiger(entre(lire(`${C}/fusionner/references/CONTENU.md`), "## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "\n## "), ["Un tour refusé n'annonce son refus qu'avec tous ses verdicts (`A-265` (1), `A-269`, `A-270`)"], "CONTENU.md");
 });

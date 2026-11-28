@@ -464,6 +464,44 @@ regime_de_la_pr() {
 # `head.sha`, `title`, `created_at`). Illisible : sortie 5.
 pr_json() { lire_github "$DEPOT/pulls/$1"; }
 
+# La dernière demande `À relire` intacte d'une PR (A-244), pour que le renvoi nomme les deux sessions que la demande
+# nomme déjà : `demande_de_la_pr <n>` écrit `<session> <conducteur>` sur une ligne (`—` pour l'absent), lus par
+# `lireMarques` de `decision-relecteur.mjs` en mode tolérant, jamais par une expression de plus. Une demande modifiée
+# après sa création ne compte pas (A-227 : `lireMarques` ne la met pas dans `demandes`). Sorties : 0 lue ; 1 aucune
+# demande intacte ; 5 commentaires illisibles (GitHub) ; 21 `LectureIllisible` levée malgré `tolerant`, ou toute autre exception de node (une erreur inattendue n'est pas « aucune demande »).
+demande_de_la_pr() {
+  local brut
+  brut=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) || return 5
+  # Un `--paginate` concatène des tableaux : un seul tableau, ou rien.
+  brut=$(jq -s 'if all(.[]; type == "array") then add else error("pages") end' <<<"$brut" 2>/dev/null) || {
+    echo "GitHub illisible ($DEPOT/issues/<n>/comments) : pages qui ne sont pas des tableaux" >&2
+    return 5
+  }
+  local dossier
+  dossier=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  node --input-type=module -e '
+    try {
+      const lecteur = await import(process.argv[1]);
+      const verdict = await import(process.argv[2]);
+      let texte = "";
+      for await (const morceau of process.stdin) texte += morceau;
+      try {
+        const { demandes } = lecteur.lireMarques(JSON.parse(texte), { tolerant: true });
+        const d = demandes.at(-1);
+        if (d === undefined) process.exit(1);
+        process.stdout.write(`${d.auteur ?? "—"} ${d.conducteur ?? "—"}\n`);
+      } catch (e) {
+        if (!(e instanceof verdict.LectureIllisible)) throw e;
+        process.stderr.write(`${e.message}\n`);
+        process.exit(21);
+      }
+    } catch (e) {
+      process.stderr.write(`erreur inattendue : ${e?.message ?? e}\n`);
+      process.exit(21);
+    }
+  ' "$dossier/decision-relecteur.mjs" "$dossier/verdict.mjs" <<<"$brut"
+}
+
 # La revue d'une PR au passage du capitaine, selon son régime (lot 5a) : `revue_du_capitaine <json de la PR> <sommet>
 # <base>`, les fichiers du diff propre sur l'entrée standard (celui que la relecture lit). Joue `revue-exigee.mjs`, à côté
 # de ce fichier, avec `--ouverte` (le `created_at` de la PR : le régime, A-97), `--tete <sommet>` et les commentaires de la
@@ -672,6 +710,12 @@ signaler_arbre_different() { # <pr> <sommet testé> <squash> (squash vide : intr
 # connu : `finir_passage` relit les commentaires et termine ses marques vivantes) ; pendant l'attente de la CI,
 # `rafraichir_passage` à chaque tour. Un passage tué par KILL laisse un verrou qui expire 90 minutes après sa dernière
 # date comptée (sa création, ou son dernier epoch, s'il n'est pas en avance sur le lecteur : `FILTRE_PASSAGE`).
+# Le témoin (A-245) : une fois son commentaire posé, `prendre_passage` écrit `<git-common-dir>/capitaine-passages/<n>`,
+# une ligne « <id du commentaire> <CAPITAINE_ID> <epoch> ». `retirer_passage` et `finir_passage` le retirent, sauf un
+# PATCH de `finir_passage` en échec (le témoin reste). Un passage tué par KILL le laisse : au démarrage suivant, la
+# boucle (boucle.sh, verrou `flock` pris) relit la PR sur GitHub, dit au journal ce que le passage a fait, et termine
+# le commentaire si le `CAPITAINE_ID` est le sien. Un `passer.sh` ou un `sujet.sh fusionner` lancé à la main pendant
+# ce démarrage serait lu comme mort : jamais d'action manuelle sans avoir arrêté la veille et la boucle.
 # `CAPITAINE_ID` : l'id de la session du capitaine, sans valeur par défaut ; il entre dans un commentaire HTML, d'où
 # sa forme fermée.
 capitaine_id_valide() { [[ "${1-}" =~ ^[A-Za-z0-9_-]{1,100}$ ]]; }
@@ -681,6 +725,22 @@ PASSAGE_ANCIENS=''
 PASSAGE_TOUR=0
 PASSAGE_MOTIF=''
 PASSAGE_POSE_LANCEE='' # 1 : POST du commentaire lancé, son id pas encore lu (finir_passage relit alors)
+# Le dossier des témoins ; échec hors dépôt git (aucun témoin, le passage se fait comme avant).
+dossier_temoins() {
+  local c
+  c=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && [ -n "$c" ] || return 1
+  echo "$c/capitaine-passages"
+}
+poser_temoin() {
+  local d
+  d=$(dossier_temoins) && mkdir -p "$d" 2>/dev/null &&
+    printf '%s %s %s\n' "$2" "${CAPITAINE_ID-}" "$(epoch_passage)" > "$d/$1.nouveau" 2>/dev/null &&
+    mv "$d/$1.nouveau" "$d/$1" 2>/dev/null || :
+}
+retirer_temoin() {
+  local d
+  d=$(dossier_temoins) && rm -f "$d/$1" 2>/dev/null || :
+}
 # Horloge du verrou : celle de la machine. `PASSAGE_HORLOGE_BANC` (secondes depuis l'époque Unix, pour les bancs
 # seulement : l'epoch des marques suit alors les dates du faux GitHub) la fixe ; elle ne règle que cette heure-là, et
 # seulement si `FAUX_GH` (le faux GitHub des bancs) est posé et non vide. Posée sans lui (en production) : ignorée,
@@ -763,6 +823,7 @@ prendre_passage() {
     return 2
   fi
   PASSAGE_COMMENTAIRE=$id PASSAGE_POSE_LANCEE=''
+  poser_temoin "$n" "$id"
   if ! lus=$(lire_github "$DEPOT/issues/$n/comments?per_page=100" --paginate) ||
     ! decision=$(jq -cs --arg moi "$CAPITAINE_ID" --argjson mien "$id" --arg cree "$cree" "$FILTRE_PASSAGE" <<<"$lus" 2>/dev/null); then
     echo "verrou du passage : commentaires de #$n illisibles (cause ci-dessus, ou date illisible) : son commentaire retiré, pas de passage sans verrou" >&2
@@ -785,6 +846,7 @@ retirer_passage() {
     finir_passage
     return 0
   fi
+  retirer_temoin "$PASSAGE_PR"
   PASSAGE_COMMENTAIRE=''
 }
 # Rafraîchit le commentaire au début de chaque tour d'attente de la CI (le PATCH réécrit l'epoch de la marque, l'âge du
@@ -802,7 +864,7 @@ rafraichir_passage() {
 # lancée dont l'id n'a pas été lu (un signal pendant le POST) : relit les commentaires de la PR (`lire_github`) et
 # termine les marques vivantes de ce capitaine ; une relecture en panne se dit en une ligne, comme un PATCH refusé.
 finir_passage() {
-  local id corps erreur lus cause
+  local id corps erreur lus cause pr=$PASSAGE_PR fini=1
   if [ -n "$PASSAGE_POSE_LANCEE" ] && [ -z "$PASSAGE_COMMENTAIRE" ]; then
     PASSAGE_POSE_LANCEE=''
     erreur=$(mktemp 2>/dev/null) || erreur=/dev/null
@@ -825,9 +887,12 @@ finir_passage() {
     return 0
   fi
   for id in $PASSAGE_COMMENTAIRE $PASSAGE_ANCIENS; do
-    gh api -X PATCH "$DEPOT/issues/comments/$id" -f body="$corps" >/dev/null 2>&1 </dev/null ||
+    gh api -X PATCH "$DEPOT/issues/comments/$id" -f body="$corps" >/dev/null 2>&1 </dev/null || {
+      fini=0
       echo "verrou du passage : commentaire $id de #$PASSAGE_PR non terminé (il expirera 90 minutes après sa dernière date comptée)" >&2 || :
+    }
   done
+  [ "$fini" = 0 ] || retirer_temoin "$pr"
   PASSAGE_COMMENTAIRE='' PASSAGE_ANCIENS='' PASSAGE_POSE_LANCEE=''
   return 0
 }

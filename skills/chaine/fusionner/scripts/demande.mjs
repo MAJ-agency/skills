@@ -11,15 +11,17 @@
 // Le sommet vient de git, jamais du clavier. Sans `--branche`, c'est `HEAD`, et il doit être poussé : une branche
 // courante (pas une tête détachée), présente sur `origin`, à la même tête. Avec `--branche`, c'est la tête de cette
 // branche sur `origin`, quelle que soit la branche courante (le conducteur pour une fille finie, l'architecte pour
-// la PR d'une personne).
+// la PR d'une personne). Une branche absente d'`origin` est soit non poussée, soit la tête d'une PR de fourche, que
+// le script ne distingue pas : une PR de fourche ne reçoit ni verdict ni fusion (A-192), aucune demande.
 //
 // `--session` et `--conducteur` sont exigés : un identifiant `session_<lettres et chiffres>` ou `—` (`-` accepté).
 // `Session:` est la session qui écrit la demande, `—` quand elle est posée à la place d'une session finie ou d'une
 // personne ; `Conducteur:` est le conducteur du chantier quand il n'est pas l'auteur, `—` quand l'auteur l'est lui-même
 // ou hors chantier. « moi » est refusé, comme deux identifiants égaux ; `—` aux deux champs est permis.
 //
-// Sorties : 0 la ligne ; 1 un sommet non poussé, une tête détachée ou une branche absente d'`origin` ; 2 un appel
-// mal formé (les options se lisent avant tout appel à git) ; 12 `origin` illisible.
+// Sorties : 0 la ligne ; 1 un sommet non poussé, une tête détachée, une branche sans commit ou une branche absente
+// d'`origin` ; 2 un appel mal formé (les options se lisent avant tout appel à git) ; 12 `origin` illisible, ou git
+// qui ne lit pas `HEAD` sur une branche qui a des commits.
 // Aucune dépendance.
 // =============================================================================
 import { spawnSync } from 'node:child_process';
@@ -98,7 +100,11 @@ function principal() {
       return 1;
     }
     branche = sym.stdout.trim();
-    const head = git('rev-parse', 'HEAD');
+    const head = git('rev-parse', '--verify', '-q', 'HEAD');
+    if (head.status === 1) {
+      console.error(`demande : la branche ${branche} n'a aucun commit : rien à relire`);
+      return 1;
+    }
     if (head.status !== 0) {
       console.error('demande : git ne lit pas HEAD');
       return 12;
@@ -107,7 +113,7 @@ function principal() {
   }
   const distant = git('ls-remote', '--exit-code', 'origin', `refs/heads/${branche}`);
   if (distant.status === 2) {
-    console.error(`demande : la branche ${branche} est absente d'origin : la demande ne nomme qu'un sommet poussé`);
+    console.error(`demande : la branche ${branche} est absente d'origin : un sommet jamais poussé (le pousser d'abord), ou la tête d'une PR de fourche, qui ne reçoit ni verdict ni fusion (A-192) : aucune demande`);
     return 1;
   }
   if (distant.status !== 0) {

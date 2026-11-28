@@ -2,6 +2,116 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.9.9 — 2026-11-28
+
+### Ce qui change
+
+- **Une PR illisible avant la relance de ses jobs rouges n'est plus relancée** (`A-243`, `A-271` (3)) : quand la lecture de la PR échoue dans `traiter_rouges` (GitHub illisible), la boucle ne relance plus ses jobs et ne la renvoie pas ; une ligne au journal le dit (`PR illisible avant la relance de ses jobs rouges`, vue par le filtre `rouges` du `Monitor`), et la PR est reprise au tour suivant. Jusqu'ici le contrôle du verdict était sauté et la relance se faisait quand même.
+- Le banc du régime illisible lit, pour chaque cas, le régime attendu (7, 7, illisible) au lieu d'accepter l'un ou l'autre.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** les scripts de `fusionner` (`boucle.sh`, posé sous `scripts/chaine/`) (`fusionner poser`). Sans repose, rien ne change.
+
+## 8.9.8 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 comme en régime 7 : une PR de fourche se dit fourche, et n'est jamais reciblée sur un sujet.
+
+- **`demande.mjs` nomme la fourche et sort en 1 sur une branche sans commit** (ticket 119, `A-192`, `A-271`) : une branche absente d'`origin` est dite « un sommet jamais poussé, ou la tête d'une PR de fourche, qui ne reçoit ni verdict ni fusion : aucune demande » ; une branche née sans commit sort en 1 (« n'a aucun commit »), jamais en 12, qui reste la panne d'`origin` ou de git. `architecte/SKILL.md` fait reconnaître la fourche (`head.repo`) avant tout script : ni demande, ni `à-relire`, ni `à-fusionner`.
+- **Les skills `fusionner` et `sujet` nomment la commande de la demande, le README cite `demande.mjs`** (ticket 120, `A-241`) : plus de « le commentaire `À relire` ».
+- **Une PR de fourche n'est plus reciblée sur un sujet ni comptée dans une série** (ticket 121, `A-199`, `A-201`) : `file.sh` ne lit pas le sujet du ticket d'une fourche (elle est classée comme une PR directe, ni « vers sujet/<nom> », ni gelée) ; `sujet.sh regrouper` lit chaque PR avant d'ouvrir le sujet, saute les fourches (sortie 7) ; `series` les écarte ; `boucle.sh` dit la sortie 7.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** les scripts de `fusionner` (`demande.mjs`, `file.sh`, `boucle.sh`, posés sous `scripts/chaine/`) et de `sujet` (`sujet.sh`) : `fusionner poser`, `sujet poser`. Sans repose, rien ne change.
+
+## 8.9.7 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 : la décision du Relecteur (`decision-relecteur.mjs`).
+
+- **Un refus double s'annonce avec ses deux verdicts** (`A-265` (1)) : quand un tour à deux sessions est refusé par l'une et que l'autre n'a pas encore rendu, `decider` rend `rien`, raison `attente`, en règle 4 (en règle 1 au troisième tour compté), sans changer d'étiquette ni envoyer de ligne. Le refus s'annonce, ou le plafond tombe, au passage où arrive le dernier verdict : l'auteur lit tous les bloquants du tour d'un coup. Le compte des tours et `tourValide` ne changent pas ; un refus tardif sur une PR `à-fusionner` n'attend jamais (`A-270` (3)).
+- **L'attente a une échéance** (`A-269`) : `relecture.delai` depuis la distribution (ou la relance) de la session attendue, comme en règle 5 ; passée l'échéance, ou dès qu'une attendue est `morte` ou `plafond`, le refus s'annonce avec les verdicts présents, sa ligne suffixée « (sans le verdict de <id>…) ». Le skill `relecteur` lit l'état des sessions attendues en règles 1 et 4 (`A-270` (1)).
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `fusionner` (`/maj-skills:socle-chaine-de-production`, après `claude plugin marketplace update maj`) : `decision-relecteur.mjs` est copié dans `scripts/chaine/`. Sans repose, un refus double s'annonce encore au premier verdict. Le texte du skill `relecteur` se lit dans le marketplace.
+
+## 8.9.6 — 2026-11-28
+
+### Ce qui change
+
+- **Le Relecteur s'arrête en 6 sans `gh`** (`A-203` (3)) : `preparer` vérifie la présence de `gh` et sort en 6, « gh (GitHub CLI) est requis par le Relecteur », comme pour `flock`. Avant, chaque lecture de GitHub échouait en 5 et la veille faisait une pause sans fin, sans une ligne à l'architecte.
+
+### Ce qu'un projet fait pour en profiter
+
+- Rien : `relecteur.mjs` se lance depuis le dossier du skill, jamais posé ; la mise à jour du plugin suffit.
+
+## 8.9.5 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 comme en régime 7 : le verrou du passage est celui de tous les passages du capitaine.
+
+- **Un passage interrompu se relit sur GitHub et se dit au journal** (`A-245`, `A-256` (4)) : `prendre_passage` écrit un témoin `<git-common-dir>/capitaine-passages/<n>` (id du commentaire, `CAPITAINE_ID`, epoch) que `finir_passage` retire, sauf si son PATCH échoue. Au démarrage, verrou `flock` pris, la boucle relit la PR de chaque témoin : `FUSIONNÉE (passage interrompu…)` avec le sha de fusion, ou « rien n'est entré » ; elle termine le commentaire de passage si le `CAPITAINE_ID` est le sien. Une PR illisible garde le témoin. Cas 14 bis de l'essai réel : une fusion n'est plus perdue avec le conteneur du capitaine.
+- Le faux GitHub des bancs garde et rend `merge_commit_sha`.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `github.sh` et `boucle.sh` (`fusionner poser`). Sans repose, rien ne change.
+
+## 8.9.4 — 2026-11-28
+
+### Ce qui change
+
+- **Un test sauté ou en « todo » sans déclaration dans un banc posé rougit la suite du plugin** (`A-266` à `A-268`) : `scripts/poses.test.mjs` lit désormais les sauts (`skip`, `t.skip()`, `test.skip`, `it.skip`, `describe.skip`, `{ todo }`) à tout niveau et les compare à une liste fermée, `scripts/sautes-admis.mjs`, qui tient chaque saut admis avec sa raison. Un « todo » n'est jamais admis ; une entrée admise qui ne saute plus rougit aussi. `scripts/references-posees.test.mjs` lit la même liste.
+
+### Ce qu'un projet fait pour en profiter
+
+Rien à reposer : `scripts/poses.test.mjs`, `scripts/references-posees.test.mjs`, `scripts/tranches.mjs` et `scripts/sautes-admis.mjs` ne sont jamais posés.
+
+## 8.9.3 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 seulement ; rien ne change en régime 7 (le worktree propriétaire reste).
+
+- **Le renvoi nomme la session et le conducteur de la demande** (`A-244`, `A-256` (3)) : `renvoyer.sh` lit les commentaires de la PR (`demande_de_la_pr`, par `lireMarques` en mode tolérant) et écrit `session de la demande` et `conducteur de la demande` à la place de la ligne du worktree, que le capitaine ne trouve pas en session cloud. Une demande modifiée ne compte pas (`A-227`). Sans demande intacte, ou commentaires illisibles, une ligne dit de prévenir le conducteur du chantier, sinon son lanceur ; le renvoi lui-même est posé comme avant.
+- **Le geste du capitaine** (`A-236`) : `get_session` avant `send_message` ; une session archivée ou introuvable ne reçoit rien, le conducteur nommé en est prévenu.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `renvoyer.sh` et `github.sh` (`fusionner poser`). Sans repose, le renvoi donne encore le worktree.
+
+## 8.9.2 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 seulement (la clé `relecture` dans le contrat de la base) ; rien ne change en régime 7.
+
+- **Le capitaine contrôle le verdict dès qu'il voit la PR, avant sa CI** (`A-243`, `A-256`) : `passer.sh --eligibilite <n>` et `sujet.sh fusionner --eligibilite <pr>` lisent d'abord le régime (7 ou illisible : sortie 0), puis jouent tout ce qui précède le verrou, sans verrou, commentaire, label ni push ; sorties 0, 4 (motif en dernière ligne), 7, 5, 3 (11 pour `sujet.sh`). `CAPITAINE_ID` n'est pas exigé par `sujet.sh fusionner --eligibilite`.
+- **La boucle** joue l'éligibilité une fois par sommet (`<git-common-dir>/boucle-eligibles`) sur une PR vers develop « CI en cours » et sur la sous-PR « CI en cours » qui tient ou prend son sujet, et avant de relancer une CI rouge : une sortie 4 renvoie la PR aussitôt, sans attendre sa CI ni relancer ses jobs ; la sous-PR rend son sujet. Chaque contrôle écrit `[#n] éligibilité avant la CI : sortie <k>`.
+- **La veille** sonde « CI en cours » sous la clé : une PR qui y entre relance la boucle une fois.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer les scripts de la chaîne** : rejouer `fusionner poser` et `sujet poser` (`passer.sh`, `boucle.sh`, `veille.sh`, `sujet.sh`). Sans repose, le verdict n'est contrôlé qu'au passage, comme avant.
+
+## 8.9.1 — 2026-11-28
+
+### Ce qui change
+
+- **Les textes nomment la commande de la demande, jamais sa forme à remplir** (`A-241` (3)) : `chaine-de-production.md` (étapes 5 et 6, le renvoi), le fragment `claude-md-fusion.md`, `issue-tracker.md`, `sujet`, `chantier` et `architecte` disent `node scripts/chaine/demande.mjs` avec les arguments du cas ; la forme `À relire — sommet <sha> — …` ne s'écrit plus qu'une fois, à l'étape 5, pour la lire, avec le repli quand le script est absent (le marketplace).
+- **Les deux champs, dits** (`A-235`) : le conducteur écrit `--conducteur —` sur ses propres PR, car son identifiant aux deux champs le réveillerait deux fois ; l'architecte écrit `--branche <tête de la PR> --session — --conducteur —` pour la PR d'une personne ou d'un outil.
+- **L'état d'une fille se lit avant de lui écrire** (`A-236`, `A-241` (5)) : le conducteur lit `get_session` avant tout `send_message`. Une fille archivée, `completed` ou `failed` ne reçoit rien : une PR renvoyée relance une fille sur sa branche ; une PR sans étiquette reçoit sa demande par le script, puis `à-relire`.
+
+### Ce qu'un projet fait pour en profiter
+
+Un projet en régime 8 repose `chaine-de-production.md`, le fragment `CLAUDE.md` de la fusion et `issue-tracker.md` (PR de code, sur un ticket dont la ligne `Sensibles:` les couvre) ; un projet en régime 7 ne les repose qu'avec la clé `relecture`, par la repose, jamais seuls (`A-196` (4)). Les skills se lisent dans le plugin.
+
 ## 8.9.0 — 2026-11-28
 
 ### Ce qui change
