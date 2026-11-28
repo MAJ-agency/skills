@@ -31,6 +31,8 @@ Une seule boucle à la fois, arrêtée d'un geste. Cas vécu : le capitaine arr�
 
 L'éligibilité avant la CI (A-243, ticket 105) : en régime 8, une PR vers develop « CI en cours », la sous-PR « CI en cours » qui tient ou prend son sujet et une PR « CI rouge » avant la relance de ses jobs passent par `passer.sh --eligibilite` ou `sujet.sh fusionner --eligibilite`, une fois par sommet (`<git-common-dir>/boucle-eligibles`, réécrit à chaque tour avec les seules PR encore « CI en cours »), et une sortie 4 les renvoie aussitôt. Cas 4 bis de l'essai réel du régime 8 : une sous-PR au verdict périmé a tenu son sujet 36 minutes, le temps de sa CI, alors que le contrôle ne coûte qu'une lecture des commentaires.
 
+Un passage interrompu se relit sur GitHub (A-245, ticket 107, constat 14 bis de l'essai réel du régime 8) : la livraison #16 du jouet est entrée dans `develop`, mais sa ligne `FUSIONNÉE` manque au journal, le conteneur du capitaine ayant redémarré. La fusion vit sur GitHub, la ligne meurt avec le processus : un témoin `<git-common-dir>/capitaine-passages/<n>` survit, et la boucle relancée relit la PR.
+
 Plusieurs capitaines : le verrou `flock` vaut pour un clone ; entre capitaines, le commentaire marqué de chaque passage. `CAPITAINE_ID` est vérifié au démarrage, après `--arreter` (qui marche sans lui) et avant le verrou : sortie 64 sans lui. `--arreter` laisse 15 s entre TERM et KILL, le temps que la trappe du passage termine son commentaire. Une sous-PR tenue par un autre capitaine (sortie 7 de `sujet.sh fusionner` ou `relancer`) est sautée sans renvoi, et tient son sujet : la boucle ne prend aucune autre sous-PR de ce sujet à ce tour. `veille.sh` vérifie `CAPITAINE_ID` de même, avant de dormir deux minutes pour rien.
 ## `scripts/veille.sh`
 

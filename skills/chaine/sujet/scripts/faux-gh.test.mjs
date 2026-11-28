@@ -85,6 +85,16 @@ test('faux gh, arbre de la fusion : le squash d’une PR en retard porte l’arb
   assert.equal(d.git('show', `${squash}:docs/x.md`), 'x');
 });
 
+test('faux gh, merge_commit_sha : une PR fusionnée rend le commit de la fusion, une PR ouverte null (A-256 (4))', () => {
+  const { d, sommet } = enRetard();
+  const lire = () => JSON.parse(gh(d, 'repos/{owner}/{repo}/pulls/1').stdout);
+  assert.equal(lire().merge_commit_sha, null, 'ouverte : null');
+  assert.equal(lire().merged_at, null);
+  const squash = JSON.parse(fusionnerPr(d, 1, sommet).stdout).sha;
+  assert.equal(lire().merge_commit_sha, squash, 'fusionnée : le sha du squash');
+  assert.ok(lire().merged_at);
+});
+
 test('faux gh, arbre de la fusion : en conflit, 405 « not mergeable », rien n’est fusionné', () => {
   const { d, sommet, develop } = enRetard({ conflit: true });
   const r = fusionnerPr(d, 1, sommet);

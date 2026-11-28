@@ -2,7 +2,8 @@
 // =============================================================================
 // Faux `gh` du dépôt jouet (depot-jouet.mjs) : placé en tête de PATH, il répond à `gh api`
 // comme l'API REST de GitHub, sans réseau. État dans $FAUX_GH/etat.json :
-//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, created_at, commentaires }
+//   pulls       PR { number, title, body, draft, state, labels: [noms], base, head, merged_at, merge_commit_sha, created_at, commentaires }
+//               `merge_commit_sha` : le commit de la fusion, posé avec `merged_at` ; `null` pour une PR non fusionnée
 //               `created_at` : la date d'ouverture, ISO 8601 (défaut 2026-11-17T11:00:00Z), lue par le Relecteur (régime)
 //               `fourche` : le dépôt de la tête (`head.repo.full_name`), « maj/jouet » par défaut, celui de la base
 //   maintenant  ISO 8601 : la date que reçoit tout commentaire posé (`POST issues/<n>/comments`), à la place de la date
@@ -176,6 +177,7 @@ function versRest(pr) {
     draft: pr.draft ?? false,
     state: pr.state ?? "open",
     merged_at: pr.merged_at ?? null,
+    merge_commit_sha: pr.merge_commit_sha ?? null,
     created_at: pr.created_at ?? "2026-11-17T11:00:00Z",
     labels: (pr.labels ?? []).map((name) => ({ name })),
     base: { ref: pr.base, repo: { full_name: "maj/jouet", default_branch: etat.brancheParDefaut ?? "main" } },
@@ -514,7 +516,7 @@ function fusionner(
     `${titre}\n\n${corps}`,
   );
   git("update-ref", `refs/heads/${p.base}`, commit, base);
-  Object.assign(p, { state: "closed", merged_at: "2026-10-20T00:00:00Z" });
+  Object.assign(p, { state: "closed", merged_at: "2026-10-20T00:00:00Z", merge_commit_sha: commit });
   return { merged: true, sha: commit };
 }
 

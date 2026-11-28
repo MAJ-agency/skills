@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.5 — 2026-11-28
+## 8.9.6 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.9.5 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 comme en régime 7 : le verrou du passage est celui de tous les passages du capitaine.
+
+- **Un passage interrompu se relit sur GitHub et se dit au journal** (`A-245`, `A-256` (4)) : `prendre_passage` écrit un témoin `<git-common-dir>/capitaine-passages/<n>` (id du commentaire, `CAPITAINE_ID`, epoch) que `finir_passage` retire, sauf si son PATCH échoue. Au démarrage, verrou `flock` pris, la boucle relit la PR de chaque témoin : `FUSIONNÉE (passage interrompu…)` avec le sha de fusion, ou « rien n'est entré » ; elle termine le commentaire de passage si le `CAPITAINE_ID` est le sien. Une PR illisible garde le témoin. Cas 14 bis de l'essai réel : une fusion n'est plus perdue avec le conteneur du capitaine.
+- Le faux GitHub des bancs garde et rend `merge_commit_sha`.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `github.sh` et `boucle.sh` (`fusionner poser`). Sans repose, rien ne change.
 
 ## 8.9.4 — 2026-11-28
 
