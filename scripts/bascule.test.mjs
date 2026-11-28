@@ -79,6 +79,8 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
   const p5 = entre(suivi, "5. **La relecture est indépendante : le conducteur ne contre-relit rien et ne relaie aucun constat.**", "**Une sous-PR à la fois par sujet");
   exiger(p5, [
     "Sur la PR d'une fille, le conducteur ne pose ni ne retire jamais `à-fusionner`, `à-relire` ou `à-reprendre`, hors le cas sans étiquette ci-dessous ; ses propres PR (cadrage, documentation, nettoyage) demandent leur relecture comme celle d'une fille, avec `Conducteur: —`.",
+    // Le périmètre figé (ticket 2) : le renvoi à § 5 pour la déclaration de ses PR de documentation.
+    "Une PR de documentation déclare d'abord son périmètre (`docs/agents/chaine-de-production.md` § 5).",
     "- **Arbitrer** une contestation de sa fille (`Contesté — <critère, fichier et ligne> — <raison>` sur la PR, et une ligne de la fille)",
     "`Arbitrage — <critère, fichier et ligne> — maintenu`, ou `— écarté — <raison>`",
     "- **Recevoir un plafond** (trois tours refusés : `Plafond — décision attendue` sur la PR, une ligne du Relecteur)",
@@ -171,6 +173,8 @@ test("l'architecte en régime 8 : le Relecteur lancé et relevé, l'arbitrage et
     "avec son commentaire `Suite — <objet> — <ticket ou PR>`",
     "Un bloquant sur une règle de criticité haute reste décidé par le produit.",
     "l'architecte lit son niveau dans le fichier de la règle ; dans le doute, le produit décide",
+    // Le périmètre figé (ticket 2) : le renvoi à § 5 pour la déclaration de ses PR de documentation.
+    "documentation comprise (une PR de documentation déclare d'abord son périmètre, `docs/agents/chaine-de-production.md` § 5)",
   ], "architecte § 5");
   assert.ok(!suivi.includes("au plafond d'une PR de l'architecte, le produit décide"), "§ 5 ne renvoie plus au produit le plafond d'une PR de l'architecte");
   const adr = lire(`${C}/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md`);
@@ -214,6 +218,14 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   assert.deepEqual(etapes.map((l) => l.slice(0, l.indexOf("**", 5) + 2)), ["1. **Environnement.**", "2. **Réserver**", "3. **Lire**", "4. **Coder**", "5. **Demander la relecture.**", "6. **Sur `à-reprendre`**", "7. **Rendre la main**"]);
   exiger(etapes[4], ["La fille ne se relit pas et ne lance aucun relecteur", "le commentaire `À relire — sommet <sha> — Session: <la sienne> — Conducteur: <celle du conducteur>`", "**Jamais `à-fusionner`**", "le sha entier du dernier push"], "§ 5, étape 5");
   exiger(etapes[5], ["corriger chaque bloquant avec le test qui l'aurait attrapé, ou le contester sur la PR, `Contesté — <critère, fichier et ligne> — <raison>`", "`à-relire` posée avant de retirer `à-reprendre`", "qui arbitre (`Arbitrage — … — maintenu` ou `écarté`) et le lui écrit.", "**Un bloquant contesté attend son arbitrage** : la relecture se redemande une fois l'arbitrage écrit (maintenu : le bloquant corrigé d'abord), au même sommet si rien n'a été poussé, jamais avant", "la fille attend la décision, qu'on lui écrit, la suit, puis redemande la relecture : sans demande, la PR reste `à-reprendre`, hors de la file du Relecteur."], "§ 5, étape 6");
+  // Le périmètre figé (ticket 2, A-13) : les règles 1 à 3 et la partie auteur de la règle 4, mot pour mot, avec leur numéro.
+  exiger(etapes[4], ["Périmètre, règle 1 : **Déclaration.** Avant sa première demande de relecture, l'auteur écrit un commentaire dont la première ligne est `Périmètre — <objet en une ligne>`, suivie de trois lignes : `Fichiers:` (chemins ou dossiers), `Décisions:` (identifiants des décisions et des ADR que la PR écrit, ou « aucune ») et `Sujets:`. Seul le premier commentaire de cette forme compte, et il n'est jamais modifié. Au tour 1, tout fichier du diff est couvert par la ligne `Fichiers:`.", "le Relecteur écrit `Périmètre absent`"], "§ 5, étape 5, périmètre");
+  exiger(etapes[5], [
+    "Périmètre, règle 2 : **Corrections.** Entre deux tours, les fichiers que l'auteur modifie sont ceux de la ligne `Fichiers:` et ceux que nomme un bloquant du dernier verdict refusé. Dans ces fichiers, il ne corrige que les constats de ce verdict. Il peut aussi clarifier un passage que le verdict nomme sous « Écartés au tri » avec le motif « faux », sans en changer le sens : par exemple citer la règle qui justifie une définition, ou écrire le résultat attendu d'une commande de preuve.",
+    "Périmètre, règle 3 : une décision, un fait ou une ADR que la déclaration ne nomme pas est un bloquant. Sa correction est le retrait, jamais l'ajout de ce qui manque autour.",
+    "Périmètre, règle 4 : **Suite.** Ce qui est retiré, ou ce qu'un constat révèle hors du périmètre, s'écrit dans un ticket ou dans une autre PR. L'auteur le cite sur la PR courante par un commentaire `Suite — <objet> — <ticket ou PR>`.",
+    "`Périmètre dépassé — <fichiers>`",
+  ], "§ 5, étape 6, périmètre");
   // Le réveil de secours (A-86) : ses cinq cas, dans l'ordre.
   const secours = entre(etapes[6], "**le réveil de secours**", "Puis s'arrêter");
   const cas = ["si la PR porte `à-reprendre`", "`fusion-bloquée` sans `à-relire`, lire le renvoi du capitaine", "aucune des quatre étiquettes", "`à-relire` depuis plus de trois heures sans distribution", "sinon rien, et le réarmer une fois"];
@@ -223,7 +235,7 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   assert.ok(!s5.includes("Revue de ticket** (skill"), "§ 5 : la fille ne joue plus la revue de ticket");
   exiger(cdp, ["**Le conducteur nomme ensuite ses filles et leurs sessions de relecture à l'architecte**", "`à archiver : <session>, <ticket>, <coût>`"], "Relevé des coûts");
   const fragment = lire(`${C}/socle-chaine-de-production/references/fragments/claude-md-fusion.md`);
-  exiger(fragment, ["- **Relecture indépendante.**", "**la session qui code ne se relit pas** et ne pose jamais `à-fusionner`", "`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`"], "fragment fusion");
+  exiger(fragment, ["- **Relecture indépendante.**", "**la session qui code ne se relit pas** et ne pose jamais `à-fusionner`", "`À relire — sommet <sha> — Session: <id> — Conducteur: <id>`", "déclare d'abord son périmètre"], "fragment fusion");
   assert.ok(!fragment.includes("remettre `à-fusionner`") && !fragment.includes("Avant le label, toute PR qui réalise un ticket passe la **revue de ticket**"), "fragment : plus de revue par l'auteur ni de label remis par lui");
   exiger(lire(`${C}/tickets/references/agents/issue-tracker.md`), ["3. **Livrer, c'est demander la relecture**", "puis poser `à-relire` (sous-PR de sujet comprise) ; jamais `à-fusionner`"], "issue-tracker.md");
   exiger(lire("skills/monorepo/socle-monorepo/references/methode/conception.md"), ["la revue d'une PR est celle d'une **session de relecture** que son auteur ne contrôle pas", "Sans cette chaîne : avant le commit qui clôt une feature"], "conception.md");

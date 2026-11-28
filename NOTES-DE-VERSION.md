@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.7.2 — 2026-11-28
+## 8.8.1 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,24 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.8.0 — 2026-11-28
+
+### Ce qui change
+
+- **Une PR de documentation déclare son périmètre** avant sa première demande de relecture (spec « périmètre figé », règle 1) : un commentaire de quatre lignes, `Périmètre — <objet>`, `Fichiers:` (chemins, ou dossiers finis par `/`, séparés par « , », aucun motif à étoile), `Décisions:` et `Sujets:`, chaque valeur non vide. Seul le premier compte ; modifié après sa création, il est une lecture illisible (`Lecture illisible — commentaire <id> : déclaration de périmètre modifiée après sa création`). Une **PR de documentation** est une PR dont le diff propre n'exige pas la revue au sens de `revue-exigee.mjs`, lu sur le contrat de la base.
+- **Le Relecteur contrôle le périmètre avant de distribuer un tour neuf**, là où la règle 6 distribuerait, et là seulement : sans déclaration, le geste neuf `perimetre` pose `à-reprendre` puis écrit `Périmètre absent` ; un fichier non admis, `Périmètre dépassé — <fichiers>` (triés, séparés par « , »). Aucune session n'est lancée, aucun tour ne compte ; une ligne à l'auteur et au conducteur. Tant que la marque de refus est plus récente que la dernière demande `À relire`, le geste ne fait que tenir `à-reprendre` ; une demande neuve refait le contrôle sur la tête du moment.
+- **Les fichiers admis** : au tour 1, tout le diff propre est couvert par `Fichiers:`. Ensuite, chaque fichier du **delta** (les fichiers du diff propre de la tête ou de celui du sommet du dernier tour distribué dont le contenu diffère entre ces deux sommets ; une fusion de la base dans la branche n'y entre pas) est couvert par `Fichiers:`, ou nommé par un bloquant d'un refus du dernier tour refusé (sa cellule « Fichier et ligne » et les chemins entre accents graves de son constat, `A-10`), ou par un écarté au motif `faux` (`A-9`). Un delta qui ne se calcule pas est une lecture illisible (`delta du périmètre : <cause>`).
+- **La machine lit dans le corps d'un verdict les fichiers que nomment ses bloquants et ses écartés « faux »** (`fichiersNommes` de `verdict.mjs`), ces endroits seuls. Chaque puce « Écartés au tri » s'écrit désormais `` - `<fichier>:<ligne>` : <motif> — <le critère cité, s'il y en a un>, <pourquoi> ``, le motif étant `sans critère`, `faux`, `arbitrage`, `develop` ou `doublon` (le lecteur accepte aussi `suite`, que le ticket 3 fera écrire) ; tout fichier d'un constat s'écrit entre accents graves. `gestes.sh controle` refuse un brouillon dont une de ces lignes ne se lit pas. Un verdict que la machine ne lit pas (une session partie d'un instantané d'avant) : le contrôle du delta ne joue pas pour ce tour, `passe` rend `distribuer` avec `faits.perimetre: 'verdict illisible'`.
+- **Quatre marques neuves** dans `decision-relecteur.mjs` : `Périmètre — `, `Périmètre absent`, `Périmètre dépassé — `, `Suite — <objet> — <ticket ou PR>` ; chacune sans sa forme est une lecture illisible, et la session de relecture ne commence aucune ligne par elles.
+- **La transition** : une PR dont un tour est déjà distribué sans déclaration plus ancienne que la première distribution finit sans contrôle ; une PR de code n'est jamais contrôlée.
+- **La méthode** (`chaine-de-production.md` § 5, étapes 5 et 6) porte les règles 1, 2 et 3 et la partie auteur de la règle 4, mot pour mot, avec leur numéro ; le fragment `CLAUDE.md` de la fusion, `architecte` § 5 et `chantier` § 6 disent la déclaration ; « Périmètre » et « PR de documentation » entrent au glossaire.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rejouer l'étape 0 de `fusionner`** : elle repose `decision-relecteur.mjs`, `verdict.mjs`, `revue-exigee.mjs` et leurs bancs sous `scripts/chaine/` ; **reposer** `docs/agents/chaine-de-production.md` et le fragment `CLAUDE.md` de la fusion. Ces chemins sont sensibles (`scripts/chaine/**`, `.claude/**` du gabarit du contrat) et `docs/agents/` exige la revue : la PR de repose est une PR de code, sur un ticket dont la ligne `Sensibles:` les couvre.
+- **Relancer à neuf le Relecteur du dépôt** après la mise à jour du plugin : sa session a lu son skill avant.
+- **Sans repose, rien ne change** : un `relecteur.mjs` neuf devant des scripts posés d'avant ne contrôle rien et n'échoue pas ; des scripts posés neufs devant un `relecteur.mjs` d'avant non plus.
 
 ## 8.7.1 — 2026-11-27
 

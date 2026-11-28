@@ -11,8 +11,17 @@
 //   Session: <identifiant>
 //   /security-review: lancée | non requise        (facultative, dernière ligne de l'en-tête)
 //
-// puis une ligne vide et les constats, que le lecteur ne lit pas. `validé` veut zéro bloquant, `refusé` un au
-// moins.
+// puis une ligne vide et les constats, que `lireVerdict` ne lit pas. `validé` veut zéro bloquant, `refusé` un au
+// moins. Du corps, la machine ne lit que les fichiers que nomment ses bloquants et ses écartés « faux »
+// (`fichiersNommes`, le périmètre d'une PR de documentation), et ces endroits seuls :
+//   - une ligne qui commence par `| bloquant | ` : sa cellule « Fichier et ligne », `` `<fichier>:<n>` `` ou
+//     `` `<fichier>:<n>-<m>` ``, ou `—` sans fichier ; et dans sa cellule « Constat », chaque segment entre accents
+//     graves qui, privé d'un `:<n>` ou `:<n>-<m>` final, contient un `/` ou finit par un point et une à cinq lettres
+//     ou chiffres (A-10) ;
+//   - sous la ligne `Écartés au tri : <n>.`, chaque puce `` - `<fichier>:<ligne>` : <motif> — <critère>, <pourquoi> ``,
+//     le motif étant `sans critère`, `faux`, `arbitrage`, `develop`, `doublon` ou `suite` ; la liste finit à la
+//     première ligne vide ou à la première ligne qui n'est pas une puce.
+//   Une cellule « Fichier et ligne » ou une puce hors de sa forme compte dans `illisibles`.
 //
 // Quel commentaire compte : celui d'un compte `OWNER`, `MEMBER` ou `COLLABORATOR`, jamais modifié après sa
 // création. Un champ qui manque à la lecture est une lecture en échec (`LectureIllisible`), jamais un état.
@@ -171,6 +180,60 @@ export function lireVerdicts(commentaires) {
     else verdicts.push({ id, rang, date, ...v });
   }
   return { verdicts, ecartes: ecartes.sort((a, b) => a.rang - b.rang) };
+}
+
+const LIEU = /^`([^`]+):[1-9][0-9]*(?:-[1-9][0-9]*)?`$/;
+const SEGMENT = /`([^`]+)`/g;
+export const MOTIFS_ECARTES = ['sans critère', 'faux', 'arbitrage', 'develop', 'doublon', 'suite'];
+const PUCE = new RegExp(`^- (?:\`([^\`]+):[1-9][0-9]*(?:-[1-9][0-9]*)?\`|—) : (${MOTIFS_ECARTES.join('|')}) — \\S`);
+const ECARTES = /^Écartés au tri : (?:0|[1-9][0-9]*)\.$/;
+// Un segment entre accents graves est un chemin quand, privé d'un `:<n>` ou `:<n>-<m>` final, il contient un `/` ou
+// finit par un point et une à cinq lettres ou chiffres ; sinon (un critère, une commande, une marque) `null`.
+const cheminDe = (segment) => {
+  const c = segment.replace(/:[0-9]+(?:-[0-9]+)?$/, '');
+  return c !== '' && (c.includes('/') || /\.[A-Za-z0-9]{1,5}$/.test(c)) ? c : null;
+};
+
+/**
+ * Les fichiers que nomment les bloquants et les écartés « faux » d'un verdict (A-9, A-10), pour le périmètre
+ * d'une PR de documentation. Ne lit que ces endroits du corps (voir l'en-tête du module).
+ * @param {string} corps  déjà passé par `corpsLu`
+ * @returns {{ bloquants: string[], faux: string[], illisibles: number }}  chemins tels qu'écrits, sans doublon,
+ *   dans l'ordre du corps ; `illisibles` : les cellules « Fichier et ligne » et les puces hors de leur forme
+ */
+export function fichiersNommes(corps) {
+  const lignes = String(corps).split('\n');
+  const bloquants = new Set();
+  const faux = new Set();
+  let illisibles = 0;
+  for (const ligne of lignes) {
+    if (!ligne.startsWith('| bloquant | ')) continue;
+    // Les cellules, une barre échappée (`\|`) restant dans la sienne : Gravité, Axe, Critère, Fichier et ligne,
+    // Constat, Test.
+    const cellules = ligne.replace(/^\|/, '').replace(/(?<!\\)\|\s*$/, '').split(/(?<!\\)\|/).map((c) => c.trim());
+    if (cellules.length !== 6) {
+      illisibles++;
+      continue;
+    }
+    if (cellules[3] !== '—') {
+      const m = LIEU.exec(cellules[3]);
+      if (m === null) illisibles++;
+      else bloquants.add(m[1]);
+    }
+    for (const [, segment] of cellules[4].matchAll(SEGMENT)) {
+      const c = cheminDe(segment);
+      if (c !== null) bloquants.add(c);
+    }
+  }
+  const debut = lignes.findIndex((l) => ECARTES.test(l));
+  if (debut !== -1)
+    for (const ligne of lignes.slice(debut + 1)) {
+      if (ligne === '' || !ligne.startsWith('- ')) break;
+      const m = PUCE.exec(ligne);
+      if (m === null) illisibles++;
+      else if (m[2] === 'faux' && m[1] !== undefined) faux.add(m[1]);
+    }
+  return { bloquants: [...bloquants], faux: [...faux], illisibles };
 }
 
 /**

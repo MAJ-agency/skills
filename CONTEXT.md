@@ -80,6 +80,14 @@ _Avoid_: label, dans la prose du régime 8
 La session qui a écrit la PR.
 _Avoid_: propriétaire
 
+**PR de documentation**:
+Une PR dont le diff ne contient aucun chemin qui exige la revue, au sens de `revue-exigee.mjs`.
+_Avoid_: PR de doc, PR sans code
+
+**Périmètre**:
+Ce qu'une PR de documentation déclare contenir avant sa première demande de relecture : ses fichiers, ses décisions, ses sujets ; un commentaire `Périmètre — <objet>`, jamais modifié.
+_Avoid_: scope, portée
+
 ### Travail
 
 **Programme**:
