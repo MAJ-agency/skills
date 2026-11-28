@@ -10,7 +10,7 @@ Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le p
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
 Dépôts: `MAJ-agency/skills` (skills `relecture`, `relecteur`, `fusionner`, `architecte`, `chantier`, `socle-chaine-de-production`, glossaire `CONTEXT.md`) ; `MAJ-agency/essai-relecture-8` (l'essai réel) ; les projets reçoivent la règle par la mise à jour du plugin et la repose des scripts.
 Source: le prompt d'ouverture de cette session (2026-11-27), résumé dans `## Source` — entrée brute, ni spec ni décision.
-Capitaines: `skills` : session_012xRpgZn85fsbtT8FpRj93L (lancé par le programme « définitions d'agents », procédure d'un dépôt sans la chaîne, file au label)
+Capitaines: `skills` : session_012xRpgaSTumhwvwbt1q5TzJ (lancé le 2026-11-28 par l'architecte de « gouverner nos boucles », procédure d'un dépôt sans la chaîne) ; précédent, archivé : session_012xRpgZn85fsbtT8FpRj93L
 Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 ## Chantiers
@@ -93,6 +93,7 @@ Décisions de l'architecte : A-1 à A-19, écrites avec leur raison dans la spec
 - 2026-11-28 04 h 30 UTC — #175 reprise par sa session au sommet `7d6b49a` (main fusionné, 8.9.0), lue à la source : mêmes 19 fichiers, seule la note de version change.
 - 2026-11-28 04 h 47 UTC — La #176 (« gouverner nos boucles ») entre à `c15f90a` et prend 8.9.0 : la session du ticket 3 est priée de fusionner `main` sans attendre le renvoi et de prendre 8.10.0. Recoupement dit à l'autre architecte : `scripts/bascule.test.mjs` seul (une assertion, A-18) avec son ticket 104.
 - 2026-11-28 05 h 11 UTC — PR #175 au plafond de trois renvois du capitaine (signalé par l'architecte de « définitions d'agents », relu à la source) : un conflit après #174, puis deux « le sommet a bougé », parce que les ordres de 04 h 30 et 05 h 05 de la session ajoutaient un paragraphe après la ligne `à-fusionner au sommet <sha>`. Au sommet `f709ea1` : 4 contrôles verts, aucun verdict. Question posée au produit (nouvelle PR, recommandée, ou fusion à la main). Fait à reprendre dans le skill : le prompt d'une session de ticket dit la forme exacte de l'ordre, mais une session l'a enrichie ; un banc ou un message de refus plus explicite l'éviterait.
+- 2026-11-28 11 h 55 UTC — Capitaine de `skills` remplacé par l'architecte de « gouverner nos boucles » (contexte plein) : session_012xRpgaSTumhwvwbt1q5TzJ. `main` en 8.9.9 ; plus aucune PR de l'autre programme ouverte. #175 toujours au plafond ; décision du produit attendue depuis 05 h 30 UTC, rappelée à 06 h 31, 07 h 33, 09 h 37, 11 h 39.
 
 ## Source
 
