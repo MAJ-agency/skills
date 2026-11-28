@@ -4,7 +4,7 @@ Une PR de documentation déclare son périmètre à l'ouverture et le garde jusq
 
 ## Fiche
 
-Phase: suivi — ticket 1 fusionné (#172) ; ticket 2 livré (#173)
+Phase: suivi — tickets 1 et 2 fusionnés (#172, #173) ; ticket 3 en cours
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le produit le 2026-11-27, mode « Auto », dépôts `skills`, `anchorpost`, `fedora` ; `essai-relecture-8` à ajouter pour le ticket 4) ; précédente : session_01BxuG31gJXv41A7jRRFEAWi
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; ticket 2 livré, PR #173 (8.8.0), à fusionner |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; tickets 1 et 2 fusionnés (#172 8.6.0, #173 8.8.0) ; ticket 3 en cours (session_012xRpgYw3Ki5Zn9ykjuB7kr) |
 
 ## Decisions-so-far
 
@@ -48,7 +48,8 @@ Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec
 | architecte | — | session_01BxuG31gJXv41A7jRRFEAWi | — | — | — |
 | architecte (suite) | — | session_012xRpgZFExW5jmAkFg9zCdF | opus | — | — |
 | ticket 1 (archivée) | 1 | session_012xRpga5RtL9vtvNsYUD6Np | sonnet | 149 k | 2,12 |
-| ticket 2 | 2 | session_012xRpgavCXiUbFQrAWtdNLG | opus | — | — |
+| ticket 2 (archivée) | 2 | session_012xRpgavCXiUbFQrAWtdNLG | opus | 405 k | 15,91 |
+| ticket 3 | 3 | session_012xRpgYw3Ki5Zn9ykjuB7kr | opus | — | — |
 | capitaine `skills` (doublon, archivé) | — | session_012xRpgZd6cEEptHdS4amcfr | sonnet | 112 k | 0,47 |
 
 ## Passation
@@ -85,6 +86,7 @@ Décisions de l'architecte : A-1 à A-15, écrites avec leur raison dans la spec
 - 2026-11-28 00 h 16 UTC — PR #172 fusionnée par le capitaine le 2026-11-27 à 23 h 54 UTC (`7e63b12`, 8.6.0) ; arbre fusionné identique au sommet ordonné `78a4f81`, lu à la source. Session du ticket 1 archivée (finie, aucun réveil en attente ; 2,12 $). Le ticket 2 attend la fusion de #170 (A-17).
 - 2026-11-28 01 h 41 UTC — #169 (8.6.1) et #170 (8.7.0, `6f05d71`) fusionnées, lues sur `main` ; l'architecte de « gouverner nos boucles » l'a écrit. Ticket 2 lancé depuis `main` (session_012xRpgavCXiUbFQrAWtdNLG, opus) : repères à relire à la source après #170, version 8.8.0 attendue (A-14), entrée `Suite` laissée au ticket 3 (A-16).
 - 2026-11-28 02 h 40 UTC — Ticket 2 livré : PR #173 (8.8.0 ; `main` passé en 8.7.1 par #171, fusionné par la session), ordre au sommet `344a7db`. Fichiers lus à la source : tous dans `Fichiers chauds:` du ticket, hors le ticket lui-même. Deux questions tranchées : A-18 (ADR point 2 au ticket 3), A-19 (mineure). Neuf choix par défaut prudent notés sous `## Comments` du ticket.
+- 2026-11-28 03 h 12 UTC — PR #173 fusionnée par le capitaine à 02 h 51 UTC (`2436313`, 8.8.0) ; arbre identique au sommet ordonné `344a7db`, lu à la source. Session du ticket 2 archivée (finie, aucun réveil ; 15,91 $). Fusion écrite à l'architecte de « gouverner nos boucles ». Ticket 3 lancé depuis `main` (session_012xRpgYw3Ki5Zn9ykjuB7kr, opus), avec A-16 et A-18 dans sa ligne de situation, 8.9.0 attendue.
 
 ## Source
 
