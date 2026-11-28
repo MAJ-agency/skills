@@ -861,6 +861,41 @@ test('suite du lot 5 — un poste sans `jq` : `github.sh` sorti en 69, la passe 
   assert.deepEqual(ecritures(q), []);
 });
 
+// Ticket 122 (A-203 point 3) : sans `gh`, chaque lecture échouait en 5 et la veille faisait une pause sans fin.
+test('un poste sans `gh` : `preparer` sort en 6 avec sa cause, la passe, `jouer` et `distribuer` aussi ; la veille s’arrête, jamais une pause sans fin', () => {
+  const q = monter();
+  pr(q);
+  // Un PATH sans `gh` : les entrées de `<racine>/bin` (le faux `gh`) puis celles des dossiers du PATH, sauf `gh` ; `node` en lien direct.
+  const sansGh = join(q.racine, 'sans-gh');
+  mkdirSync(sansGh);
+  symlinkSync(process.execPath, join(sansGh, 'node'));
+  const vus = new Set(['gh', 'node']);
+  const entrees = (dossier) => {
+    try {
+      return readdirSync(dossier);
+    } catch {
+      return [];
+    }
+  };
+  for (const source of [join(q.racine, 'bin'), ...(process.env.PATH ?? '').split(':').filter((s) => s.startsWith('/'))])
+    for (const nom of entrees(source))
+      if (!vus.has(nom)) {
+        vus.add(nom);
+        symlinkSync(join(source, nom), join(sansGh, nom));
+      }
+  q.env.PATH = sansGh;
+  assert.notEqual(spawnSync('sh', ['-c', 'command -v gh'], { env: q.env }).status, 0, 'gh absent du PATH du jouet');
+  const p = q.lancer('passe');
+  assert.equal(p.status, 6, p.stdout + p.stderr);
+  assert.match(p.stderr, /^relecteur : gh \(GitHub CLI\) est requis par le Relecteur/m);
+  assert.equal(q.lancer('jouer', '12').status, 6);
+  assert.equal(distribuer(q, 'a'.repeat(40), 'opus/medium', 'session_rel1').status, 6);
+  const v = q.lancer('veille', '--pause', '0', '--sondes', '2');
+  assert.doesNotMatch(v.stdout, /^PAUSE /m);
+  assert.match(v.stdout, /\nVEILLE ARRÊTÉE sortie 6\nSOURDINES aucune\n$/);
+  assert.deepEqual(ecritures(q), []);
+});
+
 test('N9 — `completer` : une seconde session ajoutée au tour, `(complète)`', () => {
   const d = monter();
   d.talon('double-relecture.mjs', 'console.log("exigée"); process.exit(20);\n');

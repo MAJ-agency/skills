@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.6 — 2026-11-28
+## 8.9.7 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,16 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.9.6 — 2026-11-28
+
+### Ce qui change
+
+- **Le Relecteur s'arrête en 6 sans `gh`** (`A-203` (3)) : `preparer` vérifie la présence de `gh` et sort en 6, « gh (GitHub CLI) est requis par le Relecteur », comme pour `flock`. Avant, chaque lecture de GitHub échouait en 5 et la veille faisait une pause sans fin, sans une ligne à l'architecte.
+
+### Ce qu'un projet fait pour en profiter
+
+- Rien : `relecteur.mjs` se lance depuis le dossier du skill, jamais posé ; la mise à jour du plugin suffit.
 
 ## 8.9.5 — 2026-11-28
 
