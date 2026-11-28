@@ -4,10 +4,16 @@
 // (`apres-edition`, `fin-de-tour`, `demarrage`) disent la même chose et sortent en 0. Jamais une trace de pile.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const HOOKS = ['garde-commandes.mjs', 'garde-fichiers.mjs', 'garde-github.mjs', 'apres-edition.mjs', 'fin-de-tour.mjs', 'demarrage.mjs'];
 const MODULES = ['entree.mjs', 'regles.mjs'];
@@ -35,6 +41,7 @@ const CASSES = {
 /** Un dépôt jouet qui porte `scripts/agent/` ; `casse` : `{ fichier, facon }`, ou rien pour un dossier sain. */
 function jouet(casse) {
   const racine = mkdtempSync(join(tmpdir(), 'garde-illisible-'));
+  DOSSIERS.push(racine);
   execFileSync('git', ['init', '-q', '-b', 'feat/x', racine]);
   const agent = join(racine, 'scripts/agent');
   mkdirSync(agent, { recursive: true });
