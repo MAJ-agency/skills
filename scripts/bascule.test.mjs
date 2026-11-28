@@ -315,3 +315,11 @@ test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec 
   assert.ok(huit.includes("get_session") && huit.indexOf("get_session") < huit.indexOf("send_message"), section);
   assert.match(huit, /Archivée ou introuvable[^.]*conducteur/);
 });
+
+test("fusionner/SKILL.md : la boucle relancée relit les passages interrompus, une action manuelle pendant son démarrage serait lue comme un passage mort, la boucle du même capitaine termine un verrou tué (ticket 107, A-245)", () => {
+  const texte = lire(`${C}/fusionner/SKILL.md`);
+  exiger(entre(texte, "**Réveil de garde.**", "Suivre le journal avec un `Monitor`"), ["La boucle relancée relit au démarrage les passages interrompus", "`FUSIONNÉE (passage interrompu, relue sur GitHub au démarrage de la boucle)`", "termine leur commentaire de passage"], "Réveil de garde, point 3");
+  exiger(entre(texte, "- **Arrêter la veille (`TaskStop`)", "- **Rouge réelle ou instable"), ["Une action manuelle jouée pendant le démarrage de la boucle serait lue comme un passage mort"], "Arrêter la veille avant toute action manuelle");
+  exiger(entre(texte, "- **Plusieurs capitaines**", "Commentaires illisibles à la relecture"), ["**sauf si la boucle du même capitaine redémarre avant : elle le termine**"], "Plusieurs capitaines");
+  exiger(lire(`${C}/fusionner/references/CONTENU.md`), ["Un passage interrompu se relit sur GitHub (A-245, ticket 107", "La fusion vit sur GitHub, la ligne meurt avec le processus"], "CONTENU.md");
+});
