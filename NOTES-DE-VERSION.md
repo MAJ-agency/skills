@@ -2,6 +2,18 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.9.1 — 2026-11-28
+
+### Ce qui change
+
+- **Les textes nomment la commande de la demande, jamais sa forme à remplir** (`A-241` (3)) : `chaine-de-production.md` (étapes 5 et 6, le renvoi), le fragment `claude-md-fusion.md`, `issue-tracker.md`, `sujet`, `chantier` et `architecte` disent `node scripts/chaine/demande.mjs` avec les arguments du cas ; la forme `À relire — sommet <sha> — …` ne s'écrit plus qu'une fois, à l'étape 5, pour la lire, avec le repli quand le script est absent (le marketplace).
+- **Les deux champs, dits** (`A-235`) : le conducteur écrit `--conducteur —` sur ses propres PR, car son identifiant aux deux champs le réveillerait deux fois ; l'architecte écrit `--branche <tête de la PR> --session — --conducteur —` pour la PR d'une personne ou d'un outil.
+- **L'état d'une fille se lit avant de lui écrire** (`A-236`, `A-241` (5)) : le conducteur lit `get_session` avant tout `send_message`. Une fille archivée, `completed` ou `failed` ne reçoit rien : une PR renvoyée relance une fille sur sa branche ; une PR sans étiquette reçoit sa demande par le script, puis `à-relire`.
+
+### Ce qu'un projet fait pour en profiter
+
+Reposer les documents du régime 8 (`chaine-de-production.md`, le fragment `claude-md-fusion.md`, `issue-tracker.md`) pour avoir les textes neufs ; les skills se lisent dans le plugin.
+
 ## 8.9.0 — 2026-11-28
 
 ### Ce qui change
