@@ -19,7 +19,7 @@ disable-model-invocation: true
 
 | Qui                  | Fait                                                                                 | Ne fait jamais                                                    |
 | -------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push            | se relire, poser `à-fusionner`, fusionner, remettre sa branche à jour avec develop |
+| Session de travail   | demande la relecture (la ligne que rend `node scripts/chaine/demande.mjs`, puis `à-relire`) après son dernier push | se relire, poser `à-fusionner`, fusionner, remettre sa branche à jour avec develop |
 | Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus | relire, arbitrer, transporter un constat                      |
 | Capitaine            | fait passer la file dans l'ordre, juge par les verdicts, renvoie ce qui casse        | relire, résoudre le conflit de code d'une autre session, pousser en force |
 | Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)          | remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |

@@ -33,7 +33,8 @@
 #                       des PR, avant sa CI : ni fusionnée, ni mise à jour, ni renvoyée, ses jobs rouges jamais relancés ;
 #                       jamais en route, elle ne tient pas son sujet, quelle que soit sa CI (A-201)
 #   vers sujet/<nom>    vise develop, mais son ticket déclare `Sujet: sujet/<nom>` : boucle.sh la
-#                       recible (`sujet.sh regrouper`), sauf label `hors-sujet`
+#                       recible (`sujet.sh regrouper`), sauf label `hors-sujet` ; jamais une PR de fourche, classée
+#                       comme une PR directe (le sujet de son ticket n'est jamais le sien)
 #   (4e colonne « sujet livré : <nom> » : le ticket déclare un sujet déjà livré ; la PR est classée
 #                       comme une PR directe, boucle.sh lui pose `hors-sujet`)
 #   prête (à recibler sur sujet/<nom>)
@@ -133,7 +134,8 @@ while IFS="$(printf '\t')" read -r prio n sommet base brouillon bloquee hors_suj
   # Ticket cité (titre ou branche) → sujet déclaré.
   ticket=$(identifiant ticket-de-pr "$titre" "$tete" </dev/null)
   sujet_ticket=''
-  if [ -n "$ticket" ]; then
+  # Une PR de fourche ne lit pas le sujet de son ticket : il n'est jamais le sien (A-201).
+  if [ -n "$ticket" ] && [ "$fourche" = false ]; then
     sujet_ticket=$(awk -F '\t' -v t="$ticket" -v s="${ticket%.*}" '$1 == t { print $2; f = 1; exit }
       $1 == s { sp = $2 } END { if (!f && sp != "") print sp }' <<<"$carte")
   fi
