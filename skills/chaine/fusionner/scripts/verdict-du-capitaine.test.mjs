@@ -538,3 +538,208 @@ test("régime 7, passer.sh : un push reçu entre la lecture de la PR et le fetch
   assert.equal(r.status, 4, r.stdout + r.stderr);
   assert.match(dernier(r), /sans section « Revue de ticket » ni « Revue adversariale »/);
 });
+
+// ── Éligibilité avant la CI (ticket 105, A-243, A-256) ─────────────────────────────────────────────────────────────
+// `passer.sh --eligibilite` et `sujet.sh fusionner --eligibilite` jouent ce qui précède le verrou, sans rien écrire ; la
+// boucle les joue une fois par sommet sur une PR « CI en cours » (la sous-PR qui tient ou prend son sujet), et avant de
+// relancer une CI rouge. Le faux GitHub journalise toute écriture : aucune ne doit venir de l'option.
+const eligibiliteDe = (r, n) => [...r.stdout.matchAll(new RegExp(`^\\[#${n}\\] éligibilité avant la CI : sortie (\\d+)`, "gm"))].map((m) => Number(m[1]));
+
+test("régime 8, passer.sh --eligibilite : sans tour validé pour le sommet, sortie 4 et le motif ; validé, 0 ; aucune écriture (ni commentaire, ni label, ni push, ni verrou)", () => {
+  const d = monter();
+  const sha = versDevelop(d, { fil: () => [] });
+  const r = d.lancer(PASSER, "--eligibilite", "30");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /aucun tour de relecture validé pour le contenu de ce sommet \(/);
+  assert.deepEqual(d.journal(), [], "aucune écriture sur GitHub");
+  assert.equal(d.git("rev-parse", "origin/feat/a"), sha, "aucun push");
+  const ok = monter();
+  const avant = versDevelop(ok);
+  const r2 = ok.lancer(PASSER, "--eligibilite", "30");
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  assert.match(dernier(r2), /éligibilité avant la CI : régime 8, éligible au sommet /);
+  assert.deepEqual(ok.journal(), [], "aucune écriture sur GitHub, verrou compris");
+  assert.equal(ok.git("rev-parse", "origin/feat/a"), avant, "aucun push");
+  assert.deepEqual(fusions(ok), []);
+});
+
+test("régime 7 (sans la clé, ou PR ouverte avant `depuis`) et régime illisible, passer.sh --eligibilite : sortie 0, les commentaires jamais lus", () => {
+  const cas = [
+    [{ cheminsSensibles: [] }, {}],
+    [CONTRAT, { created_at: "2026-11-17T08:59:00Z" }],
+    [{ relecture: { depuis: "jamais" } }, {}],
+  ];
+  for (const [contrat, plus] of cas) {
+    const d = monter(contrat);
+    // Sans section de revue et sans verdict : un jugement les refuserait. La route des commentaires en panne : une lecture
+    // sortirait en 5.
+    versDevelop(d, { fichiers: { "scripts/x.sh": "echo x\n" }, titre: "feat(x): x", fil: () => [], plus, autres: { pannes: [{ route: "^issues/30/comments", fois: 2 }] } });
+    const r = d.lancer(PASSER, "--eligibilite", "30");
+    assert.equal(r.status, 0, `${JSON.stringify(contrat)} : ${r.stdout}${r.stderr}`);
+    assert.match(dernier(r), /éligibilité avant la CI : régime (7|illisible), rien à juger avant le passage/);
+    assert.equal(d.etat().pannes?.length, 1, "la panne des commentaires n'a pas été consommée");
+    assert.deepEqual(d.journal(), []);
+  }
+});
+
+test("régime 8, passer.sh --eligibilite : une livraison de sujet, dispensée de la revue, est renvoyée en 4 pour une migration plus ancienne que develop", () => {
+  const dossier = "apps/api/src/db/migrations";
+  const d = monter({ ...CONTRAT, migrations: `${dossier}/` });
+  d.git("switch", "-q", "-C", "sujet/lot", "origin/develop");
+  d.ecrire(`${dossier}/202611281000-lot.ts`, "// lot\n");
+  d.commit("feat(db): lot");
+  d.git("push", "-q", "origin", "HEAD:refs/heads/sujet/lot");
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.ecrire(`${dossier}/202612011000-livree.ts`, "// livrée\n");
+  d.commit("chore: develop");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "IN_PROGRESS" } },
+    pulls: [{ number: 30, title: "feat(lot): lot", head: "sujet/lot", base: "develop", labels: ["à-fusionner"], commentaires: [] }],
+  });
+  const r = d.lancer(PASSER, "--eligibilite", "30");
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /202611281000-lot\.ts.*202612011010-lot\.ts/);
+  assert.deepEqual(d.journal(), []);
+});
+
+test("régime 8, sujet.sh fusionner --eligibilite : sous-PR sans tour validé, sortie 4 ; sans CAPITAINE_ID, rien de refusé ; aucune écriture", () => {
+  const d = monter();
+  const sha = versSujet(d, { fil: () => [] });
+  const sansId = (j) => spawnSync("bash", [SUJET, "fusionner", "--eligibilite", "80"], { cwd: j.travail, env: Object.fromEntries(Object.entries(j.env).filter(([c]) => c !== "CAPITAINE_ID")), encoding: "utf8" });
+  const r = sansId(d);
+  assert.equal(r.status, 4, r.stdout + r.stderr);
+  assert.match(dernier(r), /^#80 aucun tour de relecture validé pour le contenu de ce sommet/);
+  assert.deepEqual(d.journal(), [], "aucune écriture sur GitHub");
+  assert.equal(d.git("rev-parse", "origin/docs/sous"), sha);
+  const ok = monter();
+  versSujet(ok);
+  const r2 = sansId(ok);
+  assert.equal(r2.status, 0, r2.stdout + r2.stderr);
+  assert.match(dernier(r2), /^#80 : éligibilité avant la CI : régime 8, éligible au sommet /);
+  assert.deepEqual(ok.journal(), []);
+  assert.deepEqual(fusions(ok), []);
+});
+
+// Le jouet de la boucle en régime 8 (comme le banc de la boucle plus haut) : la chaîne et ses calculs sur develop.
+function monterBoucle(contrat = CONTRAT) {
+  const d = monter(contrat);
+  d.publierChaine();
+  for (const nom of ["decision-relecteur.mjs", "verdict.mjs", "double-relecture.mjs", "meme-contenu.sh"]) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe("fusionner", nom), "utf8"));
+  d.ecrire("scripts/chaine/chemins-sensibles.mjs", readFileSync(scriptDe("revue-adversariale", "chemins-sensibles.mjs"), "utf8"));
+  d.commit("chore(chaine): calculs");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  return d;
+}
+// Sous-PR de `sujet/lot`, CI en cours sur tout commit. `perimees` : numéros dont le verdict porte sur un commit plus
+// ancien de leur branche (un push après le verdict) ; `sans` : numéros sans verdict.
+function sousPrEnCours(d, numeros, { perimees = [], sans = [] } = {}) {
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  const pulls = [];
+  const sommets = {};
+  for (const n of numeros) {
+    const premier = d.branche(`docs/pr-${n}`, "origin/sujet/lot", { [`docs/pr-${n}.md`]: `${n}\n` });
+    sommets[n] = perimees.includes(n) ? d.branche(`docs/pr-${n}`, `origin/docs/pr-${n}`, { [`docs/pr-${n}.md`]: `${n} bis\n` }) : premier;
+    const fil = sans.includes(n) ? [] : valide(premier);
+    pulls.push({ number: n, title: `docs(lot): pr ${n}`, head: `docs/pr-${n}`, base: "sujet/lot", labels: ["à-fusionner"], commentaires: fil });
+  }
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { "*": { qualite: "IN_PROGRESS" } }, pulls });
+  return sommets;
+}
+const tourDeBoucle = (d) => {
+  const r = d.lancer(scriptDe("fusionner", "boucle.sh"));
+  assert.match(r.stdout, /FILE VIDE/, r.stdout + r.stderr);
+  return r;
+};
+const labelsDe = (d, n) => d.etat().pulls.find((p) => p.number === n).labels;
+
+test("boucle.sh, régime 8 : la sous-PR « CI en cours » au verdict périmé qui tient son sujet est renvoyée au premier tour ; l'autre, qui attendait, prend le sujet et n'est contrôlée qu'ensuite", () => {
+  const d = monterBoucle();
+  sousPrEnCours(d, [80, 81], { perimees: [80] });
+  const r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [4], r.stdout);
+  assert.match(r.stdout, /^\[#80\] éligibilité avant la CI : sortie 4 : #80 aucun tour de relecture validé pour le contenu de ce sommet/m);
+  assert.match(r.stdout, /^\[#80\] RENVOI : #80 aucun tour de relecture validé/m);
+  assert.deepEqual(labelsDe(d, 80), ["fusion-bloquée"]);
+  // #81 attendait : aucune ligne d'éligibilité avant le renvoi de #80 ; le sujet rendu, elle le prend et est contrôlée.
+  const renvoi = r.stdout.indexOf("[#80] RENVOI");
+  const avantRenvoi = r.stdout.slice(0, renvoi);
+  assert.doesNotMatch(avantRenvoi, /^\[#81\] éligibilité avant la CI/m);
+  assert.deepEqual(eligibiliteDe(r, 81), [0], r.stdout);
+  assert.match(r.stdout, /^\[sujet\/lot\] tenu par #81 \(CI en cours\)$/m);
+  assert.deepEqual(labelsDe(d, 81), ["à-fusionner"]);
+});
+
+test("boucle.sh, régime 8 : seule la sous-PR qui tient son sujet est contrôlée ; au second tour, même sommet, aucun contrôle ; après un push, un contrôle", () => {
+  const d = monterBoucle();
+  sousPrEnCours(d, [80, 81], { sans: [81] });
+  let r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [0], r.stdout);
+  assert.match(r.stdout, /^\[#81\] attend son tour : #80 passe d'abord dans sujet\/lot$/m);
+  assert.deepEqual(eligibiliteDe(r, 81), [], "celle qui attend n'est pas lue");
+  assert.deepEqual(labelsDe(d, 81), ["à-fusionner"], "ni renvoyée");
+  r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [], `même sommet : aucun contrôle de plus\n${r.stdout}`);
+  // Un push de l'auteur après le verdict : sommet neuf, contrôlé, renvoyé.
+  d.branche("docs/pr-80", "origin/docs/pr-80", { "docs/pr-80.md": "80 ter\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [4], r.stdout);
+  assert.deepEqual(labelsDe(d, 80), ["fusion-bloquée"]);
+});
+
+test("boucle.sh, régime 8 : sommet illisible (`pulls/<n>` en panne) : aucun contrôle, rien de noté ; au tour suivant, le contrôle", () => {
+  const d = monterBoucle();
+  sousPrEnCours(d, [80], { perimees: [80] });
+  d.github({ pannes: [{ route: "^pulls/80$", fois: 1 }] });
+  let r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [], r.stdout);
+  assert.deepEqual(labelsDe(d, 80), ["à-fusionner"]);
+  r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 80), [4], r.stdout);
+  assert.deepEqual(labelsDe(d, 80), ["fusion-bloquée"]);
+});
+
+test("boucle.sh, régime 8 : une PR « CI rouge » sans tour validé est renvoyée pour son verdict, ses jobs jamais relancés", () => {
+  const d = monterBoucle();
+  d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { "*": { qualite: "FAILURE" } },
+    runs: { "#30": [{ id: 7, conclusion: "failure", run_attempt: 1 }] },
+    pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires: [] }],
+  });
+  const r = tourDeBoucle(d);
+  assert.deepEqual(eligibiliteDe(r, 30), [4], r.stdout);
+  assert.match(r.stdout, /^\[#30\] RENVOI : aucun tour de relecture validé pour le contenu de ce sommet/m);
+  assert.doesNotMatch(r.stdout, /\[#30\] RELANCE/);
+  assert.ok(!d.journal().some((e) => /rerun-failed-jobs$/.test(e.route)), "aucune relance des jobs");
+  assert.deepEqual(labelsDe(d, 30), ["fusion-bloquée"]);
+});
+
+test("boucle.sh, régime 7 : une PR « CI en cours » sans section de revue n'est ni contrôlée ni renvoyée ; une CI rouge est relancée comme avant", () => {
+  const d = monterBoucle(null);
+  const a = d.branche("feat/a", "origin/develop", { "scripts/a.sh": "echo a\n" });
+  d.branche("feat/b", "origin/develop", { "docs/b.md": "b\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({
+    exiges: ["qualite"],
+    checks: { [a]: { qualite: "IN_PROGRESS" }, "*": { qualite: "FAILURE" } },
+    runs: { "#31": [{ id: 7, conclusion: "failure", run_attempt: 1 }] },
+    pulls: [
+      { number: 30, title: "feat(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires: [] },
+      { number: 31, title: "docs(b): b", head: "feat/b", base: "develop", labels: ["à-fusionner"], commentaires: [] },
+    ],
+  });
+  const r = tourDeBoucle(d);
+  assert.doesNotMatch(r.stdout, /éligibilité avant la CI/, r.stdout);
+  assert.doesNotMatch(r.stdout, /RENVOI/);
+  assert.match(r.stdout, /^\[#31\] RELANCE des jobs rouges/m);
+  assert.ok(d.journal().some((e) => e.route === "actions/runs/7/rerun-failed-jobs"), "jobs relancés");
+  assert.deepEqual(labelsDe(d, 30), ["à-fusionner"]);
+});

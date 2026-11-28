@@ -4,7 +4,11 @@
 # `boucle.sh` s'arrête sur FILE VIDE ; une PR étiquetée `à-fusionner` ensuite n'est vue par
 # personne. La veille lance la boucle, puis sonde la file (une lecture GitHub, pas de CI) toutes
 # les `pause` secondes et relance la boucle dès qu'une PR est « prête » ou « CI rouge ». Une PR
-# « CI en cours », « attend », « bloquée » ou en brouillon ne relance rien d'elle-même.
+# « CI en cours », « attend », « bloquée » ou en brouillon ne relance rien d'elle-même ; sauf, en régime 8 (A-243, A-256),
+# « CI en cours » : si la clé `relecture` est sur `origin/develop` ou sur un `origin/sujet/*` (lue par `git show`, sans
+# github.sh), la sonde écrit « n en-cours » et une PR qui entre en « CI en cours » relance la boucle une fois, qui
+# contrôle son verdict avant sa CI. Un second push pendant la CI laisse la ligne inchangée : ce sommet se juge au
+# lancement suivant de la boucle, ou au passage.
 #
 # Une PR que la boucle vient de sauter reste « prête » : on ne relance que si la file contient
 # une ligne (numéro + état) absente de l'ensemble vu au dernier lancement ou à la dernière sonde.
@@ -281,14 +285,24 @@ lancer() {
 attentes=""
 expire=""
 tire=""
+# La clé `relecture` dans le contrat d'origin/develop ou d'un origin/sujet/* (lecture locale) : « CI en cours » se sonde.
+cle_relecture() {
+  local r
+  for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin/develop 'refs/remotes/origin/sujet/'); do
+    git show "$r:.claude/chaine.json" 2>/dev/null | jq -e 'type == "object" and has("relecture")' >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
 etat_file() {
-  local sortie
+  local sortie en_cours=0
   sortie=$(bash "$outils/file.sh" 2>/dev/null 7>&-) || return 1
-  printf '%s\n' "$sortie" | awk -F '\t' -v attentes="$attentes" '
+  ! cle_relecture || en_cours=1
+  printf '%s\n' "$sortie" | awk -F '\t' -v attentes="$attentes" -v en_cours="$en_cours" '
     { etat[$1] = $2 }
     $2 ~ /CI rouge/ { print $1 " rouge"; next }
     $2 ~ /sans CI/  { print $1 " sans-ci"; next }
-    $2 ~ /prête/    { print $1 " prête" }
+    $2 ~ /prête/    { print $1 " prête"; next }
+    en_cours == 1 && $2 ~ /CI en cours$/ { print $1 " en-cours" }
     END {
       k = split(attentes, a, " ")
       for (i = 1; i <= k; i++) {

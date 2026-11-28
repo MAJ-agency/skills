@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.2 — 2026-11-28
+## 8.9.3 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,20 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.9.2 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 seulement (la clé `relecture` dans le contrat de la base) ; rien ne change en régime 7.
+
+- **Le capitaine contrôle le verdict dès qu'il voit la PR, avant sa CI** (`A-243`, `A-256`) : `passer.sh --eligibilite <n>` et `sujet.sh fusionner --eligibilite <pr>` lisent d'abord le régime (7 ou illisible : sortie 0), puis jouent tout ce qui précède le verrou, sans verrou, commentaire, label ni push ; sorties 0, 4 (motif en dernière ligne), 7, 5, 3 (11 pour `sujet.sh`). `CAPITAINE_ID` n'est pas exigé par `sujet.sh fusionner --eligibilite`.
+- **La boucle** joue l'éligibilité une fois par sommet (`<git-common-dir>/boucle-eligibles`) sur une PR vers develop « CI en cours » et sur la sous-PR « CI en cours » qui tient ou prend son sujet, et avant de relancer une CI rouge : une sortie 4 renvoie la PR aussitôt, sans attendre sa CI ni relancer ses jobs ; la sous-PR rend son sujet. Chaque contrôle écrit `[#n] éligibilité avant la CI : sortie <k>`.
+- **La veille** sonde « CI en cours » sous la clé : une PR qui y entre relance la boucle une fois.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer les scripts de la chaîne** : rejouer `fusionner poser` et `sujet poser` (`passer.sh`, `boucle.sh`, `veille.sh`, `sujet.sh`). Sans repose, le verdict n'est contrôlé qu'au passage, comme avant.
 
 ## 8.9.1 — 2026-11-28
 
