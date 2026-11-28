@@ -1,6 +1,6 @@
 # Un tour à deux sessions de relecture n'annonce son refus qu'une fois ses deux verdicts sur la PR
 
-Status: ready-for-agent
+Status: Fait — PR 183 (`7ac2525`, plugin 8.9.7)
 Type: défaut
 Modèle: opus — le changement tient en quelques lignes de `decider`, mais il se place entre les règles 1, 3 et 4 de la décision du Relecteur, le cœur du régime 8. Son banc fait 1 264 lignes, et l'ordre des règles y est tenu cas par cas (`decision-relecteur.test.mjs:729-769`). Il faut lire l'existant avant de toucher une ligne. Rien n'est à concevoir hors des décisions ci-dessous. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
