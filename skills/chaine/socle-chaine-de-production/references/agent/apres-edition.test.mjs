@@ -2,15 +2,22 @@
 // enregistrent leur appel ; CLAUDE_PROJECT_DIR désigne le jouet.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const ICI = dirname(new URL(import.meta.url).pathname);
 
 function jouet({ eslintSort = 0, avecPrettier = true } = {}) {
   const racine = mkdtempSync(join(tmpdir(), 'apres-edition-'));
+  DOSSIERS.push(racine);
   mkdirSync(join(racine, 'scripts/agent'), { recursive: true });
   for (const f of ['entree.mjs', 'regles.mjs', 'apres-edition.mjs']) writeFileSync(join(racine, 'scripts/agent', f), readFileSync(join(ICI, f)));
   mkdirSync(join(racine, 'node_modules/.bin'), { recursive: true });

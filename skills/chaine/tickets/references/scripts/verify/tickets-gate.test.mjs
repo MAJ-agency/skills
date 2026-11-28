@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { ENV, depotJouet, script } from '../docs/depot-jouet.mjs';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const SCRIPT = script('verify/tickets.mjs');
 const DETTE = {
@@ -166,11 +172,13 @@ test('dette des fiches : gelée une fois, jamais agrandie, élaguée quand la ca
 });
 
 test('scripts/docs/identifiants.mjs absent : sortie 2, la grammaire du socle nommée', async () => {
-  const { cpSync, mkdtempSync } = await import('node:fs');
+  const { cpSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { dirname } = await import('node:path');
   const d = depotJouet();
-  const sans = join(mkdtempSync(join(tmpdir(), 'tickets-sans-grammaire-')), 'scripts/verify');
+  const hors = mkdtempSync(join(tmpdir(), 'tickets-sans-grammaire-'));
+  DOSSIERS.push(hors);
+  const sans = join(hors, 'scripts/verify');
   cpSync(dirname(SCRIPT), sans, { recursive: true });
   const r = spawnSync(process.execPath, [join(sans, 'tickets.mjs')], { cwd: d.travail, env: { ...ENV, PATH: d.bin, PROJET_RACINE: d.travail }, encoding: 'utf8' });
   assert.equal(r.status, 2, r.stderr);

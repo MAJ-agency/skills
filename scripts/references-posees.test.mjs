@@ -4,13 +4,12 @@
 // l'arbre du dépôt où il tourne, ou qui importe un chemin du plugin, y tombe. Dans le plugin, aucun contrat n'est à côté
 // des bancs : leur passage vert ici ne dit rien de leur passage dans un projet.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { environnementDeBanc } from '../skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs';
-import { bancsDesReferences, destinationDuDossier, poserLeSocle } from './pose-du-socle.mjs';
+import { bancsDesReferences, destinationDuDossier, jouerEnGroupe, poserLeSocle } from './pose-du-socle.mjs';
 
 // Plancher du nombre de tests joués (plus de 400 à l'écriture) : sous lui, le garde ne joue pas ce qu'il croit.
 const PLANCHER = 350;
@@ -30,7 +29,7 @@ test('destinationDuDossier : agent/ et scripts/<d>/ de references/ ont leur plac
 });
 
 for (const regime of [8, 7]) {
-  test(`les bancs de references/, posés dans un projet au régime ${regime} (contrat du gabarit), y passent`, { timeout: 900_000 }, (t) => {
+  test(`les bancs de references/, posés dans un projet au régime ${regime} (contrat du gabarit), y passent`, { timeout: 900_000 }, async (t) => {
     const racine = mkdtempSync(join(tmpdir(), `references-posees-${regime}-`));
     try {
       const projet = join(racine, 'projet');
@@ -47,15 +46,13 @@ for (const regime of [8, 7]) {
       // posé que la CI du plugin, qui n'en a pas, rougirait ; le jouet résout ses dépendances par son `node_modules`.
       const env = { ...environnementDeBanc(), TMPDIR: temporaire };
       delete env.NODE_PATH;
+      // Un poste qui garde les dépôts jouets (GARDER_JOUETS) laisserait des dossiers : l'assertion sur TMPDIR le lirait à tort.
+      delete env.GARDER_JOUETS;
       // Un banc à la fois : `pnpm test` joue déjà ses fichiers en parallèle. Les durées de `regles.test.mjs` se bornent en
       // étalons depuis le ticket 91 (une charge ne les fait plus dépasser) ; un à la fois garde le garde court en mémoire.
-      const r = spawnSync(process.execPath, ['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], {
-        cwd: projet,
-        env,
-        encoding: 'utf8',
-        timeout: 840_000,
-        maxBuffer: 64 * 1024 * 1024,
-      });
+      // Au délai, tout le groupe de processus est tué (A-259) : un banc qui a lancé un processus ne le laisse pas orphelin.
+      const r = await jouerEnGroupe(['--test', '--test-concurrency=1', '--test-reporter=tap', ...bancs], { cwd: projet, env, borne: 840_000 });
+      assert.equal(r.tue, false, `régime ${regime} : délai de 840 s atteint, groupe tué`);
       const compte = (nom) => Number((r.stdout.match(new RegExp(`^# ${nom} (\\d+)$`, 'm')) ?? [])[1]);
       const echecs = [...r.stdout.matchAll(/^not ok \d+ - (.*)$/gm)].map((m) => m[1]);
       t.diagnostic(`régime ${regime} : ${bancs.length} bancs, ${compte('tests')} tests, ${compte('pass')} verts, ${compte('skipped')} sautés`);
@@ -72,8 +69,45 @@ for (const regime of [8, 7]) {
       const vides = [...r.stdout.matchAll(/^ok \d+ - (.*)$/gm)].map((m) => m[1]).filter((nom) => bancs.includes(nom));
       assert.deepEqual(vides, [], `régime ${regime} : bancs posés qui n'écrivent aucun test`);
       assert.ok(compte('tests') >= PLANCHER, `régime ${regime} : ${compte('tests')} tests joués, plancher ${PLANCHER}`);
+      // Chaque banc retire ce qu'il crée (A-258) : un banc neuf qui laisse un dossier rougit ici, sans liste à tenir.
+      assert.deepEqual(readdirSync(temporaire), [], `régime ${regime} : dossiers laissés dans TMPDIR par les bancs posés`);
     } finally {
       rmSync(racine, { recursive: true, force: true });
     }
   });
 }
+
+// Un petit-enfant vivant à l'heure du délai : le kill par groupe le tue (A-259). Modèle : `lancer` de `tranches.mjs`.
+test('jouerEnGroupe : tué à sa borne, le groupe entier est mort, même quand un petit-enfant tient les flux', { timeout: 30_000 }, async () => {
+  const env = { PATH: process.env.PATH };
+  const script = "const { spawn } = require('node:child_process'); const e = spawn('sleep', ['60'], { stdio: 'inherit' }); console.log(e.pid); setInterval(() => {}, 1000);";
+  const debut = Date.now();
+  const p = jouerEnGroupe(['-e', script], { cwd: tmpdir(), env, borne: 1_000 });
+  let pid;
+  let minuterie;
+  try {
+    const r = await Promise.race([p, new Promise((_, refuse) => (minuterie = setTimeout(() => refuse(new Error('jouerEnGroupe : non résolu en 10 s')), 10_000)))]);
+    pid = Number(r.stdout.split('\n')[0]);
+    assert.equal(r.tue, true);
+    assert.ok(Date.now() - debut < 3_000, `résolue en ${Date.now() - debut} ms`);
+    assert.ok(pid > 0, r.stdout);
+    await new Promise((fin) => setTimeout(fin, 300));
+    const stat = `/proc/${pid}/stat`;
+    assert.ok(!existsSync(stat) || /^\d+ \(.*\) Z/.test(readFileSync(stat, 'utf8')), 'le petit-enfant est mort');
+  } finally {
+    clearTimeout(minuterie);
+    for (const cible of [pid && -pid, pid].filter(Boolean)) {
+      try {
+        process.kill(cible, 'SIGKILL');
+      } catch {}
+    }
+  }
+});
+
+test('jouerEnGroupe : non tué, chaque sortie reste à part et le statut est rendu', async () => {
+  const r = await jouerEnGroupe(['-e', "console.log('dehors'); console.error('erreur');"], { cwd: tmpdir(), env: { PATH: process.env.PATH }, borne: 10_000 });
+  assert.equal(r.tue, false);
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), 'dehors');
+  assert.equal(r.stderr.trim(), 'erreur');
+});
