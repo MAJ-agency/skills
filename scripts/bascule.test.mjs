@@ -308,3 +308,10 @@ test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle 
   exiger(socle, ["`{{DEPUIS}}` vaut l'instant de la pose, en UTC : `date -u +%Y-%m-%dT%H:%M:%SZ`", "puis l'« Étape 0 — poser » du skill `relecture`, lue et suivie de même dans son fichier, `~/.claude/plugins/marketplaces/maj/skills/chaine/relecture/SKILL.md`", "une entrée qui pré-approuve `create_session` quand `.claude/chaine.json` porte la clé `relecture`"], "socle SKILL.md");
   assert.ok(lire(`${C}/relecture/SKILL.md`).includes("## Étape 0 — poser"), "le skill relecture a son étape 0");
 });
+
+test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée (ticket 106, A-236)", () => {
+  const section = entre(lire(`${C}/fusionner/SKILL.md`), "## Renvoyer une PR", "## Fin de passage");
+  const huit = section.slice(section.indexOf("**Régime 8**"));
+  assert.ok(huit.includes("get_session") && huit.indexOf("get_session") < huit.indexOf("send_message"), section);
+  assert.match(huit, /Archivée ou introuvable[^.]*conducteur/);
+});

@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.3 — 2026-11-28
+## 8.9.4 — 2026-11-28
 
 ### Ce qui change
 
@@ -11,6 +11,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait
 
 Rien à reposer : `scripts/poses.test.mjs`, `scripts/references-posees.test.mjs`, `scripts/tranches.mjs` et `scripts/sautes-admis.mjs` ne sont jamais posés.
+
+## 8.9.3 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 seulement ; rien ne change en régime 7 (le worktree propriétaire reste).
+
+- **Le renvoi nomme la session et le conducteur de la demande** (`A-244`, `A-256` (3)) : `renvoyer.sh` lit les commentaires de la PR (`demande_de_la_pr`, par `lireMarques` en mode tolérant) et écrit `session de la demande` et `conducteur de la demande` à la place de la ligne du worktree, que le capitaine ne trouve pas en session cloud. Une demande modifiée ne compte pas (`A-227`). Sans demande intacte, ou commentaires illisibles, une ligne dit de prévenir le conducteur du chantier, sinon son lanceur ; le renvoi lui-même est posé comme avant.
+- **Le geste du capitaine** (`A-236`) : `get_session` avant `send_message` ; une session archivée ou introuvable ne reçoit rien, le conducteur nommé en est prévenu.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `renvoyer.sh` et `github.sh` (`fusionner poser`). Sans repose, le renvoi donne encore le worktree.
 
 ## 8.9.2 — 2026-11-28
 
