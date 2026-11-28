@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.5.2 — 2026-11-27
+## 8.6.1 — 2026-11-27
 
 ### Ce qui change
 
@@ -14,6 +14,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait pour en profiter
 
 - **Rien** : le script et le prompt sont lus dans le plugin, aucun `poser`.
+
+## 8.6.0 — 2026-11-27
+
+### Ce qui change
+
+- **Au plafond de sa propre PR, l'architecte écrit la décision de plafond** (`A-5`, `P-1`) : `Décision de plafond — …`, bloquant par bloquant (corrigé dans la PR, parti en suite avec son commentaire `Suite`, ou écarté avec son `Arbitrage`), et le produit en est informé en une ligne. Avant, les skills la renvoyaient au produit.
+- **Trois limites**, écrites dans `architecte/SKILL.md` § 5 seul : un bloquant sur une règle de criticité haute reste décidé par le produit (l'architecte lit le niveau dans le fichier de la règle, dans le doute le produit décide) ; l'arbitrage d'une contestation sur une PR de l'architecte reste au produit ; le produit est informé en une ligne.
+- **Rien ne change** pour la PR d'une fille ou d'un conducteur. Aucun script ne change.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Le skill `architecte`** est lu dans le plugin : rien à reposer pour lui.
+- Un projet en régime 8 qui veut la règle dans ses propres documents amende le point 5 de son ADR de la relecture indépendante et repose `docs/agents/chaine-de-production.md` (tableau des rôles), dans une PR de son dépôt.
 
 ## 8.5.1 — 2026-11-27
 
