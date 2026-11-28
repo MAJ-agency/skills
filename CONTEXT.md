@@ -69,7 +69,7 @@ La réponse de l'auteur à un bloquant qu'il juge faux, écrite sur la PR.
 La décision d'un arbitre, qui n'est jamais l'auteur, de maintenir ou d'écarter un bloquant contesté.
 
 **Décision de plafond**:
-Ce que décide l'architecte après le troisième tour refusé d'une PR. Ce plafond compte des tours de relecture, pas la mémoire de travail d'une session (« Plafond », plus bas).
+Ce que décide l'architecte après le troisième tour refusé d'une PR. Ce plafond compte des tours de relecture, pas la mémoire de travail d'une session (« Plafond », plus bas). Au plafond de sa propre PR, voir le skill `architecte`, § 5.
 _Avoid_: arbitrage
 
 **Étiquette**:

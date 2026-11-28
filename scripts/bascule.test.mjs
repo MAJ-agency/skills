@@ -167,7 +167,15 @@ test("l'architecte en régime 8 : le Relecteur lancé et relevé, l'arbitrage et
     "et le produit en est informé en une ligne, le conducteur aussi, qui la dit à la fille (sur sa propre PR, il la suit) : l'auteur redemande la relecture, sans quoi la PR reste `à-reprendre`, hors de la file du Relecteur",
     "et supprimé d'abord ses réveils en attente (`list_triggers`, les entrées dont `persistent_session_id` est cette session, `delete_trigger`)",
     "celles de ses propres PR, l'architecte les archive lui-même, la PR fusionnée",
+    "Au plafond d'une PR dont il est l'auteur, l'architecte écrit `Décision de plafond — …`",
+    "avec son commentaire `Suite — <objet> — <ticket ou PR>`",
+    "Un bloquant sur une règle de criticité haute reste décidé par le produit.",
+    "l'architecte lit son niveau dans le fichier de la règle ; dans le doute, le produit décide",
   ], "architecte § 5");
+  assert.ok(!suivi.includes("au plafond d'une PR de l'architecte, le produit décide"), "§ 5 ne renvoie plus au produit le plafond d'une PR de l'architecte");
+  const adr = lire(`${C}/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md`);
+  assert.ok(!adr.includes("le produit pour une PR de l'architecte"), "l'ADR ne renvoie plus au produit le plafond d'une PR de l'architecte");
+  assert.ok(adr.includes("(le contenu de sa décision : skill `architecte`, § 5)"), "l'ADR renvoie à § 5");
   assert.ok(suivi.indexOf("- **En régime 8, une PR livrée**") < suivi.indexOf("- **Une PR livrée, en régime 7 ou dans un dépôt sans la chaîne,**"), "le régime 8 d'abord, puis le régime 7 et le dépôt sans la chaîne");
   const repose = entre(texte, "## 8. La repose d'un dépôt au régime 8", "## Ne jamais");
   const points = repose.split("\n").filter((l) => /^\d\. /.test(l));
