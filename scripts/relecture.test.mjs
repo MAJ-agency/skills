@@ -1817,11 +1817,18 @@ test("le périmètre figé (ticket 3) : depuis, joué comme la session le joue, 
   const r = jouer("3\tdocs/glossaire.md\n1\tdocs/glossaire.md\n6\tdocs/glossaire.md\n2\tdocs/neuf.md\n");
   assert.equal(r.status, 0, r.sortie);
   assert.deepEqual(r.stdout.trim().split("\n"), ["1 : modifiée", "2 : inchangée", "3 : modifiée", "4 : modifiée, fichier absent du sommet précédent", "depuis : sortie 0"], "une ligne modifiée, une inchangée, une ajoutée, un fichier neuf");
+  const sansFin = jouer("3\tdocs/glossaire.md\n1\tdocs/glossaire.md");
+  assert.deepEqual([sansFin.status, sansFin.stdout.trim().split("\n")], [0, ["1 : modifiée", "2 : inchangée", "depuis : sortie 0"]], `la dernière ligne sans fin de ligne se lit : ${sansFin.sortie}`);
   for (const [nom, contenu, sha, cause] of [
     ["un sommet précédent introuvable", "1\tdocs/glossaire.md\n", "f".repeat(40), `sommet précédent introuvable dans le clone : ${"f".repeat(40)}`],
     ["un sommet précédent hors de sa forme", "1\tdocs/glossaire.md\n", precedent.slice(0, 7), "sommet précédent hors de sa forme : 40 caractères hexadécimaux"],
     ["un fichier hors du diff relu", "1\tdocs/ailleurs.md\n", precedent, "docs/ailleurs.md n'est pas au diff relu"],
     ["une ligne illisible", "x\tdocs/glossaire.md\n", precedent, "ligne illisible : x"],
+    // Les entrées piégées (S19) : la variante la plus proche qui ne doit pas se lire, et une fin de ligne CRLF.
+    ["une ligne 0", "0\tdocs/glossaire.md\n", precedent, "ligne illisible : 0"],
+    ["une ligne à zéro de tête", "03\tdocs/glossaire.md\n", precedent, "ligne illisible : 03"],
+    ["une ligne suivie d'une espace", "3 \tdocs/glossaire.md\n", precedent, "ligne illisible : 3 "],
+    ["une fin de ligne CRLF", "3\tdocs/glossaire.md\r\n", precedent, "docs/glossaire.md\r n'est pas au diff relu"],
     ["depuis.txt absent", null, precedent, "depuis.txt absent : une ligne par constat bloquant gardé, « <ligne><TAB><fichier> »"],
   ]) {
     const e = jouer(contenu, sha);
