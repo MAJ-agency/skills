@@ -155,3 +155,74 @@ test("renvoyer.sh : une PR empilée se lit sur develop, où elle sera reciblée 
   assert.equal(r2.status, 0, r2.stdout + r2.stderr);
   assert.ok(commentaire(s).includes(`Corriger, puis redemander la relecture : ${DEMANDE}`), commentaire(s));
 });
+
+// Ticket 106 (A-244, A-256 (3), A-227, A-236) : en régime 8, le renvoi nomme les deux sessions de la dernière demande
+// `À relire` intacte ; le worktree propriétaire reste le chemin du régime 7.
+const ASSOCIE = "OWNER";
+const T = (h) => `2026-11-17T${h}:00:00Z`;
+const lecture = (corps, h, plus = {}) => ({ body: corps, created_at: T(h), updated_at: T(h), association: ASSOCIE, ...plus });
+const unRenvoi = (commentaires, { contratD = HUIT, pannes } = {}) => {
+  const d = depotJouet();
+  contrat(d, contratD);
+  d.branche("feat/a", "origin/develop", { "docs/a.md": "a\n" });
+  d.github({ pulls: [{ number: 30, title: "docs(a): a", head: "feat/a", base: "develop", labels: ["à-fusionner"], commentaires }], ...(pannes ? { pannes } : {}) });
+  const r = d.lancer(RENVOYER, "30", "aucun tour de relecture validé");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  return { d, sortie: r.stdout };
+};
+const sha = "a".repeat(40);
+
+test("renvoyer.sh : en régime 8, deux demandes intactes, la seconde fait foi : sa session et son conducteur, plus de ligne du worktree", () => {
+  const { sortie, d } = unRenvoi([
+    lecture(demande({ sommet: sha, session: "session_premiere", conducteur: "session_chefun" }), "10"),
+    lecture(demande({ sommet: sha, session: "session_seconde", conducteur: "session_chefdeux" }), "11"),
+  ]);
+  assert.match(sortie, /\[#30\] session de la demande : session_seconde\n/);
+  assert.match(sortie, /\[#30\] conducteur de la demande : session_chefdeux\n/);
+  assert.doesNotMatch(sortie, /worktree propriétaire/);
+  assert.deepEqual(d.etat().pulls[0].labels, ["fusion-bloquée"]);
+});
+
+test("renvoyer.sh : en régime 8, la seule demande modifiée ne nomme personne : — et —, et la ligne « aucune demande »", () => {
+  const { sortie } = unRenvoi([lecture(demande({ sommet: sha, session: "session_a", conducteur: "session_c" }), "10", { updated_at: T("11") })]);
+  assert.match(sortie, /\[#30\] session de la demande : —\n/);
+  assert.match(sortie, /\[#30\] conducteur de la demande : —\n/);
+  assert.match(sortie, /\[#30\] aucune demande À relire intacte sur la PR : prévenir le conducteur du chantier, sinon son lanceur\n/);
+  assert.doesNotMatch(sortie, /worktree propriétaire/);
+});
+
+test("renvoyer.sh : en régime 8, une marque presque à la forme n'empêche pas de nommer la demande intacte (mode tolérant)", () => {
+  const { sortie } = unRenvoi([
+    lecture(demande({ sommet: sha, session: "session_a", conducteur: "session_c" }), "10"),
+    lecture("À relire — pas à la forme de la demande", "11"),
+  ]);
+  assert.match(sortie, /\[#30\] session de la demande : session_a\n/);
+  assert.match(sortie, /\[#30\] conducteur de la demande : session_c\n/);
+  assert.doesNotMatch(sortie, /illisible/);
+});
+
+test("renvoyer.sh : en régime 8, `Conducteur: —` : la ligne du conducteur dit —", () => {
+  const { sortie } = unRenvoi([lecture(demande({ sommet: sha, session: "session_a", conducteur: "—" }), "10")]);
+  assert.match(sortie, /\[#30\] session de la demande : session_a\n/);
+  assert.match(sortie, /\[#30\] conducteur de la demande : —\n/);
+});
+
+test("renvoyer.sh : GitHub en panne sur les commentaires, régime 8 : renvoi posé, ligne « demande illisible » ; régime 7 : la ligne du worktree, aucune lecture", () => {
+  const pannes = [{ route: "^issues/30/comments", fois: 6 }];
+  const huit = unRenvoi([], { pannes });
+  assert.match(huit.sortie, /\[#30\] demande illisible \(.+\) : prévenir le conducteur du chantier, sinon son lanceur\n/);
+  assert.doesNotMatch(huit.sortie, /worktree propriétaire/);
+  assert.deepEqual(huit.d.etat().pulls[0].labels, ["fusion-bloquée"]);
+  assert.match(huit.d.etat().pulls[0].commentaires.at(-1).body ?? huit.d.etat().pulls[0].commentaires.at(-1), /Renvoyée par le capitaine de fusion/);
+  const sept = unRenvoi([], { contratD: { cheminsSensibles: [] }, pannes });
+  assert.match(sept.sortie, /\[#30\] worktree propriétaire : /);
+  assert.doesNotMatch(sept.sortie, /demande/);
+});
+
+test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée", () => {
+  const skill = readFileSync(join(scriptDe("fusionner", "SKILL.md"), "..", "..", "SKILL.md"), "utf8");
+  const section = skill.slice(skill.indexOf("## Renvoyer une PR"), skill.indexOf("## Fin de passage"));
+  const huit = section.slice(section.indexOf("**Régime 8**"));
+  assert.ok(huit.includes("get_session") && huit.indexOf("get_session") < huit.indexOf("send_message"), section);
+  assert.match(huit, /Archivée ou introuvable[^.]*conducteur/);
+});

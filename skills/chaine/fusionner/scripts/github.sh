@@ -464,6 +464,39 @@ regime_de_la_pr() {
 # `head.sha`, `title`, `created_at`). Illisible : sortie 5.
 pr_json() { lire_github "$DEPOT/pulls/$1"; }
 
+# La dernière demande `À relire` intacte d'une PR (A-244), pour que le renvoi nomme les deux sessions que la demande
+# nomme déjà : `demande_de_la_pr <n>` écrit `<session> <conducteur>` sur une ligne (`—` pour l'absent), lus par
+# `lireMarques` de `decision-relecteur.mjs` en mode tolérant, jamais par une expression de plus. Une demande modifiée
+# après sa création ne compte pas (A-227 : `lireMarques` ne la met pas dans `demandes`). Sorties : 0 lue ; 1 aucune
+# demande intacte ; 5 commentaires illisibles (GitHub) ; 21 `LectureIllisible` levée malgré `tolerant`.
+demande_de_la_pr() {
+  local brut
+  brut=$(lire_github "$DEPOT/issues/$1/comments?per_page=100" --paginate) || return 5
+  # Un `--paginate` concatène des tableaux : un seul tableau, ou rien.
+  brut=$(jq -s 'if all(.[]; type == "array") then add else error("pages") end' <<<"$brut" 2>/dev/null) || {
+    echo "GitHub illisible ($DEPOT/issues/<n>/comments) : pages qui ne sont pas des tableaux" >&2
+    return 5
+  }
+  local dossier
+  dossier=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  node --input-type=module -e '
+    const lecteur = await import(process.argv[1]);
+    const verdict = await import(process.argv[2]);
+    let texte = "";
+    for await (const morceau of process.stdin) texte += morceau;
+    try {
+      const { demandes } = lecteur.lireMarques(JSON.parse(texte), { tolerant: true });
+      const d = demandes.at(-1);
+      if (d === undefined) process.exit(1);
+      process.stdout.write(`${d.auteur ?? "—"} ${d.conducteur ?? "—"}\n`);
+    } catch (e) {
+      if (!(e instanceof verdict.LectureIllisible)) throw e;
+      process.stderr.write(`${e.message}\n`);
+      process.exit(21);
+    }
+  ' "$dossier/decision-relecteur.mjs" "$dossier/verdict.mjs" <<<"$brut"
+}
+
 # La revue d'une PR au passage du capitaine, selon son régime (lot 5a) : `revue_du_capitaine <json de la PR> <sommet>
 # <base>`, les fichiers du diff propre sur l'entrée standard (celui que la relecture lit). Joue `revue-exigee.mjs`, à côté
 # de ce fichier, avec `--ouverte` (le `created_at` de la PR : le régime, A-97), `--tete <sommet>` et les commentaires de la
