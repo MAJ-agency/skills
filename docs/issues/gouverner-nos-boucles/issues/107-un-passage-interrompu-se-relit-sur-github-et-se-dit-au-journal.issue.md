@@ -1,6 +1,6 @@
 # Un passage interrompu se relit sur GitHub et se dit au journal : une fusion n'est plus perdue avec la machine du capitaine
 
-Status: ready-for-agent
+Status: Fait — PR 181 (`b5c7ac3`, plugin 8.9.5)
 Type: défaut
 Modèle: sonnet — un témoin de fichier posé et retiré par le verrou du passage de `github.sh`, une lecture au démarrage de `boucle.sh`, le sha de fusion rendu par le faux GitHub des bancs, deux phrases du skill et leurs bancs ; la forme et l'ordre sont fixés par les décisions `A-245` et `A-256` (4) et (5). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 106

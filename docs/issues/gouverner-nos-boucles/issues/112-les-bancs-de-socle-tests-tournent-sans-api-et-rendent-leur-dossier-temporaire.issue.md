@@ -1,6 +1,6 @@
 # Les bancs de `socle-tests` tournent dans un projet sans API, et rendent leur dossier temporaire
 
-Status: ready-for-agent
+Status: Fait — PR 171 (`b0e112d`, plugin 8.5.2)
 Type: défaut
 Modèle: sonnet — un import rendu paresseux et deux tests sautés avec leur raison dans `mutation-regles.test.mjs`, une phrase aux étapes 4 et 5 de `socle-tests`, et un `after()` qui retire les dossiers créés dans trois bancs ; rien à concevoir hors des décisions `A-257` et `A-258`. Le correctif de `mutation-regles.test.mjs` a été joué en écrivant ce ticket (« Vérification »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

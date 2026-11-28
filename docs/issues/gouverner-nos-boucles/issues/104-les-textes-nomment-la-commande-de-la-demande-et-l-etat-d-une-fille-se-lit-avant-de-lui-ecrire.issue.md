@@ -1,6 +1,6 @@
 # Les textes nomment la commande de la demande `À relire`, jamais sa forme à remplir ; et le conducteur lit l'état d'une fille avant de lui écrire
 
-Status: ready-for-agent
+Status: Fait — PR 177 (`533b64b`, plugin 8.9.1)
 Type: défaut
 Modèle: sonnet — des phrases dans sept textes et leur banc de texte, sans code ; la commande est celle du ticket 101 ; les règles sont les décisions `A-235`, `A-236` et `A-241` (3) et (5). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 101

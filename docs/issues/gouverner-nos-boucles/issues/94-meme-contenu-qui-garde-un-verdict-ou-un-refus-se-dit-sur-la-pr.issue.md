@@ -1,6 +1,6 @@
 # Quand « même contenu propre » garde un verdict ou un refus, le Relecteur l'écrit sur la PR, une fois, avec la raison du calcul
 
-Status: ready-for-agent
+Status: Fait — PR 170 (`6f05d71`, plugin 8.7.0)
 Type: défaut
 Modèle: opus — une trace neuve dans la décision que partagent le Relecteur et le capitaine (`decision-relecteur.mjs`), un geste neuf, l'écriture dans `jouer` entre la pose et le retrait des étiquettes, et leurs bancs ; la forme et la place de la note sont les décisions `A-224` et `A-239`. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

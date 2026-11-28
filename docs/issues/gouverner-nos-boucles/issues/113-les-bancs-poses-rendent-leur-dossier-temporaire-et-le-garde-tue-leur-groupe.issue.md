@@ -1,6 +1,6 @@
 # Les bancs posés rendent leur dossier temporaire, le garde le vérifie et tue leur groupe à son délai, et un banc prouve le refus d'éditer un index généré
 
-Status: ready-for-agent
+Status: Fait — PR 171 (`b0e112d`, plugin 8.5.2)
 Type: défaut
 Modèle: sonnet — le même `after()` dans neuf bancs, une assertion et un lanceur par groupe de processus dans le garde `references-posees.test.mjs`, un cas de plus dans `garde-fichiers.test.mjs` ; rien à concevoir hors des décisions `A-258` à `A-260`. Le cas de l'index généré et sa mutation ont été joués en écrivant ce ticket. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 112 commité sur la branche

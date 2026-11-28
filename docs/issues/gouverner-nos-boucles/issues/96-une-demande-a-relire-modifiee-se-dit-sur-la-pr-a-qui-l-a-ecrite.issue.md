@@ -1,6 +1,6 @@
 # Une demande `À relire` modifiée se dit, sur la PR et à qui l'a écrite : elle n'est plus écartée en silence
 
-Status: ready-for-agent
+Status: Fait — PR 170 (`6f05d71`, plugin 8.7.0)
 Type: défaut
 Modèle: opus — une lecture de plus dans `lireMarques` (les demandes modifiées et une seconde trace hors de `dernier`, à la règle inverse de la note du ticket 94), un geste de plus dans `decider` placé avant la règle 1, une écriture de plus dans `jouer`, la table du skill, et leurs bancs ; la forme et la place sont les décisions `A-227` et `A-228`, l'ordre `A-232`. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 94, 95

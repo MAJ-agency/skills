@@ -1,6 +1,6 @@
 # Le renvoi nomme la session et le conducteur de la demande `À relire` : le capitaine prévient l'auteur sans chercher un worktree
 
-Status: ready-for-agent
+Status: Fait — PR 179 (`6009e57`, plugin 8.9.3)
 Type: défaut
 Modèle: sonnet — une lecture de plus dans `renvoyer.sh` (les commentaires de la PR, lus par `lireMarques` de `decision-relecteur.mjs`, en mode tolérant), deux lignes de sortie, la section « Renvoyer une PR » du skill et ses bancs ; la règle est fixée par les décisions `A-244`, `A-256` (3) et (5), `A-227` et `A-236`. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 96, 101, 105 commité sur la branche

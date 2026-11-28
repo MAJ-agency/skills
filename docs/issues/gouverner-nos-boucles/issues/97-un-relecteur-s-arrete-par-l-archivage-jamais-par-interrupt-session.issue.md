@@ -1,6 +1,6 @@
 # Un Relecteur s'arrête par l'archivage de sa session, jamais par `interrupt_session` : le geste est écrit, et l'ancien est archivé avant qu'un neuf parte
 
-Status: ready-for-agent
+Status: Fait — PR 174 (`bab98df`, plugin 8.8.1)
 Type: défaut
 Modèle: sonnet — du texte dans quatre fichiers de skill et un banc de texte, sans code ; la règle est fixée par les décisions `A-229`, `A-231` et `A-232`. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 96

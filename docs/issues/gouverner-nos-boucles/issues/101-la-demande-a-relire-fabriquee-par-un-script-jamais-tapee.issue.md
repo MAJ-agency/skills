@@ -1,6 +1,6 @@
 # La demande `À relire` est fabriquée par un script, jamais tapée : le sommet lu par git, les deux champs vérifiés
 
-Status: ready-for-agent
+Status: Fait — PR 176 (`c15f90a`, plugin 8.9.0)
 Type: défaut
 Modèle: sonnet — un script court et son banc, un message de `github.sh` et son banc, une entrée de banc des points d'entrée, deux lignes de texte du skill `fusionner` ; l'interface, les sorties et la règle des champs sont fixées par les décisions `A-234`, `A-235` et `A-241` (3) et (4). Les textes qui nomment la commande et la lecture de l'état d'une fille sont le ticket 104. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 96

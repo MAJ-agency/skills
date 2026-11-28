@@ -1,6 +1,6 @@
 # Une spec trop longue entre dans le message de `criticite` par son en-tête et les sections qui citent la règle ; le plafond reste, et la sortie dit ce qui est retenu
 
-Status: ready-for-agent
+Status: Fait — PR 169 (`7a0af35`, plugin 8.6.1)
 Type: amélioration
 Modèle: sonnet. Une fonction pure de découpage (titres, clôtures), le tri appelé par la ligne de commande seulement au-delà du plafond, une note dans le message, une phrase du prompt, deux paragraphes de `SKILL.md`, deux assertions de banc retournées (`scripts/depot.test.mjs:886` et `:901`) et sept bancs neufs. Rien n'est à concevoir hors des décisions `A-250` à `A-252`. Le découpage a été essayé en écrivant ce ticket (« Ce qui a été joué »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

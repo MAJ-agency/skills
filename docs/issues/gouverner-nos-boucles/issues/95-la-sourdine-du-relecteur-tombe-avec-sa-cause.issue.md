@@ -1,6 +1,6 @@
 # La sourdine de la veille du Relecteur tombe d'elle-même quand sa cause disparaît
 
-Status: ready-for-agent
+Status: Fait — PR 170 (`6f05d71`, plugin 8.7.0)
 Type: défaut
 Modèle: sonnet — une option de `veille` qui prend une clé au lieu d'un numéro, sa levée calculée par le script, la ligne `SOURDINES` que la veille rend, le texte du skill qui suit ; la forme et les cas de levée sont les décisions `A-225` et `A-239` (2) et (3). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 94

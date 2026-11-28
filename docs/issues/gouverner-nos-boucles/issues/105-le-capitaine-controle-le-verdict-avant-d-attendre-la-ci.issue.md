@@ -1,6 +1,6 @@
 # Le capitaine contrôle le verdict avant d'attendre la CI : une PR au verdict périmé est renvoyée dès qu'il la voit
 
-Status: ready-for-agent
+Status: Fait — PR 178 (`36accb9`, plugin 8.9.2)
 Type: défaut
 Modèle: opus — une option de lecture seule dans `passer.sh` et dans `sujet.sh fusionner`, qui lit le régime d'abord et s'arrête avant le verrou ; un geste de plus dans `boucle.sh` (la PR « CI en cours », et avant la relance d'une CI rouge) ; une ligne de sonde de plus dans `veille.sh`, et leurs bancs. L'interface, les sorties et la portée sont fixées par les décisions `A-243` et `A-256` (1) et (2). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 101

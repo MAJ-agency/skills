@@ -1,6 +1,6 @@
 # Un index généré que « même contenu propre » dispense n'est jamais jugé par `C1` : il va au capitaine, sur toute PR
 
-Status: ready-for-agent
+Status: Fait — PR 168 (`e8b36a7`, plugin 8.5.1)
 Type: défaut
 Modèle: sonnet — un tri de liste à changer dans `gestes.sh` et un bloc à remonter avant une sortie anticipée, la règle récrite dans cinq références et `SKILL.md`, des assertions de banc retournées et cinq bancs neufs ; rien à concevoir hors de la décision `A-223`. Le correctif et ses valeurs ont été essayés en écrivant ce ticket (« Ce qui a été joué »). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

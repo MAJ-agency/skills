@@ -1,6 +1,6 @@
 # Un test sauté sans déclaration dans un banc posé rougit la suite, et une seule liste fermée tient les sauts admis
 
-Status: ready-for-agent
+Status: Fait — PR 180 (`bfa7fc0`, plugin 8.9.4)
 Type: défaut
 Modèle: sonnet — une ligne de plus dans le rapporteur de `tranches.mjs`, une option de `conclure`, la lecture des lignes neuves dans `poses.test.mjs`, et la liste `SAUTES` de `references-posees.test.mjs` déplacée dans un module neuf que les deux gardes lisent. Rien à concevoir hors des décisions `A-266` à `A-268`. Le comportement de Node 22 sur lequel repose le ticket a été joué en l'écrivant (« Vérification », 2). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
