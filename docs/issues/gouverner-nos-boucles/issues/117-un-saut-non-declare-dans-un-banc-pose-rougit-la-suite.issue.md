@@ -1,11 +1,11 @@
 # Un test sauté sans déclaration dans un banc posé rougit la suite, et une seule liste fermée tient les sauts admis
 
-Status: needs-triage
+Status: ready-for-agent
 Type: défaut
 Modèle: sonnet — une ligne de plus dans le rapporteur de `tranches.mjs`, une option de `conclure`, la lecture des lignes neuves dans `poses.test.mjs`, et la liste `SAUTES` de `references-posees.test.mjs` déplacée dans un module neuf que les deux gardes lisent. Rien à concevoir hors des décisions `A-266` à `A-268`. Le comportement de Node 22 sur lequel repose le ticket a été joué en l'écrivant (« Vérification », 2). Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —
 Dépendances: —
-Fichiers chauds: `scripts/tranches.mjs` (`conclure` 273-287 ; `RAPPORTEUR` 374-385) ; `scripts/tranches.test.mjs` (le test de `conclure`, 253-295, inchangé ; deux tests neufs en fin de fichier, après 410) ; `scripts/poses.test.mjs` (la lecture du rapport, 99-103 ; l'appel de `conclure`, 129) ; `scripts/references-posees.test.mjs` (`SAUTES`, 16-20 ; la comparaison, 59-60 et 66) ; **neuf** `scripts/sautes-admis.mjs` ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. Le ticket 114 (`needs-info`) touche `scripts/pose-du-socle.mjs` : la liste ne va pas dans ce fichier, d'où le module neuf. Le ticket 116 rejoue `scripts/references-posees.test.mjs` : la seconde PR à entrer le rejoue sur `main`. Le ticket 106 (PR #179) ne touche aucun de ces fichiers ; sa contre-relecture a sorti de son banc posé le test de texte sauté qui a révélé ce défaut (le test va dans `scripts/bascule.test.mjs`). Les tickets 107, 108, 109 et 115 ne touchent aucun de ces fichiers hors des deux fichiers de version. Lignes lues sur `origin/main` à `36accb9` (plugin 8.9.2).
+Fichiers chauds: `scripts/tranches.mjs` (`conclure` 273-287 ; `RAPPORTEUR` 374-385) ; `scripts/tranches.test.mjs` (le test de `conclure`, 253-295, inchangé ; deux tests neufs en fin de fichier, après 410) ; **neuf** `scripts/sautes-admis.test.mjs` ; `scripts/poses.test.mjs` (la lecture du rapport, 99-103 ; l'appel de `conclure`, 129) ; `scripts/references-posees.test.mjs` (`SAUTES`, 16-20 ; la comparaison, 59-60 et 66) ; **neuf** `scripts/sautes-admis.mjs` ; `.claude-plugin/plugin.json` et `NOTES-DE-VERSION.md`. Le ticket 114 (`needs-info`) touche `scripts/pose-du-socle.mjs` : la liste ne va pas dans ce fichier, d'où le module neuf. Le ticket 116 rejoue `scripts/references-posees.test.mjs` : la seconde PR à entrer le rejoue sur `main`. Le ticket 106 (PR #179) ne touche aucun de ces fichiers ; sa contre-relecture a sorti de son banc posé le test de texte sauté qui a révélé ce défaut (le test va dans `scripts/bascule.test.mjs`). Les tickets 107, 108, 109 et 115 ne touchent aucun de ces fichiers hors des deux fichiers de version. Lignes lues sur `origin/main` à `36accb9` (plugin 8.9.2).
 
 ## Le besoin
 
@@ -29,12 +29,12 @@ Décidées le 2026-11-28 par l'architecte : **`A-266`**, **`A-267`** et **`A-268
 
 1. **`A-266` — Une seule liste, dans un module neuf, lue par les deux gardes.** `scripts/sautes-admis.mjs` exporte `SAUTES`, un tableau gelé de `{ banc, nom, raison }`. `banc` est le chemin du banc **dans le projet** (`scripts/github/pr-titre.test.mjs`), le même dans les deux gardes. Le module exporte aussi `sautesAttendus(bancs)`, qui rend les entrées dont le `banc` est dans `bancs`, triées par `banc` puis par `nom`. L'entrée d'aujourd'hui : ``{ banc: "scripts/github/pr-titre.test.mjs", nom: "le workflow donne PR_OUVERTE, la date d’ouverture de la PR, comme les autres entrées : par `env:`", raison: "le workflow vit sous .github/workflows/ dans un projet ; le banc ne le lit que dans le plugin" }`` (le nom recopié de `pr-titre.test.mjs:308`, à la lettre). L'en-tête du module reprend la phrase de `references-posees.test.mjs:16` : un autre saut est un banc qui ne se juge plus une fois posé. Pourquoi une seule liste : le saut de `pr-titre.test.mjs` est vu par les deux gardes. Avec deux listes, il serait écrit deux fois, avec deux raisons qui divergeraient. Pourquoi pas `pose-du-socle.mjs` : le ticket 114 le touche, et `poses.test.mjs` ne l'importe pas.
 2. **`A-267` — Le rapporteur écrit les sauts, et `conclure` les juge.**
-   - `RAPPORTEUR` écrit en plus, pour **tout** `test:pass` qui porte `data.skip` ou `data.todo`, quels que soient son niveau et son type (suite comprise), une ligne `{ saute: <nom>, sorte: "skip" | "todo" }`. La ligne `{ nom }` des tests de niveau 0 ne change pas ; un test de niveau 0 sauté écrit les deux lignes. Un test filtré par `--test-name-pattern` ou par `--test-skip-pattern` n'émet aucun événement sous Node 22 : les tranches et le reste n'écrivent pas de faux saut.
-   - `poses.test.mjs:101` lit les deux sortes de lignes : `noms` (lignes à `nom`) et `sautes` (lignes à `saute`), rendus dans le résultat du travail. Il passe `admis: sautesAttendus(bancs)` à `conclure` (`:129`).
+   - `RAPPORTEUR` écrit en plus, pour **tout** `test:pass` qui porte `data.skip` ou `data.todo` et pour **tout** `test:fail` qui porte `data.todo`, quels que soient son niveau et son type (suite comprise), une ligne `{ saute: <nom>, sorte: "skip" | "todo" }`. La ligne `{ nom }` des tests de niveau 0 ne change pas ; un test de niveau 0 sauté écrit les deux lignes. Un « todo » dont le corps échoue sort en `test:fail` portant `data.todo`, et `node --test` sort 0 quand même (joué : « Vérification », 2) : sans la lecture des `test:fail`, il passerait sans faute. Un test filtré par `--test-name-pattern` ou par `--test-skip-pattern` n'émet aucun événement sous Node 22 : les tranches et le reste n'écrivent pas de faux saut.
+   - `poses.test.mjs:101` lit les deux sortes de lignes : `noms` (les seules lignes qui portent `nom`, filtrées : une ligne `saute` n'y entre jamais, sinon la couverture compterait un nom `undefined`) et `sautes` (lignes à `saute`, avec leur `sorte`), rendus dans le résultat du travail. Il passe `admis: sautesAttendus(bancs)` à `conclure` (`:129`).
    - `conclure` prend une option `admis` (par défaut `[]`) et lit `r.sautes` (par défaut `[]`). Il rattache chaque saut au `banc` de son travail et ajoute trois fautes :
      - `<banc> : « <nom> » est sauté sans être dans SAUTES (scripts/sautes-admis.mjs) : le rendre jugeable une fois posé, ou l'y déclarer avec sa raison`, pour un saut hors de la liste ;
      - `<banc> : « <nom> » est en todo : jamais jugé`, pour tout « todo » (aucun n'est admis, comme à `references-posees.test.mjs:65`) ;
-     - `<banc> : « <nom> » est dans SAUTES mais n'a pas été sauté : retirer l'entrée`, pour une entrée admise non vue, jugée seulement quand le plafond n'est pas atteint (sinon, la faute du plafond dit déjà les travaux non joués).
+     - `<banc> : « <nom> » est dans SAUTES mais n'a pas été sauté : retirer l'entrée`, pour une entrée admise non vue. La comparaison porte sur le couple `(banc, nom)` des seules lignes de `sorte` « skip » : un saut de même nom dans un autre banc, ou un « todo » de même nom, ne satisfait pas l'entrée. Cette faute est jugée seulement quand le plafond n'est pas atteint (sinon, la faute du plafond dit déjà les travaux non joués).
    - `bilan`, la couverture et le plancher ne changent pas : un test sauté compte toujours comme joué une fois.
 3. **`A-268` — `references-posees.test.mjs` lit la même liste ; les sauts de `socle-tests` sans API n'y entrent pas.**
    - `SAUTES` quitte `references-posees.test.mjs:16-20` pour un import de `./sautes-admis.mjs`. L'assertion de `:66` devient `assert.deepEqual([...sautes].sort(), sautesAttendus(bancs).map((s) => s.nom).sort(), …)`, avec le même message. Le TAP ne nomme pas le fichier d'un test : la comparaison reste par noms, sur les seuls bancs de ce garde.
@@ -53,7 +53,8 @@ Décidées le 2026-11-28 par l'architecte : **`A-266`**, **`A-267`** et **`A-268
 | `scripts/references-posees.test.mjs:16-20`, `:66` | **change à dessein** : `SAUTES` importée, la comparaison sur `sautesAttendus(bancs)`, triée ; même message, même résultat aujourd'hui (le seul saut de `pr-titre.test.mjs`) |
 | `scripts/tranches.test.mjs:253-295` | **inchangé** : `conclure` sans `admis` ni `sautes` rend les mêmes fautes et les mêmes diagnostics |
 | `scripts/tranches.test.mjs:385-405` | **inchangé** : le banc jouet n'a aucun saut ; il lit `JSON.parse(l).nom`, et aucune ligne `saute` n'y est écrite |
-| `scripts/tranches.test.mjs`, après 410 | deux tests neufs (« Surfaces ») |
+| `scripts/tranches.test.mjs`, après 410 | deux tests neufs (« Surfaces ») : le rapporteur, `conclure` |
+| `scripts/sautes-admis.test.mjs` | **neuf** : un test, `sautesAttendus` (« Surfaces ») ; `pnpm test` le joue déjà (`scripts/*.test.mjs`) |
 | `.claude-plugin/plugin.json`, `NOTES-DE-VERSION.md` | la version, la note (décision 4) |
 
 Modèles : `references-posees.test.mjs:59-66` pour la lecture des sauts et leur message ; `tranches.test.mjs:385-405` pour un vrai banc jouet joué sous le rapporteur, en texte constant, sans valeur interpolée (`A-157`).
@@ -61,7 +62,7 @@ Modèles : `references-posees.test.mjs:59-66` pour la lecture des sauts et leur 
 ## À faire, dans l'ordre
 
 1. **Partir de `main`** : une branche neuve depuis `origin/main` ; relire chaque ligne citée.
-2. **Les bancs, rouges** : les deux tests neufs de `tranches.test.mjs` (le rapporteur n'écrit pas encore de saut, `conclure` ne lit pas `admis`).
+2. **Les bancs, rouges** : les deux tests neufs de `tranches.test.mjs` (le rapporteur n'écrit pas encore de saut, `conclure` ne lit pas `admis`) et celui de `sautes-admis.test.mjs` (le module absent). Trois tests neufs en tout.
 3. **`sautes-admis.mjs`**, puis **`RAPPORTEUR`** et **`conclure`** (décisions 1 et 2), puis **`poses.test.mjs`**, puis **`references-posees.test.mjs`** (décision 3). Les bancs verts.
 4. Un commit ; la version et sa note.
 5. **Les mutations**, puis **la vérification**.
@@ -70,10 +71,10 @@ Modèles : `references-posees.test.mjs:59-66` pour la lecture des sauts et leur 
 
 | Surface | Banc |
 | --- | --- |
-| `RAPPORTEUR` sur un banc jouet constant qui porte `test("a", (t) => { t.skip("raison"); })`, `test("b", { todo: "plus tard" }, …)`, `test("c", async (t) => { await t.test("sous", { skip: true }, …); })`, `test.skip("d", …)`, `describe("e", () => { it.skip("f", …); })` et `test("g", …)` : les lignes `saute` sont exactement `a` skip, `b` todo, `sous` skip, `d` skip, `f` skip ; les lignes `nom` sont celles d'aujourd'hui (`a`, `b`, `c`, `d`, `g`) | `tranches.test.mjs`, test neuf |
-| le même banc joué avec `--test-skip-pattern=^g$` : aucune ligne `saute` pour `g` | de même |
-| `conclure` : un saut admis vu, aucune faute ; un saut hors de la liste, sa faute ; un « todo », sa faute ; une entrée admise non vue, sa faute ; la même avec `depasse` vrai, pas de faute « n'a pas été sauté » ; sans `admis` ni `sautes`, les fautes d'aujourd'hui | `tranches.test.mjs`, test neuf |
-| `sautesAttendus` : les entrées des seuls bancs donnés, triées | de même |
+| `RAPPORTEUR` sur un banc jouet constant qui porte `test("a", (t) => { t.skip("raison"); })`, `test("b", { todo: "plus tard" }, …)`, `test("b2", { todo: true }, () => { throw new Error("x"); })`, `test("c", async (t) => { await t.test("sous", { skip: true }, …); })`, `test.skip("d", …)`, `describe("e", () => { it.skip("f", …); })` et `test("g", …)` : le joueur sort 0 ; les lignes `saute` sont exactement `a` skip, `b` todo, `b2` todo, `sous` skip, `d` skip, `f` skip ; les lignes `nom` sont celles d'aujourd'hui (`a`, `b`, `b2`, `c`, `d`, `g`) | `tranches.test.mjs`, test neuf |
+| le même banc joué avec `--test-skip-pattern=^g$` : aucune ligne `saute` pour `g` ; puis avec `--test-name-pattern=^a$` : la seule ligne `saute` est `a`, aucune pour les tests filtrés | de même |
+| `conclure` : un saut admis vu, aucune faute ; un saut hors de la liste, sa faute ; un « todo », sa faute ; une entrée admise non vue, sa faute ; une entrée admise vue seulement dans un autre banc, ou seulement en « todo », sa faute « n'a pas été sauté » ; la même avec `depasse` vrai, pas de faute « n'a pas été sauté » ; sans `admis` ni `sautes`, les fautes d'aujourd'hui | `tranches.test.mjs`, test neuf |
+| `sautesAttendus` : les entrées des seuls bancs donnés, triées par `banc` puis `nom` ; `SAUTES` gelé | `scripts/sautes-admis.test.mjs`, test neuf |
 | les bancs posés sous `scripts/chaine/` et `scripts/github/` : le saut de `pr-titre.test.mjs` vu et admis, rien d'autre | `scripts/poses.test.mjs`, vert |
 | les bancs de `references/`, régimes 8 et 7 : même résultat qu'aujourd'hui | `scripts/references-posees.test.mjs`, vert |
 
@@ -84,17 +85,18 @@ Chacune seule, le fichier remis après : chacune rouge.
 | Mutation | Rougit |
 | --- | --- |
 | `{ skip: true }` ajouté au premier test de `skills/chaine/sujet/scripts/sujet.test.mjs` (un saut hors de la liste) | `poses.test.mjs` : « est sauté sans être dans SAUTES » |
-| `it.skip` (ou `t.skip()`) dans un sous-test d'un banc de `scripts/chaine/` joué entier | `poses.test.mjs`, de même (le rapporteur écrit les sauts de tout niveau) |
+| dans le premier test de `skills/chaine/sujet/scripts/sujet-refs.test.mjs` (`:30`), un sous-test `await t.test("sous", { skip: true }, () => {})` : le banc, à sous-tests, se joue entier, et aucun banc posé n'en écrit aujourd'hui (`tranches.test.mjs:161`) | `poses.test.mjs` : « est sauté sans être dans SAUTES » (le sous-test, niveau 1) ; `tranches.test.mjs:161` rougit aussi, à juste titre |
 | `{ todo: true }` ajouté à un test de `skills/chaine/fusionner/scripts/` | `poses.test.mjs` : « est en todo » |
 | l'entrée de `pr-titre.test.mjs` retirée de `SAUTES` | `poses.test.mjs` (saut hors de la liste) et `references-posees.test.mjs`, régimes 8 et 7 |
 | une entrée de plus dans `SAUTES`, sur un test de `scripts/chaine/` qui n'est pas sauté | `poses.test.mjs` : « n'a pas été sauté » |
 | `RAPPORTEUR` qui n'écrit les sauts qu'au niveau 0 | le test neuf du rapporteur (`sous`, `f`) |
+| `RAPPORTEUR` qui ne lit que `test:pass` | le test neuf du rapporteur (`b2`) |
 | `conclure` qui ignore `admis` (toute ligne `saute` acceptée) | le test neuf de `conclure` |
 
 ## Vérification
 
-1. Les bancs ciblés : `env -u NODE_PATH node --test scripts/tranches.test.mjs`, rouge à l'étape 2 et vert après ; puis `env -u NODE_PATH node --test scripts/poses.test.mjs scripts/references-posees.test.mjs`, en tâche de fond, verts.
-2. Joué en écrivant ce ticket, sous Node 22.23 : `pr-titre.test.mjs` posé sous `scripts/github/` d'un jouet (avec `scripts/chaine/`, `scripts/docs/` et `scripts/verify/` posés), TAP `# skipped 1`, la ligne `ok 12 - le workflow donne PR_OUVERTE… # SKIP`. Sous un rapporteur qui écrit les événements, ce test sort en `test:pass` avec `skip: true`, au niveau 0. `t.skip("raison")` sort avec `skip: "raison"`, `{ todo }` avec `todo`, un sous-test sauté au niveau 1, `describe.skip` en `test:pass` de niveau 0 avec `skip`, et `it.skip` dans un `describe` au niveau 1. Un test filtré par `--test-name-pattern` ou `--test-skip-pattern` n'émet rien.
+1. Les bancs ciblés : `env -u NODE_PATH node --test scripts/tranches.test.mjs scripts/sautes-admis.test.mjs`, rouge à l'étape 2 et vert après ; puis `env -u NODE_PATH node --test scripts/poses.test.mjs scripts/references-posees.test.mjs`, en tâche de fond, verts.
+2. Joué en écrivant ce ticket, sous Node 22.23 : `pr-titre.test.mjs` posé sous `scripts/github/` d'un jouet (avec `scripts/chaine/`, `scripts/docs/` et `scripts/verify/` posés), TAP `# skipped 1`, la ligne `ok 12 - le workflow donne PR_OUVERTE… # SKIP`. Sous un rapporteur qui écrit les événements, ce test sort en `test:pass` avec `skip: true`, au niveau 0. `t.skip("raison")` sort avec `skip: "raison"`, `{ todo }` avec `todo`, un « todo » dont le corps lève en `test:fail` avec `todo: true` (le joueur sort 0), un sous-test sauté au niveau 1, `describe.skip` en `test:pass` de niveau 0 avec `skip`, et `it.skip` dans un `describe` au niveau 1. Un test filtré par `--test-name-pattern` ou `--test-skip-pattern` n'émet rien (`--test-name-pattern=^a$` : la seule ligne est `a`).
 3. Les mutations : toutes rouges.
 4. La suite entière, seule, en tâche de fond, sans `NODE_PATH` : `env -u NODE_PATH timeout 1800 pnpm test`, sortie 0, `# fail 0`, `# tests` égal à `# pass` plus `# skipped`. Le relevé part du compte de `main` au départ, plus les tests neufs ; il est recopié dans la PR. La session lit le job `bancs` de sa PR avant de rendre la main (`A-212`).
 
@@ -112,3 +114,4 @@ Chacune seule, le fichier remis après : chacune rouge.
 ## Comments
 
 - 2026-11-28 — Écrit par un agent rédacteur sur `origin/main` à `36accb9` (plugin 8.9.2), sur le constat de la contre-relecture de la PR #179. Les sauts des 43 bancs des dossiers posés ont été relevés par grep. Le saut de `pr-titre.test.mjs` posé et les événements de Node 22 pour chaque forme de saut ont été joués.
+- 2026-11-28 — Retouche après relecture : le « todo » qui échoue (`test:fail` portant `todo`) écrit sa ligne `saute`, joué sous Node 22.23 ; cas `b2` et sa mutation ; `--test-name-pattern` au banc jouet ; `sautes-admis.test.mjs` neuf ; le couple `(banc, nom)` de la faute « n'a pas été sauté » ; le filtre de `noms` ; la mutation du sous-test nommée sur `sujet-refs.test.mjs`. `Status: ready-for-agent`.
