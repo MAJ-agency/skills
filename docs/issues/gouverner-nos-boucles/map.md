@@ -320,6 +320,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgZQxMdGWQVpZLwjW26` | ticket   | 94-96  | 12,15  | 352 223           |
 | `session_012xRpgZ3p7QKTGQMk6PCpGn` | ticket   | 112-113 | 2,24  | 185 557           |
 | `session_012xRpgYmSs5i82jVB5gBscL` | ticket   | 97     | 1,10   | 150 108           |
+| `session_012xRpgaV6v5hPdomx3qHQqc` | ticket   | 101    | 1,30   | 162 508           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1550,3 +1551,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 03 h 45 UTC. PR #176 (ticket 101, 8.9.0, sommet `bc572f6`) : tour 1 conforme (agent neuf) ; l'écart sur `messages-du-regime.test.mjs:142` et `:156` jugé plus strict, pas assoupli ; M1, M8, M9 jugées rouges à la lecture. Elle attend la fusion de #174 pour se remettre sur `main` (8.9.0 au-dessus de 8.8.1). Remarques laissées : une branche sans commit sort en 12 plutôt qu'en 1 ; `README.md` ne cite pas `demande.mjs`.
 - 2026-11-28 — 04 h 06 UTC. **PR #174 fusionnée** (ticket 97) : `main` à `bab98df`, parent `2436313`, arbre égal au sommet ordonné `183874c`, plugin 8.8.1 ; vérifié à la source. Session 97 archivée (1,10 $). PR #176 : gestes de remise sur `main` envoyés (section 8.9.0 sha256 `ac3d72a…`, arbre attendu `e41d153…`).
 - 2026-11-28 — 04 h 16 UTC. PR #176 (ticket 101) : `CodeQL` et `Analyze` verts au sommet `074a3b0` ; verdict, ordre et label posés ; `bancs` en cours. Contrôle de vie : session 97 archivée ; 101 finie, à archiver après la fusion.
+- 2026-11-28 — 04 h 48 UTC. **PR #176 fusionnée** (ticket 101) : `main` à `c15f90a`, parent `bab98df`, arbre égal au sommet ordonné `074a3b0`, plugin 8.9.0 ; vérifié à la source. Session 101 archivée (1,30 $). Question à l'architecte de « périmètre figé » sur les fichiers de ses tickets 3 et 4 avant de lancer 104 et 105.
