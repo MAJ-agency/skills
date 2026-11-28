@@ -10,15 +10,15 @@ const { depotJouet, script: scriptDe } = await import(
   existsSync(new URL("./depot-jouet.mjs", import.meta.url)) ? "./depot-jouet.mjs" : "../../sujet/scripts/depot-jouet.mjs"
 );
 const { lireMarques } = await import(pathToFileURL(scriptDe("fusionner", "decision-relecteur.mjs")).href);
+const { demande } = await import(pathToFileURL(scriptDe("fusionner", "demande.mjs")).href);
 
-// La demande que le message fait écrire, remplie comme il le dit, se lit comme une demande du Relecteur (`FORME_DEMANDE`),
-// jamais comme une marque presque à la forme qui ferait sauter la PR à chaque passage (contre-relecture de la PR 149).
-const DEMANDE = "le commentaire `À relire — sommet <sha> — Session: <id> — Conducteur: <id>`, seul dans son commentaire, sur une ligne : le sha entier (40 caractères) du dernier push, ton id de session, celui de ton conducteur (`—` sans conducteur)";
+// Le message nomme la commande qui fabrique la demande, et la ligne que cette commande rend se lit comme une demande du
+// Relecteur (`FORME_DEMANDE`), jamais comme une marque presque à la forme qui ferait sauter la PR à chaque passage.
+const DEMANDE = "le commentaire que rend `node scripts/chaine/demande.mjs --session <ton id de session> --conducteur <celui de ton conducteur, — sans conducteur>`, copié tel quel, seul dans son commentaire (le script lit le sommet dans git et refuse un sommet non poussé)";
 const demandeLue = (texte) => {
-  const gabarit = /`(À relire — sommet <sha> — Session: <id> — Conducteur: <id>)`/.exec(texte)?.[1];
-  assert.ok(gabarit, `la forme de la demande est dite : ${texte}`);
+  assert.match(texte, /`node scripts\/chaine\/demande\.mjs --session <[^>]+> --conducteur <[^>]+>`/, `la commande est dite : ${texte}`);
   for (const conducteur of ["session_conducteur", "—"]) {
-    const corps = gabarit.replace("<sha>", "a".repeat(40)).replace("<id>", "session_auteur").replace("<id>", conducteur);
+    const corps = demande({ sommet: "a".repeat(40), session: "session_auteur", conducteur });
     const m = lireMarques([{ id: 1, body: corps, created_at: "2026-11-17T12:00:00Z", updated_at: "2026-11-17T12:00:00Z", author_association: "OWNER" }]);
     assert.equal(m.demandes.length, 1, corps);
   }
@@ -73,7 +73,7 @@ test("renvoyer.sh : une réception de develop en deux fusions, en régime 8, fai
   d.github({ pulls: [{ number: 81, title: "chore(sujet): met lot à jour avec develop", head: "maj/lot", base: "develop", labels: ["à-fusionner"] }] });
   const r = d.lancer(RENVOYER, "81", "#81, PR de mise à jour : une seule fusion de develop, jamais une seconde fusion");
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(commentaire(d), /la nouvelle PR demande sa relecture, le commentaire `À relire — sommet <sha> — Session: <id> — Conducteur: <id>`, seul dans son commentaire, .* ; puis l'étiquette `à-relire`, jamais `à-fusionner`/);
+  assert.match(commentaire(d), /la nouvelle PR demande sa relecture, le commentaire que rend `node scripts\/chaine\/demande\.mjs --session <ton id de session> --conducteur <celui de ton conducteur, — sans conducteur>`, copié tel quel, seul dans son commentaire .* ; puis l'étiquette `à-relire`, jamais `à-fusionner`/);
   demandeLue(commentaire(d));
 });
 
@@ -139,7 +139,7 @@ test("renvoyer.sh : une PR empilée se lit sur develop, où elle sera reciblée 
   d.github({ pulls: [{ number: 30, title: "docs(f): f", head: "feat/fille", base: "feat/parente", labels: ["à-fusionner"] }] });
   const r = d.lancer(RENVOYER, "30", "PR empilée sur feat/parente en régime 8 : la recibler sur develop, puis demander sa relecture");
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(commentaire(d), /Corriger, puis redemander la relecture : le commentaire `À relire — /);
+  assert.ok(commentaire(d).includes(`Corriger, puis redemander la relecture : ${DEMANDE}`), commentaire(d));
   assert.doesNotMatch(commentaire(d), /remettre `à-fusionner`/);
   // La clé sur le seul sujet (develop ne l'a pas) : une sous-PR de ce sujet est en régime 8.
   const s = depotJouet();
@@ -153,5 +153,5 @@ test("renvoyer.sh : une PR empilée se lit sur develop, où elle sera reciblée 
   s.github({ pulls: [{ number: 80, title: "docs(s): s", head: "docs/sous", base: "sujet/lot", labels: ["à-fusionner"] }] });
   const r2 = s.lancer(RENVOYER, "80", "aucun tour de relecture validé");
   assert.equal(r2.status, 0, r2.stdout + r2.stderr);
-  assert.match(commentaire(s), /Corriger, puis redemander la relecture : le commentaire `À relire — /);
+  assert.ok(commentaire(s).includes(`Corriger, puis redemander la relecture : ${DEMANDE}`), commentaire(s));
 });
