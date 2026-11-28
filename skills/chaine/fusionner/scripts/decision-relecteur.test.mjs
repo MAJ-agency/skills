@@ -3,7 +3,7 @@
 // jouet, aucun processus, aucune horloge : l'instant est une entrée.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ILLISIBLE, MENTION_ARBITRAGE, TEXTE_ILLISIBLE, TEXTE_PANNE, TEXTE_PLAFOND, decider, ecrireDistribution, lireDistribution, lireMarques, sommetsDesTours, tourValide, tours } from './decision-relecteur.mjs';
+import { ILLISIBLE, MENTION_ARBITRAGE, TEXTE_ILLISIBLE, TEXTE_PANNE, TEXTE_PLAFOND, decider, ecrireDistribution, ecrireNote, lireDistribution, lireMarques, sommetsDesTours, tourValide, tours } from './decision-relecteur.mjs';
 import { LectureIllisible, PIED, ecrireVerdict } from './verdict.mjs';
 
 const [V1, V2, V3, V4, T, V5, T2] = ['a', 'b', 'c', 'd', 'e', 'f', '9'].map((c) => c.repeat(40));
@@ -46,6 +46,7 @@ const LIGNES = (texte) => [
   { a: 'auteur', session: 'session_auteur', texte },
   { a: 'conducteur', session: 'session_conducteur', texte },
 ];
+const ECART_96 = (id) => `Demande écartée — commentaire ${id} modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié`;
 const RIEN_EN_PLACE = (regle) => ({ regle, geste: 'rien', raison: 'etiquette-en-place' });
 const HORS_FILE = { regle: null, geste: 'rien', raison: 'hors-file' };
 const comptes = (champs) => {
@@ -279,7 +280,7 @@ test('H15 — renvoi du capitaine pour un contrôle instable : `fusion-bloquée`
 test("H16 — sous-PR mise à jour par le capitaine : « même contenu propre » rendu vrai, la PR garde son verdict (r2, rien) ; rendu faux ou absent, `à-reprendre` (r3)", () => {
   const valide = fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), `Passage du capitaine \`cap-1\` depuis 10:04 UTC, tour 2\n<!-- capitaine:passage cap-1 -->\n\n---\n${PIED}`);
   const mise = { commentaires: valide, etiquettes: ['à-fusionner'], tete: T };
-  assert.deepEqual(joue({ ...mise, memeContenu: { [V1]: true } }), RIEN_EN_PLACE(2));
+  assert.deepEqual(joue({ ...mise, memeContenu: { [V1]: true } }), { regle: 2, geste: 'noter', note: { tour: 1, sommet: V1, verdict: 'validé' }, lignes: [] });
   assert.equal(tourValide(pr({ ...mise, memeContenu: { [V1]: true } })).numero, 1, 'le capitaine juge par la même définition');
   for (const memeContenu of [{}, { [V1]: false }, { [V1]: 'même' }, { [V1]: 1 }]) {
     assert.equal(joue({ ...mise, memeContenu }).regle, 3, JSON.stringify(memeContenu));
@@ -663,11 +664,13 @@ test("A-115 — renvoi du capitaine en cours, refus d'une session remplacée, é
   assert.equal(joue({ commentaires: avant, tete: V2 }).raison, 'attente');
   assert.equal(tourValide(pr({ commentaires: avant, tete: V2 })), null);
   assert.equal(joue({ commentaires: fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r2', 'validé'), D(1, V1, ['r1', 'r2'], 'complète'), verdict(1, 'r1', 'validé')), exiges: 2 }).raison, 'attente', 'la session complétée avait écrit avant d\'être nommée');
-  // Une demande `À relire` d'un compte sans droit, ou éditée, ne donne pas ses destinataires.
-  for (const hors of [{ de: 'NONE' }, { edite: true }]) {
-    const lignes = joue({ commentaires: fil({ corps: DEMANDE(), ...hors }, D(1, V1, ['r1']), verdict(1, 'r1', 'validé')) }).lignes;
+  // Une demande `À relire` d'un compte sans droit, ou éditée, ne donne pas ses destinataires. Éditée, elle rend d'abord
+  // `signaler` (ticket 96) ; sa trace écrite, les lignes du geste d'avant restent sans destinataire.
+  for (const [hors, plus] of [[{ de: 'NONE' }, []], [{ edite: true }, [ECART_96(100)]]]) {
+    const lignes = joue({ commentaires: fil({ corps: DEMANDE(), ...hors }, D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), ...plus) }).lignes;
     assert.deepEqual(lignes.map((l) => l.session), [null, null], JSON.stringify(hors));
   }
+  assert.equal(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, D(1, V1, ['r1']), verdict(1, 'r1', 'validé')) }).geste, 'signaler');
 });
 
 test('distribution : ce que `ecrireDistribution` écrit, `lireDistribution` le relit, pied de page des sessions cloud compris', () => {
@@ -950,4 +953,159 @@ test("A-182 (2) — une session à un autre couple que la PR (`couple`) est remp
   // `vivante` reste vivante, et un mot hors des quatre reste refusé.
   assert.equal(joue({ commentaires: fil(...distribue), sessions: { r1: 'vivante' } }).raison, 'attente');
   assert.throws(() => joue({ commentaires: fil(...distribue), sessions: { r1: 'autre-couple' } }), TypeError);
+});
+
+// --- Ticket 94 : « même contenu propre » qui garde un verdict ou un refus se dit sur la PR (A-224, A-239 (1)) ------------
+
+const NOTE = (tete, tour, mot, sommet, raison = 'de V à T : 1 fusion(s) de origin/develop, 0 commit(s) d\'index générés') => ecrireNote({ tete, tour, verdict: mot, sommet, raison });
+
+test("ticket 94 — un refus gardé (#17) : `etiqueter` (r4) porte la note du tour, une fois par tête et par tour ; une tête égale au sommet n'en porte pas", () => {
+  const refuse = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'), DEMANDE(T)];
+  const meme = { tete: T, memeContenu: { [V1]: true } };
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...refuse) }), {
+    regle: 4,
+    geste: 'etiqueter',
+    poser: 'à-reprendre',
+    retirer: ['à-relire'],
+    lignes: LIGNES('verdict écrit sur la PR 12 : refusé'),
+    note: { tour: 1, sommet: V1, verdict: 'refusé' },
+  });
+  // La note de cette tête et de ce tour au fil : l'étiquette seule, sans seconde note.
+  const note = joue({ ...meme, commentaires: fil(...refuse, NOTE(T, 1, 'refusé', V1)) });
+  assert.deepEqual([note.regle, note.geste, note.poser, Object.hasOwn(note, 'note')], [4, 'etiqueter', 'à-reprendre', false]);
+  // La note d'une autre tête, ou d'un autre tour, ne compte pas pour celle-ci.
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...refuse, NOTE(T2, 1, 'refusé', V1)) }).note, { tour: 1, sommet: V1, verdict: 'refusé' });
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...refuse, NOTE(T, 2, 'refusé', V1)) }).note, { tour: 1, sommet: V1, verdict: 'refusé' });
+  // Une tête égale au sommet du tour : ni note, ni `noter`.
+  const surLeSommet = joue({ commentaires: fil(...refuse.slice(0, 3), DEMANDE()) });
+  assert.deepEqual([surLeSommet.regle, surLeSommet.geste, Object.hasOwn(surLeSommet, 'note')], [4, 'etiqueter', false]);
+  const valide = fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'));
+  assert.deepEqual(joue({ commentaires: valide, etiquettes: ['à-fusionner'] }), RIEN_EN_PLACE(2));
+  assert.equal(Object.hasOwn(joue({ commentaires: valide }), 'note'), false);
+});
+
+test("ticket 94 — un verdict gardé : `etiqueter` (r2) porte la note ; l'étiquette en place, `noter` (r2) au lieu de rien, puis rien une fois la note écrite", () => {
+  const valide = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé'), DEMANDE(T)];
+  const meme = { tete: T, memeContenu: { [V1]: true } };
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...valide) }), {
+    regle: 2,
+    geste: 'etiqueter',
+    poser: 'à-fusionner',
+    retirer: ['à-relire'],
+    lignes: LIGNES('verdict écrit sur la PR 12 : validé'),
+    note: { tour: 1, sommet: V1, verdict: 'validé' },
+  });
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...valide), etiquettes: ['à-fusionner'] }), { regle: 2, geste: 'noter', note: { tour: 1, sommet: V1, verdict: 'validé' }, lignes: [] });
+  assert.deepEqual(joue({ ...meme, commentaires: fil(...valide, NOTE(T, 1, 'validé', V1)), etiquettes: ['à-fusionner'] }), RIEN_EN_PLACE(2));
+  const ecrite = joue({ ...meme, commentaires: fil(...valide, NOTE(T, 1, 'validé', V1)) });
+  assert.deepEqual([ecrite.geste, Object.hasOwn(ecrite, 'note')], ['etiqueter', false]);
+});
+
+test("ticket 94 — la reprise non comptée de la règle 4 (`distribuer`) n'a pas de note : un tour neuf suit, sur la tête", () => {
+  const conteste = fil(DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'), ECARTE, DEMANDE(T));
+  assert.deepEqual(joue({ commentaires: conteste, tete: T, memeContenu: { [V1]: true } }), { regle: 4, geste: 'distribuer', tour: 2, sommet: T, nombre: 1, preferees: ['r1'], mention: MENTION_ARBITRAGE });
+});
+
+test("ticket 94 — la note est une trace hors de `dernier` : à la forme, elle ne change ni `dernier` ni `tourValide` ; presque à la forme, c'est une lecture illisible", () => {
+  const valide = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé')];
+  const note = NOTE(T, 1, 'validé', V1);
+  const sans = lireMarques(fil(...valide));
+  const avec = lireMarques(fil(...valide, note));
+  assert.equal(avec.dernier, sans.dernier, 'la note n\'entre pas dans `dernier`');
+  assert.deepEqual(avec.notes.map(({ rang, tete, tour, verdict: mot, sommet }) => [rang, tete, tour, mot, sommet]), [[3, T, 1, 'validé', V1]]);
+  assert.deepEqual(avec.presque, []);
+  const meme = { tete: T, memeContenu: { [V1]: true } };
+  assert.equal(tourValide(pr({ ...meme, commentaires: fil(...valide, note) })).numero, tourValide(pr({ ...meme, commentaires: fil(...valide) })).numero);
+  // Presque à la forme : tronquée, ou sur deux lignes.
+  for (const abimee of [`Même contenu — sommet ${T} — tour 1 validé`, `${note}\nune seconde ligne`, `Même contenu — sommet ${T.toUpperCase()} — tour 1 validé au sommet ${V1} — raison`]) {
+    const g = joue({ ...meme, commentaires: fil(...valide, abimee), etiquettes: ['à-fusionner'] });
+    assert.equal(g.geste, 'illisible', abimee);
+    assert.match(g.commentaire, /préfixe « Même contenu — » sans la forme de sa marque/);
+    assert.throws(() => tourValide(pr({ ...meme, commentaires: fil(...valide, abimee) })), LectureIllisible, abimee);
+  }
+});
+
+test('ticket 94 — `ecrireNote` compose la note et la relit par sa forme : une raison vide, sur deux lignes, ou un sommet mal formé lèvent TypeError', () => {
+  assert.equal(NOTE(T, 1, 'refusé', V1, 'de V à T : 0 fusion(s)'), `Même contenu — sommet ${T} — tour 1 refusé au sommet ${V1} — de V à T : 0 fusion(s)`);
+  for (const raison of ['', '   ', 'une\ndeux', ' bord']) assert.throws(() => NOTE(T, 1, 'refusé', V1, raison), TypeError, JSON.stringify(raison));
+  assert.throws(() => NOTE(T, 1, 'refusé', 'abc'), TypeError);
+  assert.throws(() => NOTE(T.toUpperCase(), 1, 'refusé', V1), TypeError);
+  assert.throws(() => NOTE(T, 0, 'refusé', V1), TypeError);
+  assert.throws(() => NOTE(T, 1, 'incomplet', V1), TypeError);
+});
+
+// --- Ticket 96 : une demande `À relire` modifiée se dit, sur la PR et à qui l'a écrite (A-227, A-228) -----------------
+
+const ECART = (id) => `Demande écartée — commentaire ${id} modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié`;
+const SIGNALE = (id) => `PR 12 : demande de relecture écartée (commentaire ${id} modifié après sa création) : en écrire une neuve, jamais modifiée`;
+const SIGNALER = (id, lignes) => ({ regle: null, geste: 'signaler', commentaire: ECART(id), lignes });
+
+test("ticket 96 (a) — la seule demande modifiée : `signaler`, la trace, une ligne à l'auteur et une au conducteur lus sur elle, avant la règle 3 (le cas de #10)", () => {
+  const modifiee = { corps: DEMANDE(), edite: true };
+  assert.deepEqual(joue({ commentaires: fil(modifiee) }), SIGNALER(100, LIGNES(SIGNALE(100))));
+  // #10 : un tour validé, `à-fusionner`, le contenu a changé depuis le verdict : la trace d'abord.
+  const dix = fil(modifiee, D(1, V1, ['r1']), verdict(1, 'r1', 'validé'));
+  assert.deepEqual(joue({ commentaires: dix, etiquettes: ['à-fusionner'], tete: T, memeContenu: { [V1]: false } }), SIGNALER(100, LIGNES(SIGNALE(100))));
+});
+
+test("ticket 96 (b, c) — un seul champ à `—` : la ligne de l'autre seule ; les deux, ou le préfixe sans la forme : une ligne, à l'architecte", () => {
+  const sans = (session, conducteur) => ({ corps: `À relire — sommet ${V1} — Session: ${session} — Conducteur: ${conducteur}`, edite: true });
+  assert.deepEqual(joue({ commentaires: fil(sans('—', 'session_conducteur')) }).lignes, [{ a: 'conducteur', session: 'session_conducteur', texte: SIGNALE(100) }]);
+  assert.deepEqual(joue({ commentaires: fil(sans('session_auteur', '—')) }).lignes, [{ a: 'auteur', session: 'session_auteur', texte: SIGNALE(100) }]);
+  const architecte = [{ a: 'architecte', session: null, texte: SIGNALE(100) }];
+  assert.deepEqual(joue({ commentaires: fil(sans('—', '—')) }), SIGNALER(100, architecte));
+  assert.deepEqual(joue({ commentaires: fil({ corps: `À relire — sommet ${V1} — Session: session_auteur`, edite: true }) }), SIGNALER(100, architecte));
+});
+
+test("ticket 96 (d, e) — la trace écrite, la décision d'avant reprend, avec les destinataires de la dernière demande intacte (aucun s'il n'y en a pas) ; elle ne se rejoue pas", () => {
+  const seule = fil({ corps: DEMANDE(), edite: true }, ECART(100));
+  assert.deepEqual(joue({ commentaires: seule }), { regle: 6, geste: 'distribuer', tour: 1, sommet: V1, nombre: 1, preferees: [], mention: null });
+  const refuse = fil({ corps: DEMANDE(), edite: true }, D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'), ECART(100));
+  assert.deepEqual(joue({ commentaires: refuse }).lignes, [{ a: 'auteur', session: null, texte: 'verdict écrit sur la PR 12 : refusé' }, { a: 'conducteur', session: null, texte: 'verdict écrit sur la PR 12 : refusé' }]);
+  // Une demande intacte plus ancienne, une modifiée plus récente (d'autres sessions) : `signaler` vers celles de la modifiée…
+  const autre = { corps: 'À relire — sommet ' + V1 + ' — Session: session_autre — Conducteur: session_cond2', edite: true };
+  const deux = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'), autre];
+  assert.deepEqual(joue({ commentaires: fil(...deux) }), SIGNALER(103, [{ a: 'auteur', session: 'session_autre', texte: SIGNALE(103) }, { a: 'conducteur', session: 'session_cond2', texte: SIGNALE(103) }]));
+  // … puis, la trace écrite, les lignes des autres gestes aux destinataires de la demande intacte.
+  assert.deepEqual(joue({ commentaires: fil(...deux, ECART(103)) }), { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES('verdict écrit sur la PR 12 : refusé') });
+});
+
+test("ticket 96 (f) — une trace elle-même modifiée ne vaut rien : `signaler` de nouveau, puis, une trace intacte ajoutée, plus rien", () => {
+  const modifiee = fil({ corps: DEMANDE(), edite: true }, { corps: ECART(100), edite: true });
+  assert.deepEqual(joue({ commentaires: modifiee }), SIGNALER(100, LIGNES(SIGNALE(100))));
+  const refaite = fil({ corps: DEMANDE(), edite: true }, { corps: ECART(100), edite: true }, ECART(100));
+  assert.equal(joue({ commentaires: refaite }).geste, 'distribuer');
+  // Une trace d'un compte qui ne compte pas ne fait pas taire l'écart.
+  assert.equal(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, { corps: ECART(100), de: 'NONE' }) }).geste, 'signaler');
+});
+
+test("ticket 96 (g, h, i, j) — ce qui marche ne change pas : une demande intacte plus récente, une trace presque à la forme ignorée, le motif `auteur`, le préfixe perdu", () => {
+  // (g) une demande intacte plus récente que la modifiée : aucun `signaler`, ses destinataires servent.
+  const g = fil({ corps: DEMANDE(), edite: true }, DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'refusé'));
+  assert.deepEqual(joue({ commentaires: g }).lignes, LIGNES('verdict écrit sur la PR 12 : refusé'));
+  // (h) le préfixe de la trace sans sa forme : ni illisible, ni pause, ni signaler ; `tourValide` n'en dépend pas.
+  const valide = [DEMANDE(), D(1, V1, ['r1']), verdict(1, 'r1', 'validé')];
+  for (const trace of ['Demande écartée — commentaire 100', `${ECART(100)}.`, ECART(100)]) {
+    assert.deepEqual(joue({ commentaires: fil(...valide, trace), etiquettes: ['à-fusionner'] }), RIEN_EN_PLACE(2), trace);
+    assert.equal(tourValide(pr({ commentaires: fil(...valide, trace) })).numero, 1, trace);
+    assert.equal(lireMarques(fil(...valide, trace)).dernier, lireMarques(fil(...valide)).dernier, trace);
+  }
+  // (i) une demande modifiée d'un compte qui ne compte pas : rien.
+  assert.deepEqual(joue({ commentaires: fil({ corps: DEMANDE(), edite: true, de: 'NONE' }) }).geste, 'distribuer');
+  // (j) un commentaire modifié qui ne porte plus le préfixe : rien.
+  assert.deepEqual(joue({ commentaires: fil({ corps: 'À relire, sommet ' + V1, edite: true }) }).geste, 'distribuer');
+});
+
+test("ticket 96 (k, l, m) — une trace hors forme ne tait rien ; une seconde demande modifiée, plus récente que la première tracée, se signale à son tour ; un commentaire sans identifiant entier ne se signale pas", () => {
+  // (k) une trace qui porte le préfixe sans la forme est ignorée : l'écart n'est pas tu.
+  assert.deepEqual(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, 'Demande écartée — commentaire 100') }), SIGNALER(100, LIGNES(SIGNALE(100))));
+  // (l) la première tracée, une seconde modifiée plus récente : un `signaler` neuf, pour elle.
+  const seconde = { corps: `À relire — sommet ${V1} — Session: session_autre — Conducteur: —`, edite: true };
+  assert.deepEqual(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, ECART(100), seconde) }), SIGNALER(102, [{ a: 'auteur', session: 'session_autre', texte: SIGNALE(102) }]));
+  assert.equal(joue({ commentaires: fil({ corps: DEMANDE(), edite: true }, ECART(100), seconde, ECART(102)) }).geste, 'distribuer');
+  // (m) sans identifiant entier, la trace ne se relirait pas : aucun `signaler`, la décision suit son cours.
+  for (const id of [undefined, 'abc', 0]) {
+    const [c] = fil({ corps: DEMANDE(), edite: true });
+    assert.equal(joue({ commentaires: [{ ...c, id }] }).geste, 'distribuer', String(id));
+  }
 });

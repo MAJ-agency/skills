@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.5.2 — 2026-11-27
+## 8.7.1 — 2026-11-27
 
 ### Ce qui change
 
@@ -14,6 +14,48 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait pour en profiter
 
 - **Reposer les bancs, pièce par pièce** : `scripts/verify/` (`/maj-skills:socle-tests`, `/maj-skills:socle-monorepo`, `/maj-skills:tickets`), `scripts/agent/` (`/maj-skills:socle-chaine-de-production`) et `scripts/docs/` (`/maj-skills:tickets`, `/maj-skills:socle-monorepo`). Un projet qui ne les repose pas garde ses bancs actuels.
+
+## 8.7.0 — 2026-11-27
+
+### Ce qui change
+
+- **Quand « même contenu propre » garde un verdict ou un refus, le Relecteur l'écrit sur la PR, une fois** : une note d'une ligne, `Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha du tour> — <raison>`, la raison étant la dernière ligne non vide de la sortie d'erreur de `meme-contenu.sh` pour ce sommet, ou `sans raison écrite`. `jouer` l'écrit après la pose de la nouvelle étiquette et avant le retrait des anciennes ; une note refusée rend d'abord la ligne JSON et ses lignes, puis sort en 7, et le rejeu écrit la note sans renvoyer de ligne. Une note par tête et par tour.
+- **Un geste neuf, `noter`** (règle 2) : le verdict gardé, l'étiquette `à-fusionner` déjà en place, la décision rend `noter` au lieu de `rien` ; `jouer` écrit la note seule, sans toucher aux étiquettes, sans ligne. Il réveille la veille une fois par tête et par tour.
+- **La sourdine de la veille tombe avec sa cause** : `--taire` prend des clés `<n>:<geste>:<règle>:<tête>`, recopiées de la ligne de `passe` (`<n>:contrat-illisible:—:*` pour une clé `relecture` mal formée, dont la cause est la base) ; un numéro seul, une clé mal formée ou deux clés pour une PR sortent en 2. La veille lève la sourdine dès que la passe rend pour la PR une autre clé (elle réveille alors), `rien`, `hors-regime`, ou ne la nomme plus ; `pause` la garde. Toute fin de veille porte en dernière ligne `SOURDINES <clé>,…` ou `SOURDINES aucune`.
+- **La relance de la veille** : la session ajoute le journal de la veille finie au journal des veilles (`<scratchpad>/relecteur-veilles.log`) et relance avec sa dernière ligne `SOURDINES`, jamais avec sa mémoire ; un Relecteur relancé la reprend de là.
+- **Une demande `À relire` modifiée se dit, sur la PR et à qui l'a écrite** : elle reste écartée (`A-118`) et ne donne toujours pas de destinataire aux autres lignes, mais la décision rend un geste neuf, `signaler`, avant la règle 1 : `jouer` écrit `Demande écartée — commentaire <id> modifié après sa création : redemander la relecture d'un commentaire neuf, jamais modifié` et rend une ligne à sa `Session:` et à son `Conducteur:` (à l'architecte quand elle n'en nomme aucun, ou quand son corps n'a pas la forme d'une demande) ; la session les envoie et rejoue `jouer <n>` aussitôt. La trace, hors de `dernier`, tait le signal ; sa forme abîmée est ignorée. L'étape 5 de la méthode le dit : une demande ne se modifie jamais.
+- **La note est une trace, jamais une marque qui décide** (`decision-relecteur.mjs`, `ecrireNote`, `lireMarques(...).notes`) : elle n'entre pas dans `dernier`, ne change pas `tourValide` ; un commentaire au préfixe `Même contenu — ` sans la forme est une lecture illisible, pour le Relecteur comme pour le capitaine.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer `fusionner`** (étape 0) avant que son Relecteur joue la note ou `signaler` : le script de la décision est celui de `scripts/chaine/` sur son `develop`. Le skill `relecteur` est lu dans le plugin.
+- **Un Relecteur en cours** relancé après la mise à jour : ses `--taire <n>` d'avant sortent en 2 ; il relance la veille sans sourdine, et une PR dont la cause tient se re-tait sous sa clé après deux échecs.
+
+## 8.6.1 — 2026-11-27
+
+### Ce qui change
+
+- **`criticite` : une spec trop longue entre par son en-tête et les sections qui citent la règle.** Sous 300 000 caractères, le message est celui d'avant, octet pour octet. Au-delà, chaque spec est réduite à son en-tête et aux sections (titre de niveau 1 ou 2, en colonne 0, hors clôture de code) qui portent l'identifiant exact de la règle ; le plafond reste 300 000.
+- **Le message nomme ce qui est retenu** : `<nom> (extrait : en-tête, « ## A » ; écartées : k) :`. Une puce du prompt dit au sous-agent qu'une spec peut n'arriver qu'en extrait, et que ce qu'une section écartée dirait ne se suppose pas : la situation va dans « Questions ».
+- **La sortie d'erreur dit le tri**, en sortie 0 : la taille avant et après, puis une ligne par spec réduite. La section `## Criticité` de la PR la recopie sous la commande jouée.
+- **Le refus ne vient plus qu'après le tri** : toujours au-delà du plafond, le script refuse en sortie 2, avec les tailles avant et après, celle de la règle et, par spec, sa taille entière et en extrait.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien** : le script et le prompt sont lus dans le plugin, aucun `poser`.
+
+## 8.6.0 — 2026-11-27
+
+### Ce qui change
+
+- **Au plafond de sa propre PR, l'architecte écrit la décision de plafond** (`A-5`, `P-1`) : `Décision de plafond — …`, bloquant par bloquant (corrigé dans la PR, parti en suite avec son commentaire `Suite`, ou écarté avec son `Arbitrage`), et le produit en est informé en une ligne. Avant, les skills la renvoyaient au produit.
+- **Trois limites**, écrites dans `architecte/SKILL.md` § 5 seul : un bloquant sur une règle de criticité haute reste décidé par le produit (l'architecte lit le niveau dans le fichier de la règle, dans le doute le produit décide) ; l'arbitrage d'une contestation sur une PR de l'architecte reste au produit ; le produit est informé en une ligne.
+- **Rien ne change** pour la PR d'une fille ou d'un conducteur. Aucun script ne change.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Le skill `architecte`** est lu dans le plugin : rien à reposer pour lui.
+- Un projet en régime 8 qui veut la règle dans ses propres documents amende le point 5 de son ADR de la relecture indépendante et repose `docs/agents/chaine-de-production.md` (tableau des rôles), dans une PR de son dépôt.
 
 ## 8.5.1 — 2026-11-27
 
