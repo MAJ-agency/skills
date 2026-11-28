@@ -323,3 +323,13 @@ test("fusionner/SKILL.md : la boucle relancée relit les passages interrompus, u
   exiger(entre(texte, "- **Plusieurs capitaines**", "Commentaires illisibles à la relecture"), ["**sauf si la boucle du même capitaine redémarre avant : elle le termine**"], "Plusieurs capitaines");
   exiger(lire(`${C}/fusionner/references/CONTENU.md`), ["Un passage interrompu se relit sur GitHub (A-245, ticket 107", "La fusion vit sur GitHub, la ligne meurt avec le processus"], "CONTENU.md");
 });
+
+test("relecteur/SKILL.md et fusionner/references/CONTENU.md : un tour refusé n'annonce son refus qu'avec tous ses verdicts, à l'échéance, ou une attendue morte ou au plafond (ticket 118, A-265 (1), A-269, A-270)", () => {
+  const texte = lire(`${C}/relecteur/SKILL.md`);
+  assert.ok(texte.split("\n").length <= 200, "relecteur/SKILL.md sous 200 lignes");
+  exiger(entre(texte, "## À chaque réveil", "## L'état des sessions"), ["`rien` avec la raison `attente` (règles 1, 4 et 5) : « L'état des sessions »"], "la table des gestes");
+  interdire(texte, ["`rien` avec la raison `attente` (règle 5)"], "relecteur/SKILL.md");
+  exiger(entre(texte, "## L'état des sessions", "## Les lignes"), ["Il se lit par `get_session`, pour les règles 1, 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`) ou en règle 1 ou 4 (`rien` avec la raison `attente` : un tour refusé qui attend ses verdicts), chaque session attendue,", "En règle 1 ou 4, une attendue `morte` ou `plafond` finit l'attente : `jouer <n> --sessions <fichier>` annonce le refus ; `couple` ne la finit pas."], "L'état des sessions");
+  exiger(entre(texte, "## Les lignes", "## Les messages des sessions de relecture"), ["Un tour refusé ne s'annonce qu'avec tous ses verdicts sur la PR", "(sans le verdict de <id>[, <id>…])", "Un verdict écrit après l'annonce, avant la distribution suivante, compte contre le tour, mais aucune ligne ne part de plus"], "Les lignes");
+  exiger(entre(lire(`${C}/fusionner/references/CONTENU.md`), "## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "\n## "), ["Un tour refusé n'annonce son refus qu'avec tous ses verdicts (`A-265` (1), `A-269`, `A-270`)"], "CONTENU.md");
+});
