@@ -4,7 +4,7 @@ Une PR de documentation déclare son périmètre à l'ouverture et le garde jusq
 
 ## Fiche
 
-Phase: suivi — tickets 1 et 2 fusionnés (#172, #173) ; ticket 3 livré (#175) ; ticket 4 attend l'accord du produit
+Phase: suivi — tickets 1 et 2 fusionnés (#172, #173) ; ticket 3 au plafond des renvois (#175), décision du produit attendue ; ticket 4 attend l'accord du produit
 Responsable: Guillaume Jauffret
 Architecte: session_012xRpgZFExW5jmAkFg9zCdF (session de suite, ouverte par le produit le 2026-11-27, mode « Auto », dépôts `skills`, `anchorpost`, `fedora` ; `essai-relecture-8` à ajouter pour le ticket 4) ; précédente : session_01BxuG31gJXv41A7jRRFEAWi
 Objectif: une règle du régime 8, écrite dans les skills et vérifiée par des bancs et par un essai réel — périmètre déclaré, corrections limitées aux constats du verdict, fait nouveau renvoyé en suite, décision de plafond écrite par l'architecte.
@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; tickets 1 et 2 fusionnés (#172 8.6.0, #173 8.8.0) ; ticket 3 livré, PR #175, renvoyée pour conflit (après #174) |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; tickets 1 et 2 fusionnés (#172 8.6.0, #173 8.8.0) ; ticket 3 livré, PR #175, au plafond de trois renvois (décision du produit attendue) |
 
 ## Decisions-so-far
 
@@ -92,6 +92,7 @@ Décisions de l'architecte : A-1 à A-19, écrites avec leur raison dans la spec
 - 2026-11-28 04 h 13 UTC — PR #175 renvoyée par le capitaine à 04 h 07 UTC : conflit avec `main` après la #174 (8.8.1, « gouverner nos boucles »). Session du ticket 3 prévenue : fusion de `main` par commit de merge, version suivante, ordre reposé. Accord du produit pour le ticket 4 toujours attendu.
 - 2026-11-28 04 h 30 UTC — #175 reprise par sa session au sommet `7d6b49a` (main fusionné, 8.9.0), lue à la source : mêmes 19 fichiers, seule la note de version change.
 - 2026-11-28 04 h 47 UTC — La #176 (« gouverner nos boucles ») entre à `c15f90a` et prend 8.9.0 : la session du ticket 3 est priée de fusionner `main` sans attendre le renvoi et de prendre 8.10.0. Recoupement dit à l'autre architecte : `scripts/bascule.test.mjs` seul (une assertion, A-18) avec son ticket 104.
+- 2026-11-28 05 h 11 UTC — PR #175 au plafond de trois renvois du capitaine (signalé par l'architecte de « définitions d'agents », relu à la source) : un conflit après #174, puis deux « le sommet a bougé », parce que les ordres de 04 h 30 et 05 h 05 de la session ajoutaient un paragraphe après la ligne `à-fusionner au sommet <sha>`. Au sommet `f709ea1` : 4 contrôles verts, aucun verdict. Question posée au produit (nouvelle PR, recommandée, ou fusion à la main). Fait à reprendre dans le skill : le prompt d'une session de ticket dit la forme exacte de l'ordre, mais une session l'a enrichie ; un banc ou un message de refus plus explicite l'éviterait.
 
 ## Source
 
