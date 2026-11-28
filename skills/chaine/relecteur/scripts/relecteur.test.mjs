@@ -1283,3 +1283,132 @@ test('suite de la PR 147 — une trace d’illisible écrite entre la pose et le
   const rejoue = d.json(d.lancer('jouer', '12'))[0];
   assert.deepEqual([rejoue.geste, rejoue.marque, rejoue.lignes], ['etiqueter', minute(3), []], JSON.stringify(rejoue));
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Le périmètre d'une PR de documentation (programme « périmètre figé », ticket 2).
+const PERIM = (fichiers) => `Périmètre — correction de 11 remarques\nFichiers: ${fichiers}\nDécisions: aucune\nSujets: le glossaire`;
+const refusDoc = (sha, tour, session, lignes) =>
+  [verdict(sha, tour, session, 'refusé', { bloquants: lignes.length }).replace(/\n- constats$/, ''), '| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l\'aurait attrapé |', '| --- | --- | --- | --- | --- | --- |', ...lignes, '', 'Écartés au tri : 0.', '', 'Hors du diff relu : aucun'].join('\n');
+const BLOQUANT_A = '| bloquant | Documentation | `D4` | `docs/a.md:1` | Le terme manque. | aucun test, un écart de documentation |';
+// Une PR de documentation vers develop, sa déclaration (ou non) ; rend son sommet.
+function prDoc(d, { perimetre = PERIM('docs/a.md, GLOSSARY.md'), fichiers = { 'docs/a.md': 'a\n', 'GLOSSARY.md': 'g\n' } } = {}) {
+  const sha = pr(d, { fichiers });
+  if (perimetre !== null) ajouter(d, [perimetre, 2]);
+  return sha;
+}
+// Un commit de l'auteur sur sa branche, poussé ; rend la tête.
+const pousserDoc = (d, fichiers) => {
+  d.git('switch', '-q', 'feat/a');
+  for (const [chemin, contenu] of Object.entries(fichiers)) d.ecrire(chemin, contenu);
+  d.commit('docs: correction');
+  d.git('push', '-q', 'origin', 'HEAD:feat/a');
+  return d.git('rev-parse', 'HEAD').trim();
+};
+// Le tour 1 distribué puis refusé (un bloquant sur `docs/a.md`), la demande au sommet neuf que `fichiers` pousse.
+function tour1Refuse(d, fichiers, lignes = [BLOQUANT_A]) {
+  const sha = prDoc(d);
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1').status, 0);
+  ajouter(d, [refusDoc(sha, 1, 'session_rel1', lignes), 31]);
+  const tete = pousserDoc(d, fichiers);
+  ajouter(d, [DEMANDE(tete), 32]);
+  return { sha, tete };
+}
+const nombreDeDistributions = (d) => d.etat().pulls[0].commentaires.filter((c) => c.body.startsWith('Relecture — ')).length;
+
+test('périmètre, tour 1 : sans déclaration, `jouer` pose `à-reprendre` puis écrit `Périmètre absent`, aucune distribution ; un fichier hors de `Fichiers:`, `Périmètre dépassé`', () => {
+  const d = monter();
+  const sha = prDoc(d, { perimetre: null });
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.regle, g.geste, g.commentaire, g.poser], [6, 'perimetre', 'Périmètre absent', 'à-reprendre']);
+  const j = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([j.geste, j.joue], ['perimetre', true]);
+  assert.deepEqual(j.lignes.map((l) => [l.a, l.session, l.texte]), ['auteur', 'conducteur'].map((a) => [a, `session_${a}`, 'PR 12 : périmètre absent : écrire le commentaire `Périmètre — …`, puis redemander la relecture']));
+  assert.deepEqual(ecritures(d), ['POST issues/12/labels à-reprendre', 'POST issues/12/comments', 'DELETE issues/12/labels/à-relire'], 'l’étiquette, puis le commentaire, puis le retrait');
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, 'Périmètre absent');
+  assert.equal(nombreDeDistributions(d), 0, 'aucune distribution');
+  assert.equal(distribuer(d, sha, 'opus/medium', 'session_rel1').status, 3, '`distribuer` sort en 3 : le geste n’est pas un geste de session');
+  // Un fichier hors de `Fichiers:` au tour 1.
+  const e = monter();
+  prDoc(e, { perimetre: PERIM('docs/a.md') });
+  const [h] = e.json(e.lancer('passe'));
+  assert.deepEqual([h.geste, h.commentaire], ['perimetre', 'Périmètre dépassé — GLOSSARY.md']);
+  // Une PR de code n'est pas contrôlée.
+  const c = monter();
+  pr(c);
+  assert.equal(c.json(c.lancer('passe'))[0].geste, 'distribuer');
+});
+
+test('le périmètre rejoué : sans demande neuve, jouer tient à-reprendre sans réécrire le commentaire ; une demande neuve refait le contrôle', () => {
+  const d = monter();
+  const sha = prDoc(d, { perimetre: null });
+  assert.equal(d.lancer('jouer', '12').status, 0);
+  // `à-relire` reposée sur la PR, sans demande `À relire` plus récente que la marque de refus.
+  reposer(d);
+  const j = d.json(d.lancer('jouer', '12'))[0];
+  assert.deepEqual([j.regle, j.geste, j.poser], [6, 'etiqueter', 'à-reprendre']);
+  const commentaires = d.etat().pulls[0].commentaires;
+  assert.equal(commentaires.filter((c) => c.body === 'Périmètre absent').length, 1, 'un seul commentaire `Périmètre absent`');
+  assert.ok(d.etat().pulls[0].labels.includes('à-reprendre'), 'l’étiquette `à-reprendre` est tenue');
+  // La déclaration, puis une demande neuve à une tête couverte : un tour neuf.
+  ajouter(d, [PERIM('docs/a.md, GLOSSARY.md'), 31], [DEMANDE(sha), 32]);
+  reposer(d);
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.regle, g.geste, g.tour], [6, 'distribuer', 1]);
+});
+
+test('périmètre — la PR #6 (atalian-offer-generator) : un tour refusé, puis un commit qui ajoute une ADR que ni `Fichiers:` ni un bloquant ne nomment ; aucun tour neuf', () => {
+  const d = monter();
+  const adr = 'docs/adr/ADR_ALL_ARC-13-perimetre-fige.md';
+  const { tete } = tour1Refuse(d, { 'docs/a.md': 'a corrigé\n', [adr]: '# ADR\n' });
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.regle, g.geste, g.commentaire], [6, 'perimetre', `Périmètre dépassé — ${adr}`]);
+  const j = d.json(d.lancer('jouer', '12'))[0];
+  assert.equal(j.joue, true);
+  assert.deepEqual(d.etat().pulls[0].labels, ['à-reprendre']);
+  assert.equal(d.etat().pulls[0].commentaires.at(-1).body, `Périmètre dépassé — ${adr}`);
+  assert.equal(distribuer(d, tete, 'opus/medium', 'session_rel1').status, 3, '`distribuer` sort en 3');
+  assert.equal(nombreDeDistributions(d), 1, 'le compte des tours reste à un');
+});
+
+test('périmètre — une correction dans un fichier que nomme un bloquant est admise ; une fusion de develop dans la branche n’est pas un dépassement', () => {
+  const d = monter();
+  const { tete } = tour1Refuse(d, { 'docs/a.md': 'a corrigé\n' });
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.geste, g.tour, g.sommet], ['distribuer', 2, tete]);
+  // Develop avance d'un fichier hors du périmètre, fusionné dans la branche : hors du delta.
+  const e = monter();
+  tour1Refuse(e, { 'docs/a.md': 'a corrigé\n' });
+  e.git('switch', '-q', 'develop');
+  e.ecrire('docs/hors.md', 'develop avance\n');
+  e.commit('docs: develop avance');
+  e.git('push', '-q', 'origin', 'HEAD:develop');
+  e.git('switch', '-q', 'feat/a');
+  e.git('merge', '-q', '--no-edit', 'develop');
+  e.git('push', '-q', 'origin', 'HEAD:feat/a');
+  const fusion = e.git('rev-parse', 'HEAD').trim();
+  ajouter(e, [DEMANDE(fusion), 33]);
+  const [h] = e.json(e.lancer('passe'));
+  assert.deepEqual([h.geste, h.sommet], ['distribuer', fusion]);
+});
+
+test("un verdict que la machine ne lit pas : passe rend distribuer avec faits.perimetre: 'verdict illisible'", () => {
+  const d = monter();
+  tour1Refuse(d, { 'docs/hors.md': 'hors\n' }, ['| bloquant | Documentation | `D4` | docs/a.md:1 | Le terme manque. | aucun test |']);
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.geste, g.tour, g.faits.perimetre], ['distribuer', 2, 'verdict illisible']);
+  // Un verdict lisible, le même fichier hors du périmètre : refusé.
+  const e = monter();
+  tour1Refuse(e, { 'docs/hors.md': 'hors\n' });
+  const [h] = e.json(e.lancer('passe'));
+  assert.deepEqual([h.geste, h.commentaire, h.faits.perimetre], ['perimetre', 'Périmètre dépassé — docs/hors.md', undefined]);
+});
+
+test('périmètre — compatibilité : des scripts posés d’avant ce ticket (sans `fichiersNommes`) devant ce `relecteur.mjs` : rien de contrôlé, aucune erreur', () => {
+  const d = monter();
+  const lire = (nom) => readFileSync(script('fusionner', nom), 'utf8');
+  d.talon('verdict.mjs', lire('verdict.mjs').replace('export function fichiersNommes(', 'function fichiersNommesDuTicket2('));
+  d.talon('decision-relecteur.mjs', lire('decision-relecteur.mjs').replace(/import \{ LectureIllisible, corpsLu, fichiersNommes, lireVerdict, retenir \} from '\.\/verdict\.mjs';/, "import { LectureIllisible, corpsLu, lireVerdict, retenir } from './verdict.mjs';\nconst fichiersNommes = undefined;"));
+  prDoc(d, { perimetre: null });
+  const [g] = d.json(d.lancer('passe'));
+  assert.deepEqual([g.regle, g.geste, g.tour], [6, 'distribuer', 1]);
+});

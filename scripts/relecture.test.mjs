@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { decider, ecrireDistribution } from "../skills/chaine/fusionner/scripts/decision-relecteur.mjs";
-import { PIED, corpsLu, ecrireVerdict, lireVerdict, lireVerdicts } from "../skills/chaine/fusionner/scripts/verdict.mjs";
+import { PIED, corpsLu, ecrireVerdict, fichiersNommes, lireVerdict, lireVerdicts } from "../skills/chaine/fusionner/scripts/verdict.mjs";
 import { dossierTemporaire, environnementDeBanc } from "../skills/chaine/sujet/scripts/depot-jouet.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
@@ -383,7 +383,7 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
   assert.deepEqual(lireVerdicts([commentaire(rempli, { updated_at: "2026-11-19T10:05:00Z" })]).verdicts, []);
   // Le corps, après l'en-tête, ne commence par aucune marque du Relecteur, de l'auteur ni de l'arbitre.
   const corps = lignes(g.slice(g.indexOf("\n\n") + 2));
-  for (const marque of ["Relecture — ", "Relecture en panne", "À relire — ", "Plafond — ", "Décision de plafond", "Arbitrage — ", "Lecture illisible"])
+  for (const marque of ["Relecture — ", "Relecture en panne", "À relire — ", "Plafond — ", "Décision de plafond", "Arbitrage — ", "Lecture illisible", "Périmètre — ", "Périmètre absent", "Périmètre dépassé", "Suite — "])
     assert.deepEqual(corps.filter((l) => l.startsWith(marque)), [], `aucune ligne du gabarit ne commence par « ${marque} »`);
   for (const axe of AXES) assert.ok(g.includes(`- ${axe} : `), `le gabarit a la ligne de l'axe ${axe}`);
   for (const attendu of ["non exécuté", "\n| Gravité | Axe | Critère | Fichier et ligne | Constat | Test qui l'aurait attrapé |\n", "\nÉcartés au tri : <n>.\n", "\nHors du diff relu : ", "\nIndex à régénérer par le capitaine : ", "\nPour lever un « non exécuté » : ", "\nAgent des axes : <maj-skills:axe-de-relecture | agent générique, maj-skills:axe-de-relecture introuvable dans cette session (repli) | sans objet>\n", "\n- Session : `C1` <joué | non exécuté, et la cause | sans objet> · `C2` <…> · `C3` <…> · `C4` <joué, `/security-review` lancée après vérification | non exécuté, `/security-review` non lancée, et la cause | sans objet>\n", "\nCas laissés à un autre ticket (`T3`, (d)) : "])
@@ -393,6 +393,9 @@ test("le gabarit de verdict : la ligne /security-review se retire entière ; non
   assert.match(g, /\nPour lever un « non exécuté » : [^\n]*\n\nAgent des axes : /, "le gabarit : « Agent des axes : » juste après « Pour lever un « non exécuté » »");
   const exemple = blocs(lire(`${REFERENCES}/verdict.md`), "text").find((b) => b.startsWith("<!-- relecture:verdict -->"));
   assert.ok(exemple?.includes("\n\nAgent des axes : maj-skills:axe-de-relecture\n\n"), "l'exemple du verdict porte « Agent des axes : maj-skills:axe-de-relecture »");
+  // Le périmètre figé (ticket 2) : les chemins d'un constat entre accents graves, l'exemple à la forme neuve des puces.
+  exigerDans(`${REFERENCES}/verdict.md`, ["Tout fichier cité dans un constat s'écrit entre accents graves.", "- `<fichier>:<ligne>` : <motif : sans critère, faux, arbitrage, develop ou doublon> — <le critère cité, s'il y en a un>, <pourquoi il est écarté, en une phrase>"]);
+  assert.equal(fichiersNommes(corpsLu(exemple)).illisibles, 0, "l'exemple du verdict se lit par fichiersNommes");
 });
 
 
@@ -489,9 +492,10 @@ test("le plugin connaît le skill : plugin.json, la ligne et l'arbre du README, 
   const note = notes.split(/^## /m).find((n) => n.includes("skill `relecture`"));
   assert.ok(note, "NOTES-DE-VERSION.md : une note nomme le skill `relecture`");
   for (const section of ["### Ce qui change", "### Ce qu'un projet fait pour en profiter"]) assert.ok(note.includes(section), `la note porte « ${section} »`);
-  // Les douze termes de la spec (« Vocabulaire »), chacun avec sa définition sur la ligne qui suit.
+  // Les douze termes de la spec (« Vocabulaire »), et les deux du périmètre figé (ticket 2), chacun avec sa
+  // définition sur la ligne qui suit.
   const contexte = lignes(lire("CONTEXT.md"));
-  for (const terme of ["Relecteur", "Session de relecture", "Axe", "Constat", "Verdict", "Tour", "Même contenu propre", "Contestation", "Arbitrage", "Décision de plafond", "Étiquette", "Auteur"]) {
+  for (const terme of ["Relecteur", "Session de relecture", "Axe", "Constat", "Verdict", "Tour", "Même contenu propre", "Contestation", "Arbitrage", "Décision de plafond", "Étiquette", "Auteur", "Périmètre", "PR de documentation"]) {
     const i = contexte.indexOf(`**${terme}**:`);
     assert.ok(i >= 0, `CONTEXT.md : le terme « ${terme} »`);
     const definition = (contexte[i + 1] ?? "").trim();
@@ -1696,6 +1700,9 @@ test("la commande de contrôle du verdict, jouée par le script comme la session
     ["incomplet avec un bloquant", remplir(gabarit(), { verdict: "incomplet", bloquants: 1 }), /incomplet avec des bloquants : un bloquant gardé donne refusé/],
     ["le gabarit non rempli", gabarit(), /valeur hors de sa forme/],
     ["sans la marque", "Sommet relu: x\n", /marque absente/],
+    // Le périmètre figé (ticket 2) : la machine lit les fichiers des bloquants et des écartés « faux ».
+    ["une puce « Écartés au tri » sans motif", remplir(gabarit(), { verdict: "refusé", bloquants: 2 }).replace("\nÉcartés au tri : <n>.\n- `<fichier>:<ligne>` : <motif : sans critère, faux, arbitrage, develop ou doublon> — <le critère cité, s'il y en a un>, <pourquoi il est écarté, en une phrase>\n", "\nÉcartés au tri : 1.\n- `docs/a.md:3` : la définition est juste\n"), /1 ligne\(s\) du corps hors de leur forme/],
+    ["un bloquant sans fichier lisible", remplir(gabarit(), { verdict: "refusé", bloquants: 2 }).replace(/\n\| <bloquant ou doute> [^\n]*\n/, "\n| bloquant | Ticket | `T3` | docs/a.md:12 | Le terme manque. | aucun test |\n"), /1 ligne\(s\) du corps hors de leur forme/],
   ]) {
     const r = jouer(texte);
     assert.equal(r.status, 1, `${nom} : ${r.sortie}`);
@@ -1712,6 +1719,15 @@ test("la commande de contrôle du verdict, jouée par le script comme la session
   p.cwd = p.session;
   assert.equal(p.outil(ligneDe("controle '<brouillons>' verdict").replace(/ verdict$/, " brouillon"), m).status, 12, "un autre fichier que verdict ou publie : refusé");
   exigerDans(`${SKILL}/SKILL.md`, ["relire le commentaire publié", "`<brouillons>/publie.md`", "écrit la même ligne"]);
+  // Le gabarit rempli, ses bloquants et ses écartés à la forme : 0.
+  const lisible = remplir(gabarit(), { verdict: "refusé", bloquants: 2 }).replace(/\n\| <bloquant ou doute> [^\n]*\n/, "\n| bloquant | Ticket | `T3` | `docs/a.md:12` | Le terme manque à `GLOSSARY.md`. | aucun test |\n").replace(/\nÉcartés au tri : <n>\.\n- [^\n]*\n/, "\nÉcartés au tri : 1.\n- `docs/b.md:3` : faux — `D2`, la définition est juste\n");
+  assert.equal(jouer(lisible).status, 0, "des bloquants et des écartés à la forme");
+  // Un verdict.mjs de la session d'avant ce ticket, sans `fichiersNommes` : la commande juge comme avant.
+  exigerDans(`${SKILL}/references/gestes.md`, ["quand le `verdict.mjs` de la session exporte `fichiersNommes`"]);
+});
+
+test("le périmètre figé (ticket 2) : relecture/SKILL.md réserve les marques du périmètre", () => {
+  exigerDans(`${SKILL}/SKILL.md`, ["`Périmètre — `, `Périmètre absent`, `Périmètre dépassé`, `Suite — `"]);
 });
 
 /** Un chemin existe-t-il, lien symbolique compris (même cassé) ? */
