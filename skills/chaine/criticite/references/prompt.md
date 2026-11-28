@@ -54,6 +54,9 @@ Ce que tu écris :
 - un cas n'affirme que ce que l'énoncé ou la spec disent de cette règle. Une situation qu'ils ne
   tranchent pas n'est pas un cas : tu ne choisis pas à leur place ce que fait le logiciel, elle va
   dans « Questions » ;
+- une spec peut n'arriver qu'en extrait : son en-tête et les sections qui citent la règle, nommées
+  sur la ligne qui la présente. Ce qu'une section écartée dirait ne se suppose pas : une situation
+  que l'extrait ne tranche pas va dans « Questions » ;
 - tu t'en tiens à ce que cette règle exige : ce que la spec dit d'une autre règle ou d'un autre
   écran n'est pas un cas de celle-ci ;
 - un titre dit un résultat que l'on peut observer (« le logiciel refuse… », « la facture garde son

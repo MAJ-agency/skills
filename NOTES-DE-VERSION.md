@@ -2,6 +2,19 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.6.1 — 2026-11-27
+
+### Ce qui change
+
+- **`criticite` : une spec trop longue entre par son en-tête et les sections qui citent la règle.** Sous 300 000 caractères, le message est celui d'avant, octet pour octet. Au-delà, chaque spec est réduite à son en-tête et aux sections (titre de niveau 1 ou 2, en colonne 0, hors clôture de code) qui portent l'identifiant exact de la règle ; le plafond reste 300 000.
+- **Le message nomme ce qui est retenu** : `<nom> (extrait : en-tête, « ## A » ; écartées : k) :`. Une puce du prompt dit au sous-agent qu'une spec peut n'arriver qu'en extrait, et que ce qu'une section écartée dirait ne se suppose pas : la situation va dans « Questions ».
+- **La sortie d'erreur dit le tri**, en sortie 0 : la taille avant et après, puis une ligne par spec réduite. La section `## Criticité` de la PR la recopie sous la commande jouée.
+- **Le refus ne vient plus qu'après le tri** : toujours au-delà du plafond, le script refuse en sortie 2, avec les tailles avant et après, celle de la règle et, par spec, sa taille entière et en extrait.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien** : le script et le prompt sont lus dans le plugin, aucun `poser`.
+
 ## 8.6.0 — 2026-11-27
 
 ### Ce qui change
