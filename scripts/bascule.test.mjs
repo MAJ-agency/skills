@@ -124,11 +124,23 @@ test("le conducteur en régime 8 : il ne contre-relit pas, arbitre, reçoit les 
   exiger(entre(texte, "## Ne jamais", "\n- Lancer une fille"), ["Contre-relire une PR, relayer ou résumer un constat, poser `à-fusionner` sur une PR en régime 8", "ou appeler `archive_session` (`P-62`)"], "chantier, Ne jamais");
 });
 
+test("les skills fusionner et sujet nomment la commande de la demande, le README cite demande.mjs (ticket 120, A-241)", () => {
+  const fus = lire(`${C}/fusionner/SKILL.md`);
+  const suj = lire(`${C}/sujet/SKILL.md`);
+  for (const [nom, t] of [["fusionner", fus], ["sujet", suj]]) {
+    assert.ok(!t.includes("le commentaire `À relire`"), `${nom} : « le commentaire À relire »`);
+    assert.ok(!t.includes("`À relire`, puis"), `${nom} : « À relire, puis »`);
+  }
+  exiger(entre(fus, "| Session de travail", "\n"), ["`node scripts/chaine/demande.mjs`", "puis `à-relire`"], "fusionner, Session de travail");
+  exiger(entre(suj, "La relecture se demande après le dernier push", "\n"), ["`node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur, ou —>`", "puis l'étiquette `à-relire`"], "sujet, la relecture");
+  assert.match(lire("README.md"), /decision-relecteur\.mjs[^\n]*demande\.mjs/, "README : demande.mjs");
+});
+
 test("le capitaine en régime 8 : « Le verdict », la sous-PR sautée qui garde son sujet, la table des rôles, l'archivage (A-91, A-105, A-185 point 2, A-188)", () => {
   const texte = lire(`${C}/fusionner/SKILL.md`);
   const regle = entre(texte, "## La règle (`CLAUDE.md` § « Fusion vers develop »)", "## La règle d'ascendance");
   exiger(regle, [
-    "| Session de travail   | demande la relecture (`À relire`, puis `à-relire`) après son dernier push",
+    "| Session de travail   | demande la relecture (la ligne que rend `node scripts/chaine/demande.mjs`, puis `à-relire`) après son dernier push",
     "| Relecteur            | distribue les relectures ; `à-fusionner` sur un tour validé, `à-reprendre` sur un refus",
     "| Propriétaire renvoyé | corrige, redemande la relecture (`à-relire`, sans retirer `fusion-bloquée`)",
     "| remettre `à-fusionner` (une livraison de sujet exceptée), fusionner « puisque c'est corrigé » |",
@@ -279,6 +291,9 @@ test("les textes nomment la commande de la demande, la forme une fois à l'étap
   exiger(entre(arch, "- **En régime 8, une PR livrée**", "- **Une PR livrée, en régime 7"), [`${D} --session <la sienne> --conducteur —`, `${D} --branche <tête de la PR> --session — --conducteur —`], "architecte, PR livrée");
   exiger(entre(arch, "**S'ouvre sans question**", "En régime 7 ou dans un dépôt"), [`${D} --session <la sienne> --conducteur —`], "architecte, PR de documentation");
   exiger(entre(arch, "- **En régime 8**, une PR étrangère", "\n"), [`${D} --branche <tête de la PR> --session — --conducteur —`, "à-relire"], "architecte, PR étrangère");
+  const etrangere = entre(arch, "- **En régime 8**, une PR étrangère", "\n");
+  exiger(etrangere, ["**Une PR de fourche**, dans les deux régimes", "`head.repo.full_name` différent de `base.repo.full_name`, ou `head.repo` nul", "ne reçoit ni demande, ni `à-relire`, ni `à-fusionner`", "`git fetch origin pull/<n>/head:<branche>`, puis `git push origin <branche>`", "ouvre depuis elle une PR neuve qui cite la première", "elle est relue comme toute PR écrite par une personne", `${D} --branche <branche> --session — --conducteur —`], "architecte, PR de fourche");
+  assert.ok(etrangere.indexOf("puis pose `à-relire`, jamais `à-fusionner`") < etrangere.indexOf("**Une PR de fourche**"), "la phrase de la fourche vient après celle d'aujourd'hui");
 });
 
 test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle quelle ; la phrase des clés du socle les compte (A-100, A-108, A-128)", async () => {
@@ -328,4 +343,14 @@ test("fusionner/SKILL.md : la boucle relancée relit les passages interrompus, u
   exiger(entre(texte, "- **Arrêter la veille (`TaskStop`)", "- **Rouge réelle ou instable"), ["Une action manuelle jouée pendant le démarrage de la boucle serait lue comme un passage mort"], "Arrêter la veille avant toute action manuelle");
   exiger(entre(texte, "- **Plusieurs capitaines**", "Commentaires illisibles à la relecture"), ["**sauf si la boucle du même capitaine redémarre avant : elle le termine**"], "Plusieurs capitaines");
   exiger(lire(`${C}/fusionner/references/CONTENU.md`), ["Un passage interrompu se relit sur GitHub (A-245, ticket 107", "La fusion vit sur GitHub, la ligne meurt avec le processus"], "CONTENU.md");
+});
+
+test("relecteur/SKILL.md et fusionner/references/CONTENU.md : un tour refusé n'annonce son refus qu'avec tous ses verdicts, à l'échéance, ou une attendue morte ou au plafond (ticket 118, A-265 (1), A-269, A-270)", () => {
+  const texte = lire(`${C}/relecteur/SKILL.md`);
+  assert.ok(texte.split("\n").length <= 200, "relecteur/SKILL.md sous 200 lignes");
+  exiger(entre(texte, "## À chaque réveil", "## L'état des sessions"), ["`rien` avec la raison `attente` (règles 1, 4 et 5) : « L'état des sessions »"], "la table des gestes");
+  interdire(texte, ["`rien` avec la raison `attente` (règle 5)"], "relecteur/SKILL.md");
+  exiger(entre(texte, "## L'état des sessions", "## Les lignes"), ["Il se lit par `get_session`, pour les règles 1, 4, 5 et 6 seulement : les `preferees` d'un geste `distribuer`, et, pour chaque PR que la passe range en règle 5 (`reecrire`, ou `rien` avec la raison `attente`) ou en règle 1 ou 4 (`rien` avec la raison `attente` : un tour refusé qui attend ses verdicts), chaque session attendue,", "En règle 1 ou 4, une attendue `morte` ou `plafond` finit l'attente : `jouer <n> --sessions <fichier>` annonce le refus ; `couple` ne la finit pas."], "L'état des sessions");
+  exiger(entre(texte, "## Les lignes", "## Les messages des sessions de relecture"), ["Un tour refusé ne s'annonce qu'avec tous ses verdicts sur la PR", "ou à l'échéance de l'attente, ", "(sans le verdict de <id>[, <id>…])", "Un verdict écrit après l'annonce, avant la distribution suivante, compte contre le tour, mais aucune ligne ne part de plus"], "Les lignes");
+  exiger(entre(lire(`${C}/fusionner/references/CONTENU.md`), "## `scripts/verdict.mjs`, `scripts/decision-relecteur.mjs`", "\n## "), ["Un tour refusé n'annonce son refus qu'avec tous ses verdicts (`A-265` (1), `A-269`, `A-270`)"], "CONTENU.md");
 });

@@ -6,6 +6,11 @@
 // rend un seul geste, ou « rien » : la première des six règles qui s'applique. `tourValide` est la règle 2,
 // pour le capitaine, par les mêmes définitions.
 //
+// Un tour refusé n'annonce son refus (règle 4) ni ne pose le plafond (règle 1) qu'une fois tous les verdicts de sa
+// dernière distribution sur la PR, son échéance passée ou une session attendue `morte` ou `plafond` : d'ici là, « rien »,
+// raison `attente` (A-265 (1), A-269, A-270). Sans tous les verdicts, la ligne dit « (sans le verdict de <id>…) ». Un
+// refus tardif sur une PR `à-fusionner` n'attend jamais. Le tour, lui, est refusé et compté dès son premier refus.
+//
 // Les marques lues dans les commentaires (le corps entier est la forme, à l'octet près, sauf mention) :
 //   - le verdict d'une session de relecture (verdict.mjs) ;
 //   - la distribution : `Relecture — tour <k> — sommet <sha> — sessions <s1>, <s2>`, suivie ou non de
@@ -562,12 +567,36 @@ export function decider(etat) {
   const aNoter = (t, mot) => (t.sommet !== tete && !marques.notes.some((x) => x.tete === tete && x.tour === t.numero) ? { tour: t.numero, sommet: t.sommet, verdict: mot } : null);
   const avecNote = (geste, note) => (note === null || geste.geste !== 'etiqueter' ? geste : { ...geste, note });
 
+  // « Depuis », pour une session d'un tour : sa relance, sinon la distribution qui l'a nommée la première dans ce
+  // tour. L'échéance d'une attente (règles 1, 4 et 5) : le plus petit « depuis » des attendues, plus le délai.
+  const relanceDans = (t, s) => t.distributions.findLast((d) => d.mention === 'relance' && d.cible === s) ?? null;
+  const depuis = (t, s) => Date.parse((relanceDans(t, s) ?? t.distributions.find((d) => d.sessions.includes(s))).date);
+
   // Règle 1 — le plafond, et là seulement : une décision attendue ; sinon trois tours comptés ou plus.
   const plafond = marques.plafonds.at(-1)?.rang ?? -1;
   if (plafond > (marques.decisions.at(-1)?.rang ?? -1)) return etiqueter(1, 'à-reprendre', `PR ${numero} : décision de plafond attendue`);
-  if (lesTours.filter((t) => t.compte).length >= PLAFOND) {
+  const auPlafond = lesTours.filter((t) => t.compte).length >= PLAFOND;
+
+  // L'attente d'un tour refusé (A-265 (1), A-269, A-270), en règle 1 s'il est le troisième compté, en règle 4 sinon :
+  // le dernier tour porte sur le contenu de la tête, il est refusé, une session de sa dernière distribution n'a pas
+  // rendu de verdict, et la PR ne porte pas `à-fusionner` (un refus tardif s'y annonce toujours au passage où il
+  // arrive). Le refus ne s'annonce, et le plafond ne tombe, qu'une fois tous ses verdicts rendus, l'échéance passée,
+  // ou une attendue `morte` ou `plafond` (`couple` tourne : son verdict compte) ; sans tous les verdicts, la ligne
+  // dit qui manque. Le compte des tours n'attend pas : un tour refusé compte dès son premier refus.
+  let refus = REFUS;
+  if (dernier !== null && dernier.surLaTete && dernier.etat === 'refuse' && !porte('à-fusionner')) {
+    const attendues = dernier.sessions.filter((s) => dernier.verdicts[s] === undefined);
+    if (attendues.length > 0) {
+      const echeance = Math.min(...attendues.map((s) => depuis(dernier, s))) + delaiMs;
+      const finie = maintenant > echeance || attendues.some((s) => ['morte', 'plafond'].includes(propre(connues, s)));
+      if (!finie) return rien(auPlafond ? 1 : 4, 'attente', { attendues, echeance });
+      refus = `${REFUS} (sans le verdict de ${attendues.join(', ')})`;
+    }
+  }
+
+  if (auPlafond) {
     const texte = `PR ${numero} : plafond atteint au troisième tour refusé, décision attendue`;
-    return { regle: 1, geste: 'plafonner', commentaire: TEXTE_PLAFOND, poser: 'à-reprendre', retirer: retirer('à-reprendre'), lignes: [ligne('auteur', REFUS), ligne('conducteur', texte), ligne('architecte', texte)] };
+    return { regle: 1, geste: 'plafonner', commentaire: TEXTE_PLAFOND, poser: 'à-reprendre', retirer: retirer('à-reprendre'), lignes: [ligne('auteur', refus), ligne('conducteur', texte), ligne('architecte', texte)] };
   }
 
   // Règle 2 — le dernier tour qui porte sur le contenu de la tête est validé.
@@ -595,10 +624,11 @@ export function decider(etat) {
   }
 
   // Règle 4 — le dernier tour porte sur le contenu de la tête et il est refusé : la reprise non comptée quand
-  // chaque refus a un bloquant écarté plus récent que lui, et que la PR ne porte plus `à-fusionner`.
+  // chaque refus a un bloquant écarté plus récent que lui, et que la PR ne porte plus `à-fusionner`. L'une et
+  // l'autre après l'attente du tour (plus haut) : un arbitrage écrit avant le dernier verdict ne lance rien.
   if (surLaTete && dernier.etat === 'refuse') {
     const ecartes = dernier.refus.every((r) => marques.arbitragesEcartes.some((a) => a.rang > r.rang));
-    return ecartes && !porte('à-fusionner') ? distribuer(4, MENTION_ARBITRAGE) : avecNote(etiqueter(4, 'à-reprendre', REFUS), aNoter(dernier, 'refusé'));
+    return ecartes && !porte('à-fusionner') ? distribuer(4, MENTION_ARBITRAGE) : avecNote(etiqueter(4, 'à-reprendre', refus), aNoter(dernier, 'refusé'));
   }
 
   // Règle 5 — le dernier tour porte sur le contenu de la tête et il est en cours.
@@ -607,20 +637,18 @@ export function decider(etat) {
     const geste = (nom, plus) => ({ regle: 5, geste: nom, tour, sommet, sessions, ...plus });
     if (sessions.length < exiges) return geste('completer', { manque: exiges - sessions.length });
     const attendues = sessions.filter((s) => verdicts[s]?.verdict !== 'validé');
-    const relance = (s) => distributions.findLast((d) => d.mention === 'relance' && d.cible === s) ?? null;
+    const relance = (s) => relanceDans(dernier, s);
     // Hors service : morte, au plafond de contexte, ou à un autre couple que celui de la PR (A-182, point 2).
     const horsService = (s) => ['morte', 'plafond', 'couple'].includes(propre(connues, s));
     const aRelancer = attendues.find((s) => verdicts[s] !== undefined && relance(s) === null && !horsService(s));
     if (aRelancer !== undefined) return geste('reecrire', { session: aRelancer });
-    // « Depuis » : la relance de la session, sinon la distribution qui l'a nommée la première dans ce tour.
-    const depuis = (s) => Date.parse((relance(s) ?? distributions.find((d) => d.sessions.includes(s))).date);
     const panne = (s) => {
       if (horsService(s)) return propre(connues, s);
       if (verdicts[s] !== undefined && verdicts[s].rang > relance(s).rang) return 'incomplet-deux-fois';
-      return maintenant - depuis(s) > delaiMs ? 'muette' : null;
+      return maintenant - depuis(dernier, s) > delaiMs ? 'muette' : null;
     };
     const enPanne = attendues.find((s) => panne(s) !== null);
-    if (enPanne === undefined) return rien(5, 'attente', { attendues, echeance: Math.min(...attendues.map(depuis)) + delaiMs });
+    if (enPanne === undefined) return rien(5, 'attente', { attendues, echeance: Math.min(...attendues.map((s) => depuis(dernier, s))) + delaiMs });
     if (!distributions.some((d) => d.mention === 'remplace')) return geste('remplacer', { session: enPanne, cause: panne(enPanne) });
     if (marques.pannes.some((p) => p.rang > distributions.at(-1).rang)) return rien(5, 'panne-signalee');
     const texte = `PR ${numero} : relecture en panne`;

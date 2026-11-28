@@ -53,7 +53,9 @@
 # Regroupement d'office (`regrouper-series`) : une série de PR vers develop qui citent la même
 # spec rejoint le sujet qui en contient déjà une, ou ouvre `sujet/<spec>` à partir de 3 PR ; une
 # pile de 2 PR ou plus ouvre `sujet/pile-<racine>`. Jamais une série qui compte une PR
-# `prio:haute`, ni une PR `hors-sujet` ; une série dont aucune PR ne vise develop ne bouge pas.
+# `prio:haute`, ni une PR `hors-sujet`, ni une PR de fourche ; une série dont aucune PR ne vise develop ne bouge pas.
+# Sorties de `sujet.sh regrouper` lues par la boucle : 0 REGROUPÉE · 5 GitHub illisible, repris au tour suivant · 6 worktree à nettoyer, repris au tour
+# suivant · 7 PR de fourche, jamais reciblée · le reste, « SUJET EN CONFLIT ? » ; aucun renvoi dans les cas 5 à 7.
 #
 # Ordre de la file (file.sh) : sous-PR de sujet (quelques secondes), livraisons de sujet (une PR
 # qui en vaut N, `prio:haute` comprise), `prio:haute`, puis numéro.
@@ -528,6 +530,8 @@ traiter_sujets() {
         case "$rc" in
           0) echo "[#$n] REGROUPÉE dans sujet/$sujet (son ticket le déclare)" ;;
           6) echo "[#$n] PAS PROPRE : worktree du capitaine à nettoyer, regroupement repris au tour suivant (aucun renvoi)" ;;
+          5) echo "[#$n] GitHub illisible : regroupement dans sujet/$sujet repris au tour suivant (aucun renvoi)" ;;
+          7) echo "[#$n] PR de fourche : jamais reciblée sur sujet/$sujet (aucun renvoi)" ;;
           *) echo "[#$n] regroupement dans sujet/$sujet impossible (SUJET EN CONFLIT ?)" ;;
         esac ;;
       # Une sous-PR de fourche (file.sh) : jamais prise, elle ne tient pas son sujet (A-201).

@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.7 — 2026-11-28
+## 8.9.9 — 2026-11-28
 
 ### Ce qui change
 
@@ -12,6 +12,33 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 ### Ce qu'un projet fait pour en profiter
 
 - **Reposer** les scripts de `fusionner` (`boucle.sh`, posé sous `scripts/chaine/`) (`fusionner poser`). Sans repose, rien ne change.
+
+## 8.9.8 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 comme en régime 7 : une PR de fourche se dit fourche, et n'est jamais reciblée sur un sujet.
+
+- **`demande.mjs` nomme la fourche et sort en 1 sur une branche sans commit** (ticket 119, `A-192`, `A-271`) : une branche absente d'`origin` est dite « un sommet jamais poussé, ou la tête d'une PR de fourche, qui ne reçoit ni verdict ni fusion : aucune demande » ; une branche née sans commit sort en 1 (« n'a aucun commit »), jamais en 12, qui reste la panne d'`origin` ou de git. `architecte/SKILL.md` fait reconnaître la fourche (`head.repo`) avant tout script : ni demande, ni `à-relire`, ni `à-fusionner`.
+- **Les skills `fusionner` et `sujet` nomment la commande de la demande, le README cite `demande.mjs`** (ticket 120, `A-241`) : plus de « le commentaire `À relire` ».
+- **Une PR de fourche n'est plus reciblée sur un sujet ni comptée dans une série** (ticket 121, `A-199`, `A-201`) : `file.sh` ne lit pas le sujet du ticket d'une fourche (elle est classée comme une PR directe, ni « vers sujet/<nom> », ni gelée) ; `sujet.sh regrouper` lit chaque PR avant d'ouvrir le sujet, saute les fourches (sortie 7) ; `series` les écarte ; `boucle.sh` dit la sortie 7.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** les scripts de `fusionner` (`demande.mjs`, `file.sh`, `boucle.sh`, posés sous `scripts/chaine/`) et de `sujet` (`sujet.sh`) : `fusionner poser`, `sujet poser`. Sans repose, rien ne change.
+
+## 8.9.7 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 : la décision du Relecteur (`decision-relecteur.mjs`).
+
+- **Un refus double s'annonce avec ses deux verdicts** (`A-265` (1)) : quand un tour à deux sessions est refusé par l'une et que l'autre n'a pas encore rendu, `decider` rend `rien`, raison `attente`, en règle 4 (en règle 1 au troisième tour compté), sans changer d'étiquette ni envoyer de ligne. Le refus s'annonce, ou le plafond tombe, au passage où arrive le dernier verdict : l'auteur lit tous les bloquants du tour d'un coup. Le compte des tours et `tourValide` ne changent pas ; un refus tardif sur une PR `à-fusionner` n'attend jamais (`A-270` (3)).
+- **L'attente a une échéance** (`A-269`) : `relecture.delai` depuis la distribution (ou la relance) de la session attendue, comme en règle 5 ; passée l'échéance, ou dès qu'une attendue est `morte` ou `plafond`, le refus s'annonce avec les verdicts présents, sa ligne suffixée « (sans le verdict de <id>…) ». Le skill `relecteur` lit l'état des sessions attendues en règles 1 et 4 (`A-270` (1)).
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `fusionner` (`/maj-skills:socle-chaine-de-production`, après `claude plugin marketplace update maj`) : `decision-relecteur.mjs` est copié dans `scripts/chaine/`. Sans repose, un refus double s'annonce encore au premier verdict. Le texte du skill `relecteur` se lit dans le marketplace.
 
 ## 8.9.6 — 2026-11-28
 
