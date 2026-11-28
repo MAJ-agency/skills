@@ -93,9 +93,37 @@ const chemins = (texte) => {
   const liste = texte.split(',').map((c) => c.trim());
   return liste.every((c) => c !== '' && !c.includes('*')) ? liste : null;
 };
-// Un chemin comparable, comme `cheminLu` de revue-exigee.mjs pour une ligne non citée : `./` de tête retiré, NFC,
-// majuscules puis minuscules. Une ligne citée par git (`"…"`) se compare telle quelle : jamais couverte.
-const cle = (chemin) => String(chemin).trim().replace(/^\.\//, '').normalize('NFC').toUpperCase().toLowerCase();
+// Un chemin comparable : `cheminLu` de revue-exigee.mjs, recopié pour garder ce module pur (decision-relecteur.test.mjs
+// tient la parité) — guillemets de git retirés et échappements décodés, NFC, majuscules puis minuscules — et `./` de
+// tête retiré (une ligne `Fichiers:`). Une ligne citée mal formée se compare telle quelle : jamais couverte.
+const ECHAPPEMENTS = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, '\\': 92 };
+const comparable = (c) => c.normalize('NFC').toUpperCase().toLowerCase();
+export function cheminLu(ligne) {
+  const f = String(ligne).trim();
+  if (!f.startsWith('"')) return comparable(f);
+  if (f.length < 2 || !f.endsWith('"')) return null;
+  const car = [...f.slice(1, -1)];
+  const octets = [];
+  for (let i = 0; i < car.length; i++) {
+    if (car[i] === '"') return null;
+    if (car[i] !== '\\') {
+      octets.push(...Buffer.from(car[i]));
+      continue;
+    }
+    const e = car[++i];
+    const octal = car.slice(i, i + 3).join('');
+    if (e in ECHAPPEMENTS) octets.push(ECHAPPEMENTS[e]);
+    else if (/^[0-3][0-7]{2}$/.test(octal)) {
+      octets.push(parseInt(octal, 8));
+      i += 2;
+    } else return null;
+  }
+  return comparable(Buffer.from(octets).toString('utf8'));
+}
+const cle = (chemin) => {
+  const lu = cheminLu(chemin);
+  return lu === null ? String(chemin) : lu.replace(/^\.\//, '');
+};
 
 /**
  * @typedef {object} Distribution

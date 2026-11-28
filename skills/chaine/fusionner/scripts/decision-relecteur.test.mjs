@@ -1253,3 +1253,12 @@ test('périmètre — ce qui n\'est pas contrôlé : une PR de code, un diff vid
   for (const perimetre of [null, { documentation: 'oui', fichiers: [] }, { documentation: true }, { documentation: true, fichiers: [1] }, { documentation: true, fichiers: [], delta: 'x' }])
     assert.throws(() => joue({ commentaires: fil(DEMANDE()), perimetre }), TypeError, JSON.stringify(perimetre));
 });
+
+test('périmètre — les chemins se comparent après `cheminLu` : la copie de decision-relecteur.mjs rend ce que rend celle de revue-exigee.mjs ; un chemin cité par git est décodé', async () => {
+  const { cheminLu: lu } = await import('./decision-relecteur.mjs');
+  const { cheminLu: reference } = await import('./revue-exigee.mjs');
+  for (const l of ['docs/a.md', '  Docs/É.md ', 'docs/é.md', '"docs/a\\"b.md"', '"docs/\\303\\251t\\303\\251.md"', '"docs/a\\tb.md"', '"docs/mal', '"docs/\\q.md"', '"docs/a"b.md"', '""'])
+    assert.equal(lu(l), reference(l), JSON.stringify(l));
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs/été.md, docs/a"b.md'), DEMANDE()), perimetre: DOC(['"docs/\\303\\251t\\303\\251.md"', '"docs/a\\"b.md"']) }), TOUR1);
+  assert.deepEqual(joue({ commentaires: fil(PERIM('docs/'), DEMANDE()), perimetre: DOC(['"docs/mal']) }), DEPASSE('"docs/mal'), 'une ligne citée mal formée : jamais couverte');
+});
