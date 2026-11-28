@@ -17,7 +17,7 @@ Relecteurs: `skills` : absent (dépôt sans la chaîne)
 
 | n°  | Chantier | Dépôt | Spec | Carte | Conducteur | État |
 | --- | -------- | ----- | ---- | ----- | ---------- | ---- |
-| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; tickets 1 et 2 fusionnés (#172 8.6.0, #173 8.8.0) ; ticket 3 livré, PR #175 (8.9.0), à fusionner |
+| 1   | Périmètre figé | `skills`, puis `essai-relecture-8` pour l'essai | [`perimetre-fige.spec.md`](../issues/perimetre-fige/perimetre-fige.spec.md) | sans carte de chantier (A-7) | l'architecte (A-7) | spec validée le 2026-11-27 ; PR #165 fusionnée le 2026-11-27 ; ticket 1 fusionné (#172, 8.6.0) ; tickets 1 et 2 fusionnés (#172 8.6.0, #173 8.8.0) ; ticket 3 livré, PR #175, renvoyée pour conflit (après #174) |
 
 ## Decisions-so-far
 
@@ -89,6 +89,7 @@ Décisions de l'architecte : A-1 à A-19, écrites avec leur raison dans la spec
 - 2026-11-28 03 h 12 UTC — PR #173 fusionnée par le capitaine à 02 h 51 UTC (`2436313`, 8.8.0) ; arbre identique au sommet ordonné `344a7db`, lu à la source. Session du ticket 2 archivée (finie, aucun réveil ; 15,91 $). Fusion écrite à l'architecte de « gouverner nos boucles ». Ticket 3 lancé depuis `main` (session_012xRpgYw3Ki5Zn9ykjuB7kr, opus), avec A-16 et A-18 dans sa ligne de situation, 8.9.0 attendue.
 - 2026-11-28 03 h 42 UTC — Ticket 3 livré : PR #175 (8.9.0), ordre au sommet `1b5d188`. Fichiers lus à la source : ceux du ticket, plus `CONTEXT.md` (A-16), l'ADR de la relecture indépendante et son banc `scripts/bascule.test.mjs` (A-18). Question de sa revue (D6) : A-16 à A-19 reportées dans la spec par cette branche.
 - 2026-11-28 03 h 45 UTC — Question posée au produit : l'accord sur `scripts/chaine/**` d'`essai-relecture-8`, pour le ticket 4.
+- 2026-11-28 04 h 13 UTC — PR #175 renvoyée par le capitaine à 04 h 07 UTC : conflit avec `main` après la #174 (8.8.1, « gouverner nos boucles »). Session du ticket 3 prévenue : fusion de `main` par commit de merge, version suivante, ordre reposé. Accord du produit pour le ticket 4 toujours attendu.
 
 ## Source
 
