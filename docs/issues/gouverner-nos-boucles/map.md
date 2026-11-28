@@ -1532,3 +1532,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-27 — 23 h 48 UTC. Ordre accepté par l'architecte de « périmètre figé » : entrée #169, #172, #170, #171 ; son ticket 2 part de `main` après la fusion de #170, sur mon message (à lui écrire dès la #170 lue à la source).
 - 2026-11-28 — 00 h 17 UTC. **PR #172 (« périmètre figé ») entrée** : `main` à `7e63b12`, plugin 8.6.0. #169 renvoyée pour conflit à 00 h 06 (attendu) : gestes envoyés à sa session (fusion de `7e63b12`, section de note en 8.6.1 sha256 `14914af…`, arbre attendu `503f486…`, calculés à part). Ensuite #170 (deuxième chiffre, donc 8.7.0) et #171.
 - 2026-11-28 — 00 h 19 UTC. PR #169 : sommet `86276ef` (fusion de `7e63b12`, 8.6.1), arbre `503f486` vérifié ; l'ordre attend CodeQL.
+- 2026-11-28 — 00 h 30 UTC. PR #169 : `CodeQL` et `Analyze` verts au sommet `86276ef` ; verdict, ordre et label posés ; `bancs` en cours (le capitaine l'attend).
