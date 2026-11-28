@@ -1576,3 +1576,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 08 h 24 UTC. PR #180 (ticket 117, 8.9.4) : `CodeQL` et `Analyze` verts au sommet `6865fce` ; verdict, ordre et label posés ; `bancs` en cours (il joue `references-posees.test.mjs`, non prouvé en local).
 - 2026-11-28 — 08 h 30 UTC. Ticket 107 livré : PR #181 (sommet `5207c7b`, 8.9.4, collision avec #180 à régler à la remise sur `main`). Tour 1 lancé (agent neuf, diff et ticket sous `/home/user/agents/pr181/`).
 - 2026-11-28 — 08 h 36 UTC. PR #181 : tour 1, un écart (texte du point 3 du réveil de garde, `SKILL.md:101`, ne dit ni la PR illisible ni le témoin d'un autre capitaine), vérifié par l'architecte et renvoyé à la session par un commit de plus.
+- 2026-11-28 — 08 h 40 UTC. PR #181 : correction au sommet `b6e8a4b` (texte et son test de bascule), lue par l'architecte (A-211), conforme. Remise sur `main` en 8.9.5 après la fusion de #180 (ordre posé, `clean`, en attente du capitaine).
