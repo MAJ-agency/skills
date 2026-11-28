@@ -1563,3 +1563,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 06 h 06 UTC. **PR #177 fusionnée** (ticket 104) : `main` à `533b64b`, parent `c15f90a`, arbre égal au sommet ordonné `0b6062b`, plugin 8.9.1 ; vérifié à la source. Session 104 archivée (1,52 $). Capitaine au repos, 503 954 tokens, 7,03 $. PR #178 : gestes de remise sur `main` envoyés (section 8.9.2 sha256 `6ace5fd…`, arbre attendu `0f6c4ae…`).
 - 2026-11-28 — 06 h 19 UTC. PR #178 (ticket 105) : `CodeQL` et `Analyze` verts au sommet `a3c3019` ; verdict, ordre et label posés ; `bancs` en cours. Le ticket 106 part après sa fusion.
 - 2026-11-28 — 06 h 45 UTC. **PR #178 fusionnée** (ticket 105) : `main` à `36accb9`, parent `533b64b`, arbre égal au sommet ordonné `a3c3019`, plugin 8.9.2 ; vérifié à la source. Session 105 archivée (7,31 $, Opus). Session du ticket 106 lancée (Sonnet).
+- 2026-11-28 — 06 h 46 UTC. Ticket 106 → session_012xRpgXtNoYaPq3vofqG6U2 (Sonnet), seule PR de ce programme en vol.
