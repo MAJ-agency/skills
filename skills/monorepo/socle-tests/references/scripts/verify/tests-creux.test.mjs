@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
 
 const ICI = dirname(new URL(import.meta.url).pathname);
 // Le script lit la grammaire à `scripts/docs/identifiants.mjs` : posée par socle-monorepo à côté de
@@ -17,8 +17,15 @@ const GRAMMAIRE = [
 // `typescript` vient de la racine jouet : un lien vers celui que le banc trouve.
 const TYPESCRIPT = dirname(createRequire(import.meta.url).resolve("typescript/package.json"));
 
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
+
 function depot(specs, { avecGrammaire = true } = {}) {
   const racine = mkdtempSync(join(tmpdir(), "tests-creux-"));
+  DOSSIERS.push(racine);
   mkdirSync(join(racine, "scripts/verify"), { recursive: true });
   copyFileSync(join(ICI, "tests-creux.mjs"), join(racine, "scripts/verify/tests-creux.mjs"));
   if (avecGrammaire) {

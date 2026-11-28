@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import { synthese, texteDuPaquet } from "./mutation-regles-synthese.mjs";
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const stryker = {
   files: {
@@ -64,6 +70,7 @@ test("une synthèse sans mutant mesuré le dit, et un remplacement multiligne re
 const regle = (key, status, code) => ({ key, realisation: { status }, code });
 function projet({ index, rapport }) {
   const racine = mkdtempSync(join(tmpdir(), "mutation-synthese-"));
+  DOSSIERS.push(racine);
   for (const f of ["apps/api/src/a.ts", "apps/api/src/b.ts", "apps/api/src/b.controller.ts"]) {
     mkdirSync(join(racine, f, ".."), { recursive: true });
     writeFileSync(join(racine, f), "export const x = 1;\n");

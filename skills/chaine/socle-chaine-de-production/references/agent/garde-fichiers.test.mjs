@@ -259,3 +259,13 @@ test('régime 8 : dans un clone entier, un refus ne nomme jamais le clone superf
   refuse(r, /^scripts\/agent\/garde\.mjs : chemin sensible/);
   assert.doesNotMatch(r.stderr, /superficiel|unshallow/, 'le geste du clone superficiel échouerait dans un clone entier');
 });
+
+// A-260 : hors des chemins sensibles de CONTRAT, le refus ne peut venir que de la liste des index générés.
+test('un index généré de la liste du projet est refusé, sa commande nommée ; sans la liste, le même chemin passe ; un segment de plus passe', () => {
+  const d = depot();
+  passe(ecrire(d, 'docs/index/regles.md'));
+  const docs = join(d.racine, 'outils/scripts/docs');
+  writeFileSync(join(docs, 'index-generes.json'), JSON.stringify({ index: [{ chemin: 'docs/index/*.md', commande: 'node scripts/docs/index.mjs' }] }));
+  refuse(ecrire(d, 'docs/index/regles.md'), /docs\/index\/regles\.md est généré : le régénérer avec « node scripts\/docs\/index\.mjs »/);
+  passe(ecrire(d, 'docs/index/sous/regles.md'));
+});

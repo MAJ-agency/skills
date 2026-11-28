@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import {
   estChemin,
   intitulesTable,
@@ -155,15 +155,22 @@ test('ticket : un identifiant cité qui n’existe pas est signalé, un existant
 
 // ── La coquille, sur un dépôt jouet : identifiants de ticket dérivés des fichiers, dette gelée, --elaguer ──
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync as lireFichier, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync as lireFichier, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const ICI = dirname(new URL(import.meta.url).pathname);
 // La grammaire est posée par le même skill, à `scripts/docs/` : à côté dans un projet comme dans le plugin.
 const GRAMMAIRE = join(ICI, '../docs/identifiants.mjs');
 function jouet(fichiers) {
   const racine = mkdtempSync(join(tmpdir(), 'references-agent-'));
+  DOSSIERS.push(racine);
   execFileSync('git', ['init', '-q', racine]);
   mkdirSync(join(racine, 'scripts/verify'), { recursive: true });
   for (const f of ['references-agent.mjs', 'references-agent-regles.mjs']) writeFileSync(join(racine, 'scripts/verify', f), lireFichier(join(ICI, f)));

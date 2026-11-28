@@ -1,13 +1,20 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const SCRIPT = new URL("./budget-contexte.mjs", import.meta.url).pathname;
 function depot(fichiers) {
   const racine = mkdtempSync(join(tmpdir(), "budget-contexte-"));
+  DOSSIERS.push(racine);
   execFileSync("git", ["init", "-q", racine]);
   for (const [chemin, texte] of Object.entries(fichiers)) {
     mkdirSync(dirname(join(racine, chemin)), { recursive: true });

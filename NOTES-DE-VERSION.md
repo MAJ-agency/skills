@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.7.1 — 2026-11-28
+## 8.7.2 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.7.1 — 2026-11-27
+
+### Ce qui change
+
+- **Les bancs de `socle-tests` tournent dans un projet sans API** (`A-257`) : sans `apps/api/`, `mutation-regles.test.mjs` ne lève plus à l'import ; ses deux tests de configuration Stryker sont sautés avec leur raison, lue en `# SKIP`. `SKILL.md` (étapes 4 et 5) et `CONTENU.md` disent qu'un projet sans API n'a ni configuration Stryker, ni scripts `mutation`, ni `mutation.yml`.
+- **Les bancs posés ne laissent plus rien dans le dossier temporaire** (`A-258`) : douze bancs retirent ce qu'ils créent (`after()`), et le garde `references-posees.test.mjs` exige son `TMPDIR` vide après chaque régime.
+- **Le délai du garde tue le groupe** (`A-259`) : `jouerEnGroupe` (`scripts/pose-du-socle.mjs`) tue le groupe de processus entier au délai, sorties à part.
+- **Un banc prouve le refus d'éditer un index généré** (`A-260`) : un cas de plus dans `garde-fichiers.test.mjs`.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer les bancs, pièce par pièce** : `scripts/verify/` (`/maj-skills:socle-tests`, `/maj-skills:socle-monorepo`, `/maj-skills:tickets`), `scripts/agent/` (`/maj-skills:socle-chaine-de-production`) et `scripts/docs/` (`/maj-skills:tickets`, `/maj-skills:socle-monorepo`). Un projet qui ne les repose pas garde ses bancs actuels.
 
 ## 8.7.0 — 2026-11-27
 
