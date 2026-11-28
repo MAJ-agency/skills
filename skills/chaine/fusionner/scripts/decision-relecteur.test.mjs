@@ -120,7 +120,7 @@ test('H6 — un bloquant écarté, un autre corrigé et poussé : tour 2 ordinai
   assert.equal(comptes({ commentaires: refuse, tete: V2 }), 2);
 });
 
-test("H7 — deux verdicts exigés, R1 a rendu, pas R2 : attente (r5), puis R2 remplacée, le verdict de R1 reste ; R1 a refusé : `à-reprendre` sans attendre", () => {
+test("H7 — deux verdicts exigés, R1 a rendu, pas R2 : attente (r5), puis R2 remplacée, le verdict de R1 reste ; R1 a refusé : l'attente de R2, puis `à-reprendre` à son verdict", () => {
   const double = { exiges: 2 };
   const un = [DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé')];
   assert.deepEqual(joue({ ...double, commentaires: fil(...un) }), { regle: 5, geste: 'rien', raison: 'attente', attendues: ['r2'], echeance: DEBUT + 60_000 + 2 * H });
@@ -136,9 +136,12 @@ test("H7 — deux verdicts exigés, R1 a rendu, pas R2 : attente (r5), puis R2 r
     retirer: ['à-relire'],
     lignes: LIGNES('verdict écrit sur la PR 12 : validé, double'),
   });
-  // Un refus suffit : le tour est refusé dès qu'un de ses verdicts l'est, sans attendre R2.
-  const refus = joue({ ...double, commentaires: fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'refusé')) });
-  assert.deepEqual([refus.regle, refus.poser, refus.lignes[0].texte], [4, 'à-reprendre', 'verdict écrit sur la PR 12 : refusé, double']);
+  // Un refus attend les verdicts de son tour (A-265 (1)) : R1 refuse, R2 attendue, rien ne s'annonce ; le verdict
+  // de R2, validé ou refusé, annonce le refus, avec tous les verdicts du tour sur la PR.
+  const refus = [DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'refusé')];
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus) }), { regle: 4, geste: 'rien', raison: 'attente', attendues: ['r2'], echeance: DEBUT + 60_000 + 2 * H });
+  for (const mot of ['validé', 'refusé'])
+    assert.deepEqual(joue({ ...double, commentaires: fil(...refus, verdict(1, 'r2', mot)) }), { regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer: ['à-relire'], lignes: LIGNES('verdict écrit sur la PR 12 : refusé, double') }, mot);
   // Deux verdicts validés de la même session ne font pas deux sessions.
   assert.equal(joue({ ...double, commentaires: fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r1', 'validé')) }).raison, 'attente');
 });
@@ -1261,4 +1264,77 @@ test('périmètre — les chemins se comparent après `cheminLu` : la copie de d
     assert.equal(lu(l), reference(l), JSON.stringify(l));
   assert.deepEqual(joue({ commentaires: fil(PERIM('docs/été.md, docs/a"b.md'), DEMANDE()), perimetre: DOC(['"docs/\\303\\251t\\303\\251.md"', '"docs/a\\"b.md"']) }), TOUR1);
   assert.deepEqual(joue({ commentaires: fil(PERIM('docs/'), DEMANDE()), perimetre: DOC(['"docs/mal']) }), DEPASSE('"docs/mal'), 'une ligne citée mal formée : jamais couverte');
+});
+
+test("A-265 (1), A-269, A-270 — un tour à deux sessions n'annonce son refus qu'avec tous ses verdicts, à l'échéance, ou une attendue hors service", () => {
+  const double = { exiges: 2 };
+  const SANS = (...ids) => `verdict écrit sur la PR 12 : refusé, double (sans le verdict de ${ids.join(', ')})`;
+  const ANNONCE = (texte, retirer = ['à-relire']) => ({ regle: 4, geste: 'etiqueter', poser: 'à-reprendre', retirer, lignes: LIGNES(texte) });
+  const refus = [DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'refusé')];
+  const echeance = DEBUT + 60_000 + 2 * H;
+  const ATTENTE = { regle: 4, geste: 'rien', raison: 'attente', attendues: ['r2'], echeance };
+
+  // Un `incomplet` est rendu : le refus s'annonce, sans relance.
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus, verdict(1, 'r2', 'incomplet')) }), ANNONCE('verdict écrit sur la PR 12 : refusé, double'));
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus, verdict(1, 'r2', 'incomplet')), maintenant: DEBUT + 9 * H }), ANNONCE('verdict écrit sur la PR 12 : refusé, double'));
+
+  // L'échéance : à l'instant même, l'attente ; passée, le refus avec les verdicts présents, le suffixe dit qui manque.
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus), maintenant: echeance }), ATTENTE);
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus), maintenant: echeance + 1 }), ANNONCE(SANS('r2')));
+  // Une attendue morte ou au plafond finit l'attente avant l'échéance ; `couple` tourne, elle ne la finit pas.
+  for (const etat of ['morte', 'plafond']) assert.deepEqual(joue({ ...double, commentaires: fil(...refus), sessions: { r2: etat } }), ANNONCE(SANS('r2')), etat);
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus), sessions: { r2: 'couple' } }), ATTENTE);
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus), sessions: { r1: 'morte', r2: 'vivante' } }), ATTENTE);
+
+  // Le troisième tour compté : l'attente en règle 1, sans plafond ; puis le plafond, avec tous les verdicts ou à l'échéance.
+  const deuxTours = [
+    DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'refusé'), verdict(1, 'r2', 'refusé'),
+    DEMANDE(V2), D(2, V2, ['r1', 'r2']), verdict(2, 'r1', 'refusé', { sommet: V2 }), verdict(2, 'r2', 'refusé', { sommet: V2 }),
+    DEMANDE(V3), { corps: D(3, V3, ['r1', 'r2']), a: 100 }, verdict(3, 'r1', 'refusé', { sommet: V3 }),
+  ];
+  const troisieme = { ...double, tete: V3, maintenant: DEBUT + 102 * 60_000 };
+  assert.deepEqual(joue({ ...troisieme, commentaires: fil(...deuxTours) }), { regle: 1, geste: 'rien', raison: 'attente', attendues: ['r2'], echeance: DEBUT + 100 * 60_000 + 2 * H });
+  const PLAFONNER = (texte) => ({
+    regle: 1,
+    geste: 'plafonner',
+    commentaire: TEXTE_PLAFOND,
+    poser: 'à-reprendre',
+    retirer: ['à-relire'],
+    lignes: [
+      { a: 'auteur', session: 'session_auteur', texte },
+      { a: 'conducteur', session: 'session_conducteur', texte: 'PR 12 : plafond atteint au troisième tour refusé, décision attendue' },
+      { a: 'architecte', session: null, texte: 'PR 12 : plafond atteint au troisième tour refusé, décision attendue' },
+    ],
+  });
+  assert.deepEqual(joue({ ...troisieme, commentaires: fil(...deuxTours, verdict(3, 'r2', 'validé', { sommet: V3 })) }), PLAFONNER('verdict écrit sur la PR 12 : refusé, double'));
+  assert.deepEqual(joue({ ...troisieme, commentaires: fil(...deuxTours), maintenant: DEBUT + 100 * 60_000 + 2 * H + 1 }), PLAFONNER(SANS('r2')));
+
+  // Un arbitrage du refus de R1 écrit avant le verdict de R2 : l'attente, pas la reprise ; R2 valide, la reprise.
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus, ECARTE, DEMANDE()) }), ATTENTE);
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus, ECARTE, verdict(1, 'r2', 'validé'), DEMANDE()) }), { regle: 4, geste: 'distribuer', tour: 2, sommet: V1, nombre: 2, preferees: ['r1', 'r2'], mention: MENTION_ARBITRAGE });
+
+  // Le remplacement (A-115) : la remplaçante est attendue, jamais la remplacée, même sans verdict.
+  const remplace = [DEMANDE(), D(1, V1, ['r1', 'r2']), { corps: D(1, V1, ['r3', 'r2'], 'remplace', 'r1'), a: 125 }, verdict(1, 'r2', 'refusé')];
+  const finRemplace = DEBUT + 125 * 60_000 + 2 * H;
+  assert.deepEqual(joue({ ...double, commentaires: fil(...remplace), maintenant: DEBUT + 130 * 60_000 }), { regle: 4, geste: 'rien', raison: 'attente', attendues: ['r3'], echeance: finRemplace });
+  assert.deepEqual(joue({ ...double, commentaires: fil(...remplace), maintenant: finRemplace + 1 }), ANNONCE(SANS('r3')));
+
+  // Deux attendues : dans l'ordre de la distribution, l'échéance au plus petit « depuis ».
+  const deux = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), { corps: D(1, V1, ['r3', 'r2'], 'remplace', 'r1'), a: 130 }, { corps: verdict(1, 'r1', 'refusé'), a: 131 });
+  const long = { ...double, commentaires: deux, delaiMs: 360 * 60_000 };
+  assert.deepEqual(joue({ ...long, maintenant: DEBUT + 132 * 60_000 }), { regle: 4, geste: 'rien', raison: 'attente', attendues: ['r3', 'r2'], echeance: DEBUT + 361 * 60_000 });
+  assert.deepEqual(joue({ ...long, maintenant: DEBUT + 362 * 60_000 }), ANNONCE(SANS('r3', 'r2')));
+
+  // Un refus tardif sur une PR `à-fusionner` n'attend jamais (A-270 (3)) : `à-fusionner` retirée au passage où il arrive.
+  const tardif = fil(DEMANDE(), D(1, V1, ['r1', 'r2']), verdict(1, 'r1', 'validé'), verdict(1, 'r1', 'refusé'));
+  assert.deepEqual(joue({ commentaires: tardif, etiquettes: ['à-fusionner'] }), ANNONCE('verdict écrit sur la PR 12 : refusé', ['à-fusionner']));
+
+  // La tête change de contenu pendant l'attente : rien n'attend, la règle 6 distribue le tour 2.
+  assert.deepEqual(joue({ ...double, commentaires: fil(...refus), tete: T, memeContenu: { [V1]: false } }), { regle: 6, geste: 'distribuer', tour: 2, sommet: T, nombre: 2, preferees: ['r1', 'r2'], mention: null });
+
+  // Le compte ne change pas : un tour compté pendant l'attente comme après l'annonce ; `tourValide` rend `null`.
+  for (const commentaires of [fil(...refus), fil(...refus, verdict(1, 'r2', 'validé'))]) {
+    assert.equal(comptes({ ...double, commentaires }), 1);
+    assert.equal(tourValide({ commentaires, tete: V1, exiges: 2, sensible: false }), null);
+  }
 });
