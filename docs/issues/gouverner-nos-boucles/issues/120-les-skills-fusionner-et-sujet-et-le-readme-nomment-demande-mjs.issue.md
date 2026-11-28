@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Type: défaut
-Modèle: sonnet — deux phrases de skill, une ligne du README et leur banc de texte, sans code ; la règle est celle du ticket 104 (`A-235`) : un texte qui fait écrire une demande nomme la commande, jamais la forme ni le commentaire. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
+Modèle: sonnet — deux phrases de skill, une ligne du README et leur banc de texte, sans code ; la règle est celle du ticket 104 (`A-241` (3), confirmée par `A-242` (2)) : un texte qui fait écrire une demande nomme la commande, jamais la forme ni le commentaire. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 119 commité sur la branche
 Dépendances: —
 Fichiers chauds: `skills/chaine/fusionner/SKILL.md` (22, la table « La règle ») ; `skills/chaine/sujet/SKILL.md` (28, « Session de travail », point 3) ; `README.md` (180, l'arbre du dépôt) ; `scripts/bascule.test.mjs` (131, dans le test de 127-151 ; un test neuf) ; `NOTES-DE-VERSION.md`. **Dans la PR de 119 à 121, après 119** : 119 touche `scripts/bascule.test.mjs` (un test neuf) et pose la version ; 121 ne touche aucun de ces fichiers hors `NOTES-DE-VERSION.md`. Le ticket 107 a touché `fusionner/SKILL.md:97-102`, `:135`, `:138`, loin de `:22`. Lignes lues sur `origin/main` à `b5c7ac3` (plugin 8.9.5).
@@ -27,7 +27,7 @@ Lignes lues sur `origin/main` à `b5c7ac3` (plugin 8.9.5).
 
 ## Décisions
 
-Le ticket applique `A-235` (la commande, jamais la forme) comme le ticket 104 ; rien n'y est à trancher.
+Le ticket applique `A-241` (3) (la commande, jamais la forme ; confirmée par `A-242` (2)) comme le ticket 104 ; rien n'y est à trancher.
 
 1. **`fusionner/SKILL.md:22`** : « demande la relecture (la ligne que rend `node scripts/chaine/demande.mjs`, puis `à-relire`) après son dernier push ». Les arguments ne s'écrivent pas dans une cellule de table : l'étape 5 de `chaine-de-production.md` les donne.
 2. **`sujet/SKILL.md:28`** : « La relecture se demande après le dernier push, comme `demarrer` le dit (la ligne que rend `node scripts/chaine/demande.mjs --session <la sienne> --conducteur <celle du conducteur, ou —>`, copiée dans un commentaire, puis l'étiquette `à-relire`) » : les mots et les arguments de `sujet/SKILL.md:80`, la PR de réception (ticket 104, cas 3).
@@ -88,3 +88,4 @@ Chacune seule, le fichier remis après : chacune rouge.
 ## Comments
 
 - 2026-11-28 — Écrit par un agent rédacteur sur `origin/main` à `b5c7ac3` (plugin 8.9.5), sur les remarques de relecture des PR #176 et #177. Les occurrences de `À relire` des skills et du README ont été relevées par `git grep` à ce sommet : seules ces deux phrases restent. `Status: ready-for-agent`.
+- 2026-11-28 — Second tour de relecture : la règle citée est `A-241` (3), non `A-235` (corrigé par l'architecte).
