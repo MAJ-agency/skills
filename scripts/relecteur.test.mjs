@@ -2,7 +2,7 @@
 // étiquettes sont celles de la décision du Relecteur, son gabarit de lancement porte les lignes de tout prompt, et
 // les cartes le nomment. Le script et sa conduite sont jugés par son banc, `skills/chaine/relecteur/scripts/`.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -53,7 +53,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
     "`select:mcp__claude-code-remote__send_message,mcp__claude-code-remote__create_session,mcp__claude-code-remote__get_session,TaskStop`",
     "relecteur.mjs' veille --duree 25 >",
     "**25 minutes, pas plus** : l'outil Bash arrête une tâche de fond à 30 minutes par défaut",
-    "au-delà de 500 000 tokens, l'écrire à l'architecte, qui lance un Relecteur neuf, et s'arrêter",
+    "au-delà de 500 000 tokens, l'écrire à l'architecte (« Relecteur arrêté : contexte à <k> tokens »), et s'arrêter : l'architecte l'archive, puis lance un Relecteur neuf",
     "**`passe` d'abord**, toujours",
     "**et au même couple** que celui du geste",
     "pour les règles 4, 5 et 6 seulement",
@@ -253,4 +253,61 @@ test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de
   // La veille relancée avec `--attendre` sur toute suite « rejouer au réveil suivant » : la sortie 5 en est une.
   for (const puce of ["- **`VEILLE GESTE`**", "- **`VEILLE FINIE`**"])
     exigerA(ligne(texte, "## La veille", puce), `la puce ${puce}`, ["avec `--attendre` si un geste de ce réveil a rendu une suite « rejouer au réveil suivant »"]);
+});
+
+test("ticket 97 — un Relecteur s'arrête par l'archivage de sa session, jamais par interrupt_session ni par un message (A-229, A-231, A-232)", () => {
+  const skill = lire(`${SKILL}/SKILL.md`);
+  assert.ok(skill.split("\n").length <= 200, "SKILL.md : 200 lignes au plus");
+  const arreter = ligne(skill, "## Qui le lance", "- **L'arrêter**");
+  exigerA(arreter, "« L'arrêter »", [
+    "`archive_session`",
+    "l'architecte du dépôt",
+    "sans question au produit",
+    "son coût relevé",
+    "ses réveils supprimés",
+    "sans architecte en vie, le produit",
+    "`interrupt_session` n'arrête pas sa veille",
+    "un message ne l'arrête pas",
+    "`TaskStop`",
+    "« Relecteur arrêté : <cause> »",
+  ]);
+  exigerA(section(skill, "## Ne jamais"), "« Ne jamais »", ["un ordre de s'arrêter compris : seul l'archivage l'arrête"]);
+  exigerA(ligne(skill, "## Qui le lance", "- **Un Relecteur par dépôt.**"), "« Un Relecteur par dépôt »", ["l'architecte archive l'ancien d'abord (« L'arrêter »)"]);
+
+  const lancement = lire("skills/chaine/architecte/references/lancement.md");
+  const archiver = ligne(lancement, "## Après le lancement", "- **Archiver un Relecteur**");
+  exigerA(archiver, "« Archiver un Relecteur »", ["`list_triggers`", "`persistent_session_id`", "`delete_trigger`", "`archive_session`", "`get_session`", "sans question au produit", "`A-232`"]);
+  assert.ok(archiver.indexOf("`archive_session`") < archiver.indexOf("lancer le neuf"), "archiver, puis lancer le neuf");
+  assert.ok(archiver.indexOf("`get_session`") < archiver.indexOf("lancer le neuf"), "lire l'archivage, puis lancer le neuf");
+  const relecteurDepot = section(lancement, "## Le Relecteur d'un dépôt");
+  exigerA(relecteurDepot, "« Le Relecteur d'un dépôt »", ["« Archiver un Relecteur » d'abord", "Relecteur <id> à archiver : <raison>", "n'en lance pas de neuf avant que `get_session` le dise archivé"]);
+
+  const architecte = lire("skills/chaine/architecte/SKILL.md");
+  const archiverArchi = architecte.split("\n").find((l) => l.startsWith("**Archiver**"));
+  assert.ok(archiverArchi, "« Archiver » attendu");
+  exigerA(archiverArchi, "architecte « Archiver »", ["Le Relecteur n'est jamais `completed`", "sans question au produit", "« Archiver un Relecteur »"]);
+  assert.ok(architecte.includes("« Archiver un Relecteur »"), "architecte/SKILL.md renvoie à « Archiver un Relecteur »");
+
+  assert.match(lire(`${SKILL}/references/CONTENU.md`), /`A-229`[^\n]*`interrupt_session`/);
+
+  // interrupt_session sous skills/ : la ligne des filles du chantier, la puce « L'arrêter », la raison d'A-229, rien d'autre.
+  const trouves = [];
+  const parcourir = (dossier) => {
+    for (const e of readdirSync(join(RACINE, dossier), { withFileTypes: true })) {
+      const chemin = `${dossier}/${e.name}`;
+      if (e.isDirectory()) { if (e.name !== "node_modules") parcourir(chemin); continue; }
+      if (!/\.(md|mjs|sh|json)$/.test(e.name)) continue;
+      lire(chemin).split("\n").forEach((l) => { if (l.includes("interrupt_session")) trouves.push([chemin, l]); });
+    }
+  };
+  parcourir("skills");
+  assert.deepEqual(trouves.map(([c]) => c).sort(), [
+    "skills/chaine/chantier/SKILL.md",
+    "skills/chaine/relecteur/SKILL.md",
+    "skills/chaine/relecteur/references/CONTENU.md",
+  ]);
+  for (const [c, l] of trouves) {
+    if (c.endsWith("chantier/SKILL.md")) assert.ok(l.startsWith("2. **Interrompre les filles**"), "chantier : la ligne des filles");
+    if (c.endsWith("relecteur/SKILL.md")) assert.ok(l.includes("n'arrête pas sa veille"), "relecteur : la puce « L'arrêter »");
+  }
 });

@@ -4,7 +4,7 @@ Le lot 4 de la spec « relecture indépendante » (`A-83` à `A-90`, et ce qui l
 
 ## `SKILL.md`
 
-Qui lance le Relecteur et qui reçoit ses lignes (`A-83`) ; la mise en place ; la table de ce que la passe rend et de ce que la session en fait ; créer ou relancer une session de relecture (`A-85` règle 6, `A-90`, `A-128`) ; l'état des sessions, pour les règles 4, 5 et 6 ; les lignes ; les quatre messages qu'une session de relecture peut écrire ; la veille ; « Ne jamais ». **La file, la décision et la veille sont des scripts ; créer une session, lui écrire et lire son état sont des gestes du modèle** (`A-85`, « Qui fait quoi »). La session ne lit jamais un diff ni un verdict pour décider : la décision est `decider`, lue sur la PR.
+Qui lance le Relecteur et qui reçoit ses lignes (`A-83`) ; la mise en place ; la table de ce que la passe rend et de ce que la session en fait ; créer ou relancer une session de relecture (`A-85` règle 6, `A-90`, `A-128`) ; l'état des sessions, pour les règles 4, 5 et 6 ; les lignes ; les quatre messages qu'une session de relecture peut écrire ; la veille ; « Ne jamais ». **La file, la décision et la veille sont des scripts ; créer une session, lui écrire et lire son état sont des gestes du modèle** (`A-85`, « Qui fait quoi »). La session ne lit jamais un diff ni un verdict pour décider : la décision est `decider`, lue sur la PR. **Un Relecteur s'arrête par l'archivage de sa session** (`A-229`) : un Relecteur neuf reprend tout sur les commentaires, et `A-84` couvre un arrêt en plein geste ; `interrupt_session` n'arrête que le tour en cours, pas la veille de fond, qui le réveille à sa fin.
 
 ## Le script — `scripts/relecteur.mjs`
 
