@@ -372,7 +372,7 @@ const SPEC_DEM = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md";
 const CARTE_DEM = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
 // Sujet `lot` (carte à la phase et au gel donnés) ; PR 92 hors fourche, 93 de fourche, 94 de fourche supprimée, toutes
 // vers develop et citant le ticket SPEC_ALL_DEM-1.02.
-function depotVersSujet({ contrat = REGIME7, phase = "4-vague-1", gel = "" } = {}) {
+function depotVersSujet({ contrat = REGIME7, phase = "4-vague-1", gel = "", supprimee = true } = {}) {
   const d = monter(contrat);
   d.ecrire(SPEC_DEM, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/lot\n");
   d.ecrire(CARTE_DEM, `# SPEC_ALL_DEM-1 — carte\n\nSujet: sujet/lot\n\n## Fiche\n\nPhase: ${phase}\n${gel}\n## Fog\n\n- x\n`);
@@ -389,7 +389,7 @@ function depotVersSujet({ contrat = REGIME7, phase = "4-vague-1", gel = "" } = {
   }
   d.git("switch", "-q", "--detach", "origin/develop");
   d.github({ exiges: ["qualite"], checks, pulls });
-  sansDepotDansLaListe(d, 94);
+  if (supprimee) sansDepotDansLaListe(d, 94);
   return d;
 }
 const lignesDeFile = (d) => Object.fromEntries(d.lancer(scriptDe("fusionner", "file.sh")).stdout.trim().split("\n").map((l) => l.split("	")).map((c) => [c[0], c]));
@@ -451,4 +451,16 @@ test("boucle.sh lit la sortie 7 de `sujet.sh regrouper` : « PR de fourche : jam
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /^\[#80\] PR de fourche : jamais reciblée sur sujet\/lot \(aucun renvoi\)$/m, r.stdout);
   assert.doesNotMatch(r.stdout, /SUJET EN CONFLIT|REGROUPÉE/, r.stdout);
+});
+
+test("boucle.sh lit la sortie 5 de `sujet.sh regrouper` (GitHub en panne sur pulls/<n>) : « GitHub illisible : regroupement … repris au tour suivant (aucun renvoi) », jamais « SUJET EN CONFLIT ? » (ticket 121)", () => {
+  const d = depotVersSujet({ supprimee: false });
+  d.publierChaine();
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.github({ ...d.etat(), pannes: [{ route: "^pulls/92$", fois: 1, sortie: "" }] });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^\[#92\] GitHub illisible : regroupement dans sujet\/lot repris au tour suivant \(aucun renvoi\)$/m, r.stdout);
+  assert.doesNotMatch(r.stdout, /SUJET EN CONFLIT/, r.stdout);
 });
