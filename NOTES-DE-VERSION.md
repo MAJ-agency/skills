@@ -2,6 +2,25 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.10.0 — 2026-11-28
+
+### Ce qui change
+
+- **La boucle relance aussi CircleCI.** Depuis la bascule de fedora (statuts de commit `ci/circleci: <job>`), la relance GitHub Actions ne faisait plus rien, et une PR rouge à cause d'un test instable restait sautée. `boucle.sh` lit les statuts rouges du sommet et retrouve le workflow dans leur `target_url` (`https://app.circleci.com/workflow/<uuid>/job/…`). Elle le relance par `POST https://circleci.com/api/v2/workflow/<uuid>/rerun`, avec `{"from_failed": true}` et l'en-tête `Circle-Token`, passé à curl par son entrée standard. Une relance par workflow rouge d'un sommet. La mémoire, `<git-common-dir>/boucle-relances-circleci`, garde l'ancien workflow et le neuf (`workflow_id` de la réponse) :
+  - le neuf qui retombe fait renvoyer la PR ;
+  - l'ancien encore rouge fait attendre, `BOUCLE_CIRCLECI_DELAI` secondes au plus (1 200), puis renvoyer ;
+  - un autre workflow rouge est relancé à son tour.
+
+  Sans `CIRCLECI_TOKEN`, ou sur une relance refusée, une ligne le dit et la PR reste rouge dans la file, sans renvoi : c'est le comportement d'avant. La relance GitHub Actions est gardée. `boucle.sh` et `veille.sh` retirent le jeton de leur environnement dès leur démarrage (`export -n`) : ni `preparerCapitaine`, ni `passer.sh`, ni les hooks du projet ne le reçoivent. Skill `fusionner`, « Relance CircleCI » : où un humain pose le jeton, que l'agent ne crée ni ne saisit jamais.
+- **Fusion par lots : conçue, partie sûre livrée.** `references/lots.md` décrit le déroulé (composer, tester, vérifier, fusionner, couper en deux), deux variantes de fusion, un squash par PR (qui exige de lever `strict`) ou le lot en un commit (sous `strict`), et six questions au produit. `scripts/lot.sh` livre `composer`, `verifier`, `moities` et `strict`, sans aucune écriture sur GitHub ; la boucle ne l'appelle pas encore.
+- **Faux `gh` des bancs** : `statuts` (statuts de commit par sha, PR ou `*`) et `politiqueStricte` (la politique `strict` de develop).
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `boucle.sh`, `veille.sh` et `lot.sh` avec leurs bancs (`fusionner poser`), et `faux-gh.mjs` (`sujet poser`), dans une PR du projet. `curl` doit être sur le poste du capitaine.
+- **Un humain** crée un jeton personnel CircleCI et le pose sous `CIRCLECI_TOKEN` dans l'environnement de la session du capitaine (skill `fusionner`, « Relance CircleCI »). Sans lui, rien ne change.
+- **Le produit** répond aux questions de `references/lots.md` avant que la boucle compose des lots.
+
 ## 8.9.9 — 2026-11-28
 
 ### Ce qui change

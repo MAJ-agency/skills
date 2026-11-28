@@ -33,6 +33,10 @@
 //   avantFusion { branche, vers } : joué au `PUT pulls/<n>/merge` avant le contrôle « strict » et le calcul de
 //               l'arbre, puis retiré : une fusion concurrente que GitHub a acceptée
 //   exiges      checks exigés de develop ; runs : workflow_runs par PR (« #12 »)
+//   politiqueStricte  `strict_required_status_checks_policy` du ruleset et `strict` de l'ancienne protection
+//               (`classique`) que lit `lot.sh strict` ; `true` par défaut, comme le réglage de fedora
+//   statuts     statuts de commit (`GET commits/<sha>/status`), clés comme `checks` (sha, « #12 », « * ») : une liste
+//               [{ context, state: success | failure | error | pending, target_url }] ; sans la clé, aucun statut
 //   PR.relecteurs / PR.equipes  relecteurs demandés (`requested_reviewers` logins, `requested_teams` slugs), comme GitHub
 //               les rend : plus rien de la chaîne ne les lit, un banc vérifie qu'ils ne font rien attendre
 //   commentairesRefuses  `true` : tout commentaire posé est refusé (403) ; une chaîne : ceux dont le corps correspond à
@@ -232,6 +236,12 @@ function checksDe(sha) {
     Object.entries(entree).map(([nom, e]) => [nom, Array.isArray(e) ? e[Math.min(rang, e.length - 1)] : e]),
   );
 }
+// Statuts de commit d'un commit (CircleCI : `ci/circleci: <job>`), comme `checks` : sa clé (sha complet), sinon celle de
+// la PR dont il est la tête, sinon « * » ; une liste [{ context, state, target_url }], rendue telle quelle.
+function statutsDe(sha) {
+  const p = etat.pulls.find((x) => versRest(x).head.sha === sha);
+  return etat.statuts?.[sha] ?? (p && etat.statuts?.[`#${p.number}`]) ?? etat.statuts?.["*"] ?? [];
+}
 // Cible qui bouge pendant la CI : le premier déplacement de `pendantCi` se joue à sa `lectures`-ième lecture des
 // check-runs depuis le déplacement précédent.
 function deplacerPendantCi() {
@@ -393,7 +403,7 @@ function repondre() {
     );
     return { total_count: runs.length, check_runs: runs };
   }
-  if (route.match(/^commits\/[0-9a-f]+\/status$/)) return { statuses: [] };
+  if ((m = route.match(/^commits\/([0-9a-f]+)\/status$/))) return { statuses: statutsDe(m[1]) };
   // Checks exigés : par ruleset (le cas nominal), ou par l'ancienne protection de branche quand
   // le dépôt jouet le déclare (`protectionClassique`) — l'autre forme répond alors comme GitHub.
   // Sans check exigé, aucune règle de checks (la protection sans elle : 404). `regleVide` (ticket
@@ -420,7 +430,7 @@ function repondre() {
               type: "required_status_checks",
               ruleset_id: 42,
               parameters: {
-                strict_required_status_checks_policy: true,
+                strict_required_status_checks_policy: etat.politiqueStricte ?? true,
                 required_status_checks: (etat.exiges ?? []).map((context) => ({
                   context,
                 })),
@@ -431,7 +441,7 @@ function repondre() {
     ];
   }
   if (route === "branches/develop/protection/required_status_checks") {
-    if (Array.isArray(etat.classique)) return { contexts: etat.classique };
+    if (Array.isArray(etat.classique)) return { contexts: etat.classique, strict: etat.politiqueStricte ?? true };
     return !etat.protectionClassique
       ? echec("gh: Branch not protected (HTTP 404)")
       : (etat.exiges ?? []).length || etat.regleVide
