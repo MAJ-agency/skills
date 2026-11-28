@@ -9,15 +9,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { environnementDeBanc } from '../skills/monorepo/socle-monorepo/references/scripts/docs/environnement-de-banc.mjs';
+import { sautesAttendus } from './sautes-admis.mjs';
 import { bancsDesReferences, destinationDuDossier, jouerEnGroupe, poserLeSocle } from './pose-du-socle.mjs';
 
 // Plancher du nombre de tests joués (plus de 400 à l'écriture) : sous lui, le garde ne joue pas ce qu'il croit.
 const PLANCHER = 350;
-// Les seuls tests qu'un projet saute, chacun avec sa raison : un autre saut est un banc qui ne se juge plus une fois posé.
-const SAUTES = [
-  // pr-titre.test.mjs : le workflow vit sous `.github/workflows/` dans un projet ; le banc ne le lit que dans le plugin.
-  'le workflow donne PR_OUVERTE, la date d’ouverture de la PR, comme les autres entrées : par `env:`',
-];
 
 test('destinationDuDossier : agent/ et scripts/<d>/ de references/ ont leur place, rien d’autre', () => {
   assert.equal(destinationDuDossier('skills/chaine/socle-chaine-de-production/references/agent'), 'scripts/agent');
@@ -63,7 +59,7 @@ for (const regime of [8, 7]) {
       assert.equal(compte('fail'), 0);
       assert.equal(compte('cancelled'), 0);
       assert.equal(compte('todo'), 0, `régime ${regime} : tests « todo », jamais jugés`);
-      assert.deepEqual(sautes, SAUTES, `régime ${regime} : tests sautés`);
+      assert.deepEqual([...sautes].sort(), sautesAttendus(bancs).map((s) => s.nom).sort(), `régime ${regime} : tests sautés`);
       // Un banc posé qui n'écrit aucun test (ses tests ne s'écrivent que dans le plugin) sort comme un test vert au nom de
       // son fichier : posé, il ne se juge plus, comme un banc sauté.
       const vides = [...r.stdout.matchAll(/^ok \d+ - (.*)$/gm)].map((m) => m[1]).filter((nom) => bancs.includes(nom));
