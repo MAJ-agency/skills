@@ -21,6 +21,17 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **Un humain** crée un jeton personnel CircleCI et le pose sous `CIRCLECI_TOKEN` dans l'environnement de la session du capitaine (skill `fusionner`, « Relance CircleCI »). Sans lui, rien ne change.
 - **Le produit** répond aux questions de `references/lots.md` avant que la boucle compose des lots.
 
+## 8.9.9 — 2026-11-28
+
+### Ce qui change
+
+- **Une PR illisible avant la relance de ses jobs rouges n'est plus relancée** (`A-243`, `A-271` (3)) : quand la lecture de la PR échoue dans `traiter_rouges` (GitHub illisible), la boucle ne relance plus ses jobs et ne la renvoie pas ; une ligne au journal le dit (`PR illisible avant la relance de ses jobs rouges`, vue par le filtre `rouges` du `Monitor`), et la PR est reprise au tour suivant. Jusqu'ici le contrôle du verdict était sauté et la relance se faisait quand même.
+- Le banc du régime illisible lit, pour chaque cas, le régime attendu (7, 7, illisible) au lieu d'accepter l'un ou l'autre.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** les scripts de `fusionner` (`boucle.sh`, posé sous `scripts/chaine/`) (`fusionner poser`). Sans repose, rien ne change.
+
 ## 8.9.8 — 2026-11-28
 
 ### Ce qui change
