@@ -89,6 +89,12 @@
 # (`prendre_passage` de github.sh) : un autre capitaine saute la PR (sortie 7) tant que ce passage n'est pas terminé.
 # `CAPITAINE_ID`, l'id de la session du capitaine, est exigé au démarrage (sortie 64 sans lui, `--arreter` excepté).
 #
+# Passages interrompus (A-245). Un passage tué avec la machine ne laisse ni ligne `FUSIONNÉE` ni commentaire terminé :
+# `prendre_passage` écrit donc un témoin `<git-common-dir>/capitaine-passages/<n>`, que `finir_passage` retire. Au
+# démarrage, verrou pris, avant `rafraichir_sujets`, la boucle relit sur GitHub la PR de chaque témoin et dit au journal
+# `FUSIONNÉE (passage interrompu…)` avec le sha de fusion, ou « rien n'est entré » ; elle termine le commentaire si le
+# `CAPITAINE_ID` est le sien. Une PR illisible garde le témoin. Pas d'action manuelle pendant ce démarrage.
+#
 # Échéance. La veille (`veille.sh`) pose `BOUCLE_ECHEANCE` (secondes depuis l'époque Unix) : au-delà,
 # un passage commencé ne finirait pas avant la limite de 2 h de la tâche de fond qui la porte. La boucle
 # la vérifie en tête de tour, avant chaque `passer` et avant chaque `sujet.sh fusionner` ; passé
@@ -628,6 +634,39 @@ passer() {
 sautees=${BOUCLE_SAUTEES:- }
 # Sans CI déclenchée : mises de côté jusqu'à la prochaine fusion (develop aura bougé).
 attente_fusion=${BOUCLE_ATTENTE:- }
+# Les passages interrompus (A-245) : au démarrage, verrou `flock` pris, un témoin de `<git-common-dir>/capitaine-passages`
+# est celui d'un passage mort (github.sh, `prendre_passage`). La PR est relue sur GitHub et ce que le passage a fait se
+# dit au journal. Du même `CAPITAINE_ID`, le commentaire est terminé (`finir_passage` retire le témoin si le PATCH
+# réussit) ; d'un autre, la ligne seule, le commentaire expire comme avant, le témoin est retiré. PR illisible : le
+# témoin reste, relue au prochain démarrage.
+relire_passages_interrompus() {
+  local dossier t n id capitaine reste pr base sha
+  dossier="$COMMUN/capitaine-passages"
+  [ -d "$dossier" ] || return 0
+  while read -r n; do
+    t="$dossier/$n"
+    [ -f "$t" ] || continue
+    read -r id capitaine reste < "$t" || :
+    [[ "$n" =~ ^[0-9]+$ && "$id" =~ ^[0-9]+$ ]] || { rm -f "$t"; continue; }
+    if ! pr=$(pr_json "$n"); then
+      echo "[#$n] passage interrompu : PR illisible (cause ci-dessus), relue au prochain démarrage"
+      continue
+    fi
+    if [ "$(jq -r '.merged_at // empty' <<<"$pr" 2>/dev/null)" ]; then
+      sha=$(jq -r '(.merge_commit_sha // "") | .[0:7]' <<<"$pr"); base=$(jq -r '.base.ref' <<<"$pr")
+      echo "[#$n] FUSIONNÉE (passage interrompu, relue sur GitHub au démarrage de la boucle) : ${sha:-sha illisible} dans $base"
+    else
+      echo "[#$n] passage interrompu (machine redémarrée ou boucle tuée) : rien n'est entré, la file la reprend"
+    fi
+    if [ "$capitaine" = "$CAPITAINE_ID" ]; then
+      PASSAGE_PR=$n PASSAGE_COMMENTAIRE=$id PASSAGE_ANCIENS='' PASSAGE_POSE_LANCEE=''
+      finir_passage
+    else
+      rm -f "$t"
+    fi
+  done < <(ls "$dossier" 2>/dev/null | grep -E '^[0-9]+$' | sort -n)
+}
+relire_passages_interrompus
 rafraichir_sujets
 while :; do
   verifier_arret

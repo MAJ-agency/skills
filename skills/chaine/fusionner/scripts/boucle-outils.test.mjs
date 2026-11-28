@@ -334,6 +334,112 @@ test("boucle morte (kill -9) : les orphelins gardent le verrou, --arreter les tu
   }
 });
 
+// --- Passages interrompus (A-245, ticket 107) : un témoin `<git-common-dir>/capitaine-passages/<n>` est lu au démarrage,
+// verrou pris, et dit au journal ce que le passage mort a fait. PR 41, commentaire de passage d'id 41001. ----------------
+const marquePassage = (capitaine) => `Passage du capitaine \`${capitaine}\`.\n<!-- capitaine:passage ${capitaine} 1795000000 -->`;
+const SHA = "abcdef0123456789abcdef0123456789abcdef01";
+const finParPatch = (d) => d.journal().filter((e) => e.methode === "PATCH" && /<!-- capitaine:fin -->/.test(e.champs?.body ?? ""));
+const temoinBoucle = (d, capitaine = "capitaine-banc", n = 41) => {
+  mkdirSync(join(d.travail, ".git", "capitaine-passages"), { recursive: true });
+  writeFileSync(join(d.travail, ".git", "capitaine-passages", String(n)), `${n}001 ${capitaine} 1795000000\n`);
+};
+const temoinPresent = (d, n = 41) => existsSync(join(d.travail, ".git", "capitaine-passages", String(n)));
+// file.sh : la PR 41 prête tant que passer.sh n'a pas tourné.
+const filePrete41 = `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+grep -q '^passer' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`;
+function interrompu(pr, capitaine = "capitaine-banc", fichiers = {}) {
+  const j = jouet();
+  j.publier({ "file.sh": filePrete41, "passer.sh": passerSh(1), ...fichiers });
+  j.d.github({ pulls: [{ number: 41, title: "t", base: "develop", head: "x", labels: [], commentaires: [marquePassage(capitaine)], ...pr }] });
+  temoinBoucle(j.d, capitaine);
+  return j;
+}
+
+test("passage interrompu, PR fusionnée : la ligne FUSIONNÉE (passage interrompu) avec le sha de fusion, le commentaire terminé, le témoin retiré", () => {
+  const { d } = interrompu({ state: "closed", merged_at: "2026-11-17T11:00:00Z", merge_commit_sha: SHA });
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^\[#41\] FUSIONNÉE \(passage interrompu, relue sur GitHub au démarrage de la boucle\) : abcdef0 dans develop$/m);
+  assert.equal(finParPatch(d).length, 1, "commentaire terminé");
+  assert.ok(finParPatch(d)[0].route.endsWith("issues/comments/41001"));
+  assert.equal(temoinPresent(d), false, "témoin retiré");
+});
+
+test("passage interrompu, PR ouverte : la ligne « rien n'est entré », commentaire terminé, témoin retiré, la PR passe ensuite dans le même lancement", () => {
+  const { d, lu } = interrompu({});
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^\[#41\] passage interrompu \(machine redémarrée ou boucle tuée\) : rien n'est entré, la file la reprend$/m);
+  assert.doesNotMatch(r.stdout, /FUSIONNÉE \(passage interrompu/);
+  assert.equal(finParPatch(d).length, 1);
+  assert.equal(temoinPresent(d), false);
+  assert.deepEqual(lu(), ["passer v1"], "la PR passe ensuite");
+});
+
+test("passage interrompu d'un autre CAPITAINE_ID : la ligne, commentaire intact, témoin retiré", () => {
+  const { d } = interrompu({ state: "closed", merged_at: "2026-11-17T11:00:00Z", merge_commit_sha: SHA }, "autre-capitaine");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^\[#41\] FUSIONNÉE \(passage interrompu/m);
+  assert.equal(finParPatch(d).length, 0, "le commentaire d'un autre capitaine n'est pas terminé");
+  assert.equal(temoinPresent(d), false);
+});
+
+test("passage interrompu, PR illisible au démarrage : la ligne « illisible », le témoin reste, rien n'est terminé", () => {
+  const { d } = interrompu({});
+  d.github({ pannes: [{ route: "^pulls/41$", fois: 20 }] });
+  const r = d.lancer(BOUCLE);
+  assert.match(r.stdout, /^\[#41\] passage interrompu : PR illisible \(cause ci-dessus\), relue au prochain démarrage$/m, r.stdout + r.stderr);
+  assert.equal(finParPatch(d).length, 0);
+  assert.equal(temoinPresent(d), true, "le témoin reste");
+});
+
+test("passage tué par SIGKILL après la fusion : la boucle relancée une fois le verrou libre dit FUSIONNÉE au journal et termine le commentaire", async () => {
+  const j = jouet();
+  const { d, publier } = j;
+  d.branche("feat/x", "origin/develop", { "x.txt": "x\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ pulls: [{ number: 41, title: "t", base: "develop", head: "feat/x", labels: [] }] });
+  publier({
+    "file.sh": `#!/usr/bin/env bash
+[ "$1" = --rouges ] && exit 0
+grep -q '^fusionné' "$TRACE" 2>/dev/null || printf '41\\tprête\\n'
+exit 0
+`,
+    // Doublure de passer.sh : prend le passage comme le vrai, fusionne au faux GitHub, puis bloque (la machine meurt là).
+    "passer.sh": `#!/usr/bin/env bash
+. "$(dirname "$0")/github.sh"
+prendre_passage 41 || exit 1
+sha=$(git ls-remote origin refs/heads/feat/x | cut -f1)
+printf '{"merge_method":"squash","sha":"%s","commit_title":"t (#41)","commit_message":""}' "$sha" | gh api -X PUT 'repos/{owner}/{repo}/pulls/41/merge' --input - >/dev/null
+echo "fusionné" >> "$TRACE"
+/bin/sleep 30
+`,
+  });
+  const boucle = enTacheDeFond(d);
+  try {
+    await attendre(() => j.lu().includes("fusionné"));
+    assert.equal(temoinPresent(d), true, "le témoin existe pendant le passage");
+    process.kill(-boucle.enfant.pid, "SIGKILL");
+    await boucle.fini;
+    await attendre(() => spawnSync("flock", ["-n", join(d.travail, ".git", "boucle.verrou"), "true"]).status === 0);
+    assert.equal(temoinPresent(d), true, "le témoin survit à la mort");
+    assert.equal(finParPatch(d).length, 0, "commentaire non terminé");
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const sha = d.etat().pulls[0].merge_commit_sha;
+    assert.match(sha, /^[0-9a-f]{40}$/);
+    assert.match(r.stdout, new RegExp(`^\\[#41\\] FUSIONNÉE \\(passage interrompu, relue sur GitHub au démarrage de la boucle\\) : ${sha.slice(0, 7)} dans develop$`, "m"));
+    assert.equal(finParPatch(d).length, 1, "commentaire terminé");
+    assert.equal(temoinPresent(d), false);
+  } finally {
+    boucle.nettoyer();
+  }
+});
+
 test("--reprendre pendant qu'une boucle tient le verrou : refusé (9), fichier d'arrêt gardé", async () => {
   const { d, publier, lu } = jouet();
   publier({ "file.sh": fileSh(1, 1), "passer.sh": passerSh(1, BLOQUE) });
