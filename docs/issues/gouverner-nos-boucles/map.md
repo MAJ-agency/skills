@@ -325,6 +325,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgbK3DXsBFXGCoTwUbQ` | ticket   | 105    | 7,31   | 287 135           |
 | `session_012xRpgXtNoYaPq3vofqG6U2` | ticket   | 106    | 1,37   | 169 677           |
 | `session_012xRpgZgVz7g6YzX11rNTsY` | ticket   | 117    | 1,29   | 148 548           |
+| `session_012xRpgaNfiGZUJfvWG8h9mj` | ticket   | 107    | 3,92   | 271 649           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1580,3 +1581,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 08 h 40 UTC. PR #181 : correction au sommet `b6e8a4b` (texte et son test de bascule), lue par l'architecte (A-211), conforme. Remise sur `main` en 8.9.5 après la fusion de #180 (ordre posé, `clean`, en attente du capitaine).
 - 2026-11-28 — 08 h 50 UTC. Contrôle de vie. PR #180 fusionnée : `bfa7fc0`, arbre égal au sommet ordonné `6865fce`, parent `6009e57`, 8.9.4 ; session 117 archivée (coût ci-dessus). Capitaine vivant (592 k tokens). Session 107 : remise de #181 sur `main` en 8.9.5 demandée (arbre attendu `ee413b9`).
 - 2026-11-28 — 08 h 56 UTC. PR #181 (ticket 107, 8.9.5) : arbre `ee413b9` vérifié au sommet `2f59c74`, `CodeQL` et `Analyze` verts ; verdict, ordre et label posés ; `bancs` en cours.
+- 2026-11-28 — 09 h 23 UTC. PR #181 fusionnée : `b5c7ac3`, arbre égal au sommet ordonné `2f59c74` (`ee413b9`), parent `bfa7fc0`, 8.9.5 ; session 107 archivée (coût ci-dessus). Ticket 118 écrit (`A-265` (1)) ; décisions `A-269` (le second verdict qui n'arrive pas) et `A-270` (amendements d'`A-85`, d'`A-89`, refus tardif sur `à-fusionner`) ; relu une fois (cinq écarts corrigés), second tour de relecture en cours.
