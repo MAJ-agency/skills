@@ -20,6 +20,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 - **Relancer à neuf le Relecteur du dépôt** après la mise à jour du plugin : sa session a lu son skill avant.
 - **Sans repose, rien ne change** : un `relecteur.mjs` neuf devant des scripts posés d'avant ne contrôle rien et n'échoue pas ; des scripts posés neufs devant un `relecteur.mjs` d'avant non plus.
 
+## 8.7.1 — 2026-11-27
+
+### Ce qui change
+
+- **Les bancs de `socle-tests` tournent dans un projet sans API** (`A-257`) : sans `apps/api/`, `mutation-regles.test.mjs` ne lève plus à l'import ; ses deux tests de configuration Stryker sont sautés avec leur raison, lue en `# SKIP`. `SKILL.md` (étapes 4 et 5) et `CONTENU.md` disent qu'un projet sans API n'a ni configuration Stryker, ni scripts `mutation`, ni `mutation.yml`.
+- **Les bancs posés ne laissent plus rien dans le dossier temporaire** (`A-258`) : douze bancs retirent ce qu'ils créent (`after()`), et le garde `references-posees.test.mjs` exige son `TMPDIR` vide après chaque régime.
+- **Le délai du garde tue le groupe** (`A-259`) : `jouerEnGroupe` (`scripts/pose-du-socle.mjs`) tue le groupe de processus entier au délai, sorties à part.
+- **Un banc prouve le refus d'éditer un index généré** (`A-260`) : un cas de plus dans `garde-fichiers.test.mjs`.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer les bancs, pièce par pièce** : `scripts/verify/` (`/maj-skills:socle-tests`, `/maj-skills:socle-monorepo`, `/maj-skills:tickets`), `scripts/agent/` (`/maj-skills:socle-chaine-de-production`) et `scripts/docs/` (`/maj-skills:tickets`, `/maj-skills:socle-monorepo`). Un projet qui ne les repose pas garde ses bancs actuels.
+
 ## 8.7.0 — 2026-11-27
 
 ### Ce qui change

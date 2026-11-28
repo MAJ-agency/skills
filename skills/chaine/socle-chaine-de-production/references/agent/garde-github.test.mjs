@@ -3,17 +3,24 @@
 // PR (ou échoue) ; `origin/HEAD` d'un dépôt jouet donne la branche par défaut. Aucun réseau.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+
+// Chaque dossier créé par le banc est retiré à la fin (A-258).
+const DOSSIERS = [];
+after(() => {
+  for (const d of DOSSIERS) rmSync(d, { recursive: true, force: true });
+});
 
 const SCRIPT = fileURLToPath(new URL('garde-github.mjs', import.meta.url));
 
 /** Dépôt jouet dont `origin/HEAD` vise `parDefaut`, et un faux `gh` qui rend `tete` puis `base` (`base` vide : il échoue). */
 function jouet({ parDefaut = 'trunk', base = '', tete = 'feat/x' } = {}) {
   const racine = mkdtempSync(join(tmpdir(), 'garde-github-'));
+  DOSSIERS.push(racine);
   const bin = join(racine, 'bin');
   execFileSync('mkdir', ['-p', bin]);
   writeFileSync(join(bin, 'gh'), base ? `#!/bin/sh\necho "$*" >> "${racine}/gh.log"\nprintf '%s\\n%s\\n' '${tete}' '${base}'\n` : '#!/bin/sh\nexit 1\n');
