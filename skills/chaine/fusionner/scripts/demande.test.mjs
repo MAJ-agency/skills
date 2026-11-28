@@ -1,7 +1,8 @@
 // Banc de `demande.mjs` (ticket 101, A-234, A-235, A-241) : la demande `À relire` fabriquée, jamais tapée.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, chmodSync } from "node:fs";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 const { depotJouet, script: scriptDe, environnementDeBanc } = await import(
@@ -43,6 +44,7 @@ test("cas 2 : sommet non poussé, tête détachée, branche absente d'origin : s
   r = jouer(d, "--session", A, "--conducteur", C);
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /absente d'origin/);
+  assert.match(r.stderr, /aucune demande/);
   d.git("checkout", "-q", "--detach");
   r = jouer(d, "--session", A, "--conducteur", C);
   assert.equal(r.status, 1, r.stderr);
@@ -57,6 +59,7 @@ test("cas 3 : --branche lit la tête d'origin, pas HEAD", () => {
   assert.equal(r.stdout, `À relire — sommet ${sommet} — Session: — — Conducteur: ${C}\n`);
   const absente = jouer(d, "--session", "-", "--conducteur", C, "--branche", "feat/nulle");
   assert.equal(absente.status, 1, absente.stderr);
+  assert.match(absente.stderr, /absente d'origin/);
 });
 
 test("cas 4 : un champ hors forme ou absent : sortie 2, avant tout appel à git", () => {
@@ -105,4 +108,31 @@ test("cas 7 : la ligne se lit comme une demande, pour les quatre combinaisons pe
     assert.equal(d.auteur, s === "—" ? null : s);
     assert.equal(d.conducteur, c === "—" ? null : c);
   }
+});
+
+test("cas 8 : --branche d'une tête absente d'origin (PR de fourche) : sortie 1, la fourche et « aucune demande » dits, rien sur la sortie standard", () => {
+  const { d } = jouetPousse();
+  const r = jouer(d, "--session", "-", "--conducteur", C, "--branche", "feat/fourche");
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, /la tête d'une PR de fourche/);
+  assert.match(r.stderr, /aucune demande/);
+});
+
+test("cas 9 : une branche sans commit sort en 1 ; git en panne à la lecture de HEAD sort en 12", () => {
+  const { d } = jouetPousse();
+  d.git("switch", "-q", "--orphan", "feat/vide");
+  const vide = jouer(d, "--session", A, "--conducteur", C);
+  assert.equal(vide.status, 1, vide.stderr);
+  assert.match(vide.stderr, /n'a aucun commit/);
+  // Une doublure de git : 128 sur `rev-parse --verify -q HEAD`, le reste au vrai git.
+  d.git("switch", "-q", "feat/x");
+  const bin = join(d.racine, "bin");
+  mkdirSync(bin, { recursive: true });
+  const vrai = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  writeFileSync(join(bin, "git"), `#!/bin/sh\nif [ "$1" = rev-parse ] && [ "$2" = --verify ]; then echo "fatal: panne" >&2; exit 128; fi\nexec "${vrai}" "$@"\n`);
+  chmodSync(join(bin, "git"), 0o755);
+  const panne = spawnSync(process.execPath, [DEMANDE, "--session", A, "--conducteur", C], { cwd: d.travail, env: { ...d.env, PATH: `${bin}:${d.env.PATH}` }, encoding: "utf8" });
+  assert.equal(panne.status, 12, panne.stderr);
+  assert.match(panne.stderr, /git ne lit pas HEAD/);
 });

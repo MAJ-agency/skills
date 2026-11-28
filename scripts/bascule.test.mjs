@@ -279,6 +279,9 @@ test("les textes nomment la commande de la demande, la forme une fois à l'étap
   exiger(entre(arch, "- **En régime 8, une PR livrée**", "- **Une PR livrée, en régime 7"), [`${D} --session <la sienne> --conducteur —`, `${D} --branche <tête de la PR> --session — --conducteur —`], "architecte, PR livrée");
   exiger(entre(arch, "**S'ouvre sans question**", "En régime 7 ou dans un dépôt"), [`${D} --session <la sienne> --conducteur —`], "architecte, PR de documentation");
   exiger(entre(arch, "- **En régime 8**, une PR étrangère", "\n"), [`${D} --branche <tête de la PR> --session — --conducteur —`, "à-relire"], "architecte, PR étrangère");
+  const etrangere = entre(arch, "- **En régime 8**, une PR étrangère", "\n");
+  exiger(etrangere, ["**Une PR de fourche**, dans les deux régimes", "`head.repo.full_name` différent de `base.repo.full_name`, ou `head.repo` nul", "ne reçoit ni demande, ni `à-relire`, ni `à-fusionner`", "`git fetch origin pull/<n>/head:<branche>`, puis `git push origin <branche>`", "ouvre depuis elle une PR neuve qui cite la première", "elle est relue comme toute PR écrite par une personne", `${D} --branche <branche> --session — --conducteur —`], "architecte, PR de fourche");
+  assert.ok(etrangere.indexOf("puis pose `à-relire`, jamais `à-fusionner`") < etrangere.indexOf("**Une PR de fourche**"), "la phrase de la fourche vient après celle d'aujourd'hui");
 });
 
 test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle quelle ; la phrase des clés du socle les compte (A-100, A-108, A-128)", async () => {
