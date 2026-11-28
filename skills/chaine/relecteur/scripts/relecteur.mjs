@@ -96,7 +96,8 @@
 //
 // Sorties : 0 fait ; 2 usage ou entrée mal formée ; 3 la PR est fermée, ou le geste, le sommet ou le couple ont changé
 // (rien n'est écrit) ; 5 GitHub illisible ; 6 le dossier n'est pas celui d'un projet de la chaîne, ou pas propre, ou
-// `flock` manque, ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
+// `flock` ou `gh` (GitHub CLI) manque (`gh` absent du poste : sortie 6, jamais cinq lectures illisibles et une pause
+// sans fin, A-203 point 3), ou un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41,
 // `jq` absent, la grammaire des identifiants introuvable ; `jq` absent, `github.sh` le dit aussi, sa sortie 69 à son
 // chargement), jamais une lecture illisible ni GitHub illisible (A-192, point 1) ; 7 une écriture sur GitHub refusée (la pose d'une étiquette ou un commentaire ; un retrait refusé ne
 // l'est pas : `retirer_label` le tait) ; 9 le verrou du dossier pas obtenu en 300 secondes ; 12 git (fetch, switch) en
@@ -164,6 +165,8 @@ function lire(route, { pages = false } = {}) {
 }
 
 function preparer() {
+  // Présence seule (`ENOENT`), comme `flock` : un `gh` présent qui répond mal reste une lecture, jugée par `lire`.
+  if (spawnSync('gh', ['--version']).error) arreter(6, "gh (GitHub CLI) est requis par le Relecteur : l'installer sur le poste");
   const manque = OUTILS.filter((o) => !existsSync(join(CHAINE, o)));
   if (manque.length > 0) arreter(6, `scripts/chaine/ incomplet (${manque.join(', ')}) : rejouer l'étape 0 de fusionner, sujet et relecture`);
   const sale = git('status', '--porcelain');
