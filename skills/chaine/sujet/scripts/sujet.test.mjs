@@ -987,3 +987,54 @@ test("etat : un sujet sans commit propre ni PR, en retard et pas livré, est lis
   livre.git("switch", "-q", "--detach", "origin/develop");
   assert.doesNotMatch(livre.lancer(SCRIPT, "etat").stdout, /^demo\t/m, "livré : jamais rouvert");
 });
+
+// Une PR de fourche n'est jamais reciblée sur un sujet : ni par `regrouper`, ni par une série (ticket 121, A-199, A-201).
+const prFourche = (number, head, autres = {}) => ({
+  number,
+  title: `feat(demo): ${head}`,
+  head,
+  base: "develop",
+  labels: [],
+  ...autres,
+});
+const bases = (d) => Object.fromEntries(d.etat().pulls.map((p) => [p.number, p.base]));
+
+test("regrouper : une PR de fourche n'est pas reciblée, les autres le sont, sortie 7 ; une liste de fourches seules n'ouvre ni ne rafraîchit aucun sujet", () => {
+  const d = depotJouet();
+  d.github({ pulls: [prFourche(1, "feat/fourche", { fourche: "autre/jouet" }), prFourche(2, "feat/autre")] });
+  const r = d.lancer(SCRIPT, "regrouper", "demo", "1", "2");
+  assert.equal(r.status, 7, r.stdout + r.stderr);
+  assert.match(r.stdout, /^#1 : PR de fourche \(autre\/jouet\) : sa tête vit hors du dépôt, jamais reciblée sur un sujet$/m);
+  assert.match(r.stdout, /^#2 reciblée sur sujet\/demo$/m);
+  assert.deepEqual(bases(d), { 1: "develop", 2: "sujet/demo" });
+  assert.deepEqual(d.journal().filter((e) => /^(issues|pulls)\/1\//.test(e.route)), [], "rien d'écrit sur la fourche");
+  const seule = depotJouet();
+  seule.github({ pulls: [prFourche(1, "feat/fourche", { fourche: "autre/jouet" })] });
+  const s = seule.lancer(SCRIPT, "regrouper", "demo2", "1");
+  assert.equal(s.status, 7, s.stdout + s.stderr);
+  assert.equal(sujetsDistants(seule), "", "aucune branche sujet/demo2");
+  assert.deepEqual(seule.journal(), [], "aucune écriture");
+});
+
+test("regrouper-series --dry-run : une PR de fourche n'entre dans aucune série (spec, pile)", () => {
+  const d = depotJouet();
+  d.github({
+    pulls: [
+      prFourche(1, "feat/spec-all-dem-2-01-a"),
+      prFourche(2, "feat/spec-all-dem-2-02-b"),
+      prFourche(3, "feat/spec-all-dem-2-03-c", { fourche: "autre/jouet" }),
+      prFourche(4, "feat/spec-all-dem-3-01-a"),
+      prFourche(5, "feat/spec-all-dem-3-02-b"),
+      prFourche(6, "feat/spec-all-dem-3-03-c"),
+      prFourche(7, "feat/spec-all-dem-3-04-d", { fourche: "autre/jouet" }),
+      prFourche(8, "feat/racine", { fourche: "autre/jouet" }),
+      prFourche(9, "feat/etage", { base: "feat/racine" }),
+    ],
+  });
+  const r = d.lancer(SCRIPT, "regrouper-series", "--dry-run");
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const lignes = r.stdout.trim().split("\n");
+  assert.equal(lignes.length, 1, r.stdout);
+  const [, cle, , prs] = lignes[0].match(/^série « (.+) » → sujet\/(\S+) : ([#0-9 ]+) \(--dry-run/);
+  assert.deepEqual([cle, numeros(prs)], ["spec SPEC_ALL_DEM-3", "#4 #5 #6"]);
+});

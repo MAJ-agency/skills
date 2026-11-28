@@ -366,3 +366,87 @@ test("sujet.sh fusionner : le régime lu d'abord est 8, la revue relit 7 (le con
   assert.equal(r.status, 5, r.stdout + r.stderr);
   assert.match(dernier(r), /^checks encore en cours sur #81 : reprise au tour suivant/);
 });
+
+// Une PR de fourche vers develop n'est jamais reciblée sur un sujet (ticket 121, A-199, A-201).
+const SPEC_DEM = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.spec.md";
+const CARTE_DEM = "docs/features/demo/all/SPEC_ALL_DEM-1-demo.map.md";
+// Sujet `lot` (carte à la phase et au gel donnés) ; PR 92 hors fourche, 93 de fourche, 94 de fourche supprimée, toutes
+// vers develop et citant le ticket SPEC_ALL_DEM-1.02.
+function depotVersSujet({ contrat = REGIME7, phase = "4-vague-1", gel = "" } = {}) {
+  const d = monter(contrat);
+  d.ecrire(SPEC_DEM, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.ecrire(CARTE_DEM, `# SPEC_ALL_DEM-1 — carte\n\nSujet: sujet/lot\n\n## Fiche\n\nPhase: ${phase}\n${gel}\n## Fog\n\n- x\n`);
+  d.commit("docs: spec et carte");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  const pulls = [];
+  const checks = {};
+  for (const [n, fourche] of [[92, null], [93, "autre/jouet"], [94, "autre/jouet"]]) {
+    const sha = d.branche(`fix/spec-all-dem-1-02-pr-${n}`, "origin/develop", { [`docs/pr-${n}.md`]: `${n}\n` });
+    checks[sha] = { qualite: "SUCCESS" };
+    pulls.push({ number: n, title: `fix(demo): SPEC_ALL_DEM-1.02 pr ${n}`, head: `fix/spec-all-dem-1-02-pr-${n}`, sha, base: "develop", labels: ["à-fusionner"], body: "## Revue de ticket\n\nRien de bloquant.\n", ...(fourche ? { fourche } : {}), commentaires: [] });
+  }
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks, pulls });
+  sansDepotDansLaListe(d, 94);
+  return d;
+}
+const lignesDeFile = (d) => Object.fromEntries(d.lancer(scriptDe("fusionner", "file.sh")).stdout.trim().split("\n").map((l) => l.split("	")).map((c) => [c[0], c]));
+
+test("file.sh : une PR de fourche vers develop dont le ticket déclare un sujet se lit comme une PR directe, jamais « vers sujet/<nom> », ni gelée, ni « sujet livré » ; la même PR hors fourche suit son sujet (ticket 121)", () => {
+  const ouvert = lignesDeFile(depotVersSujet());
+  assert.equal(ouvert[92][1], "vers sujet/lot");
+  for (const n of [93, 94]) {
+    assert.equal(ouvert[n][1], "prête", `#${n} : ${ouvert[n]}`);
+    assert.equal(ouvert[n][3] ?? "", "", `#${n} : 4e colonne`);
+  }
+  const gele = lignesDeFile(depotVersSujet({ gel: "Gel: 2026-11-13 — pause\n" }));
+  assert.equal(gele[92][1], "gelée");
+  for (const n of [93, 94]) assert.equal(gele[n][1], "prête", `#${n} gelé : ${gele[n]}`);
+  const d = depotVersSujet({ phase: "fini" });
+  const livre = lignesDeFile(d);
+  assert.equal(livre[92][3], "sujet livré : lot");
+  for (const n of [93, 94]) assert.equal(livre[n][3] ?? "", "", `#${n} livré : ${livre[n]}`);
+  assert.deepEqual(d.journal(), [], "file.sh ne fait que lire");
+});
+
+test("boucle.sh, dans les deux régimes : une PR de fourche vers develop qui cite le ticket d'un sujet n'est pas reciblée : sa base reste develop, ni étiquette, ni commentaire, ni PATCH ; la même PR hors fourche l'est (ticket 121)", () => {
+  for (const contrat of [REGIME7, REGIME8]) {
+    const d = depotVersSujet({ contrat });
+    d.publierChaine();
+    for (const [skill, nom] of CALCULS) d.ecrire(`scripts/chaine/${nom}`, readFileSync(scriptDe(skill, nom), "utf8"));
+    d.commit("chore(chaine): calculs du régime 8");
+    d.git("push", "-q", "origin", "HEAD:develop");
+    d.git("fetch", "-q", "origin");
+    const cas = JSON.stringify(contrat);
+    const r = d.lancer(BOUCLE);
+    assert.equal(r.status, 0, `${cas} : ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /^\[#92\] REGROUPÉE dans sujet\/lot/m, `${cas} : ${r.stdout}`);
+    const bases = Object.fromEntries(d.etat().pulls.map((p) => [p.number, p.base]));
+    assert.deepEqual([bases[92], bases[93], bases[94]], ["sujet/lot", "develop", "develop"], cas);
+    for (const n of [93, 94]) assert.deepEqual(d.journal().filter((e) => new RegExp(`^(issues|pulls)/${n}/?`).test(e.route) && e.methode !== "GET"), [], `${cas} : rien d'écrit sur #${n}`);
+  }
+});
+
+test("boucle.sh lit la sortie 7 de `sujet.sh regrouper` : « PR de fourche : jamais reciblée sur sujet/<x> (aucun renvoi) », jamais « SUJET EN CONFLIT ? » (ticket 121)", () => {
+  const d = monter(REGIME7);
+  d.ecrire(SPEC_DEM, "# SPEC_ALL_DEM-1\n\n- **Sujet :** sujet/lot\n");
+  d.commit("docs: spec");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  d.branche("sujet/lot", "origin/develop", { "docs/lot.md": "lot\n" });
+  const sha = d.branche("fix/spec-all-dem-1-02-pr-80", "origin/develop", { "docs/pr-80.md": "80\n" });
+  d.git("switch", "-q", "--detach", "origin/develop");
+  d.github({ exiges: ["qualite"], checks: { [sha]: { qualite: "SUCCESS" } }, pulls: [{ number: 80, title: "fix(demo): SPEC_ALL_DEM-1.02 pr 80", head: "fix/spec-all-dem-1-02-pr-80", sha, base: "develop", labels: ["à-fusionner"], commentaires: [] }] });
+  d.publierChaine();
+  d.ecrire("scripts/chaine/sujet-vrai.sh", readFileSync(SUJET, "utf8"));
+  d.ecrire("scripts/chaine/sujet.sh", '#!/usr/bin/env bash\ncase "$1:${2:-}:${3:-}" in regrouper:lot:80) echo "#80 : PR de fourche (autre/jouet) : sa tête vit hors du dépôt, jamais reciblée sur un sujet"; exit 7 ;; esac\nexec bash "$(cd "$(dirname "$0")" && pwd)/sujet-vrai.sh" "$@"\n');
+  d.commit("chore(chaine): sujet.sh du banc");
+  d.git("push", "-q", "origin", "HEAD:develop");
+  d.git("fetch", "-q", "origin");
+  const r = d.lancer(BOUCLE);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /^\[#80\] PR de fourche : jamais reciblée sur sujet\/lot \(aucun renvoi\)$/m, r.stdout);
+  assert.doesNotMatch(r.stdout, /SUJET EN CONFLIT|REGROUPÉE/, r.stdout);
+});

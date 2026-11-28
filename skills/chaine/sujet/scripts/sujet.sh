@@ -61,7 +61,8 @@
 #                         `--dry-run` affiche les regroupements sans rien écrire
 #   regrouper <nom> <pr>… ouvre sujet/<nom> au besoin, le met à jour avec develop, puis recible
 #                         chaque PR vers develop listée sur le sujet (sans toucher à ses commits :
-#                         le sujet contient le sommet de develop) et la commente
+#                         le sujet contient le sommet de develop) et la commente ; une PR de fourche n'est
+#                         jamais reciblée (dite, sortie 7 après les autres ; que des fourches : ni ouvert ni rafraîchi)
 #   carte <nom>           (session qui tient la carte) pousse sur origin/sujet/<nom> les commits locaux de la branche
 #                         courante qui n'y sont pas : geste d'écriture d'une session sur un sujet, avec geler/degeler
 #                         (le hook d'agent refuse tout `git push` vers sujet/…). Chaque commit modifie en
@@ -116,7 +117,7 @@
 # propre (`fusionner`, `rafraichir`, `regrouper`, `relancer` : à nettoyer par qui lance, jamais un renvoi de la PR,
 # comme la sortie 6 de passer.sh) · 7 `fusionner` d'une PR fermée, en brouillon ou d'un sujet gelé (rien à
 # corriger : sautée), et en régime 8 d'une sous-PR dont la lecture est illisible (A-113) ou qui a perdu `à-fusionner`
-# juste avant la fusion ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
+# juste avant la fusion ; 7 aussi pour `regrouper` d'une liste qui compte une PR de fourche (les autres sont regroupées) ; 7 aussi pour `fusionner` et `relancer` d'une sous-PR en passage chez un autre capitaine (son
 # commentaire marqué `<!-- capitaine:passage <id> <epoch> -->`, verrou du passage de github.sh), ou qui n'est plus éligible une fois
 # le verrou pris · 64 `fusionner` sans CAPITAINE_ID ou avec un CAPITAINE_ID mal formé ; `relancer` avec un CAPITAINE_ID mal
 # formé (sans lui, joué à la main par la session propriétaire : aucun verrou posé, et il le dit) · 9 `carte <nom>` refusée, ou `geler`/`degeler` dont le push échoue deux fois (rien n'est poussé)
@@ -1337,6 +1338,7 @@ relancer() {
 series() {
   gh api --paginate "$DEPOT/pulls?state=open&per_page=100" --jq '.[] | select(.draft | not)
     | select(any(.labels[].name; . == "hors-sujet") | not)
+    | select((.head.repo.full_name // "") == (.base.repo.full_name // ""))
     | [.number, .base.ref, .head.ref, (any(.labels[].name; . == "prio:haute")), .title] | @tsv' |
     identifiant colonne-ticket 5 3 |
     awk -F '\t' '
@@ -1373,6 +1375,20 @@ regrouper() {
   [ "$#" -gt 0 ] || sortir 4 "au moins une PR à regrouper"
   nom=${nom#sujet/}
   ! sujet_livre "$nom" || sortir 4 "sujet/$nom est livré dans develop : on ne le rouvre pas (la PR passe vers develop, label hors-sujet)."
+  # Une PR de fourche n'est jamais reciblée (A-199, A-201) : chaque PR est lue avant d'ouvrir ou de rafraîchir le sujet.
+  local pr fourche_vue=0 gardees=()
+  for n in "$@"; do
+    n=${n#\#}
+    pr=$(gh api "$DEPOT/pulls/$n")
+    if [ "$(jq -r '(.head.repo.full_name // "") != (.base.repo.full_name // "")' <<<"$pr")" = true ]; then
+      echo "#$n : PR de fourche ($(jq -r '.head.repo.full_name // "dépôt supprimé"' <<<"$pr")) : sa tête vit hors du dépôt, jamais reciblée sur un sujet"
+      fourche_vue=1
+    else
+      gardees+=("$n")
+    fi
+  done
+  [ "${#gardees[@]}" -gt 0 ] || exit 7
+  set -- "${gardees[@]}"
   gh api "$DEPOT/branches/$(uri "sujet/$nom")" >/dev/null 2>&1 || ouvrir "$nom"
   # Le sujet contient le sommet de develop : toute PR partie de develop s'y fusionne avec ses
   # seuls changements (fusion à trois points sur son départ), sans réécrire sa branche.
@@ -1391,6 +1407,7 @@ regrouper() {
       *) echo "#$n empilée sur $base : elle suivra sa parente dans le sujet" ;;
     esac
   done
+  [ "$fourche_vue" -eq 0 ] || return 7
 }
 
 # Regroupement automatique (capitaine, à chaque tour) : sans `prio:haute` dans la série,
