@@ -171,6 +171,7 @@ const unRenvoi = (commentaires, { contratD = HUIT, pannes } = {}) => {
   return { d, sortie: r.stdout };
 };
 const sha = "a".repeat(40);
+const SKILL_MD = join(scriptDe("fusionner", "SKILL.md"), "..", "..", "SKILL.md");
 
 test("renvoyer.sh : en régime 8, deux demandes intactes, la seconde fait foi : sa session et son conducteur, plus de ligne du worktree", () => {
   const { sortie, d } = unRenvoi([
@@ -219,8 +220,8 @@ test("renvoyer.sh : GitHub en panne sur les commentaires, régime 8 : renvoi pos
   assert.doesNotMatch(sept.sortie, /demande/);
 });
 
-test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée", () => {
-  const skill = readFileSync(join(scriptDe("fusionner", "SKILL.md"), "..", "..", "SKILL.md"), "utf8");
+test("fusionner/SKILL.md : « Renvoyer une PR » lit l'état de la session avec `get_session` avant `send_message`, et nomme le conducteur si elle est archivée", { skip: !existsSync(SKILL_MD) && "SKILL.md reste dans le plugin : les bancs posés à plat dans un projet ne l'ont pas" }, () => {
+  const skill = readFileSync(SKILL_MD, "utf8");
   const section = skill.slice(skill.indexOf("## Renvoyer une PR"), skill.indexOf("## Fin de passage"));
   const huit = section.slice(section.indexOf("**Régime 8**"));
   assert.ok(huit.includes("get_session") && huit.indexOf("get_session") < huit.indexOf("send_message"), section);
