@@ -328,6 +328,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_012xRpgaNfiGZUJfvWG8h9mj` | ticket   | 107    | 3,92   | 271 649           |
 | `session_012xRpgZ1BN1M2TbMNqrNAMG` | ticket   | 122    | 0,78   | 118 980           |
 | `session_012xRpgYPoNvU3EBgxXt2X9v` | ticket   | 118    | 4,15   | 201 203           |
+| `session_012xRpgaTqmdXDH1hQDfxJYb` | ticket   | 119-121 | 3,27  | 228 962           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1601,3 +1602,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 10 h 42 UTC. PR #185 : dernier constat corrigé au sommet `fd9b924` (cas 5 de `regrouper` dans la boucle, en-tête, banc rougi par sa mutation), lu par l'architecte, conforme. Remise sur `main` en 8.9.8 après la fusion de #183.
 - 2026-11-28 — 10 h 56 UTC. PR #183 fusionnée : `7ac2525`, arbre égal au sommet ordonné `f5a4781` (`335012a`), parent `384876c`, 8.9.7 ; session 118 archivée (coût ci-dessus). #185 : suite entière 1 608/1 608 au sommet `fd9b924` ; remise sur `main` en 8.9.8 demandée (section sha256 `846ae010…`, arbre attendu `6403bf0`).
 - 2026-11-28 — 11 h 02 UTC. PR #185 (tickets 119 à 121, 8.9.8) : remise vérifiée (sommet `6528beb`, arbre `6403bf0`, parents `fd9b924` et `7ac2525`), `CodeQL` et `Analyze` verts ; verdict, ordre et label posés ; `bancs` en cours. Session 123 vivante (suite entière en cours, travail non poussé).
+- 2026-11-28 — 11 h 19 UTC. PR #185 fusionnée : `b291d60`, arbre égal au sommet ordonné `6528beb` (`6403bf0`), parent `7ac2525`, 8.9.8 ; session 119-121 archivée (coût ci-dessus). Ticket 123 livré : PR #186 (sommet `8e3a8ff`, base `384876c`, 8.9.7 ; suite 1 602/1 602) ; tour 1 lancé (agent neuf, `/home/user/agents/pr186/`) ; remise sur `main` en 8.9.9 à suivre.

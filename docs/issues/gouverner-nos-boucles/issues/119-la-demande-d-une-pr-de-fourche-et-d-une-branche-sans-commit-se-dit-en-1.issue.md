@@ -1,6 +1,6 @@
 # La demande d'une PR de fourche se dit « PR de fourche », et une branche sans commit sort en 1, jamais en 12
 
-Status: ready-for-agent
+Status: Fait — PR 185 (`b291d60`, plugin 8.9.8)
 Type: défaut
 Modèle: sonnet — deux messages et une lecture de git dans `demande.mjs`, une phrase de `architecte/SKILL.md` et leurs bancs ; la règle est celle de la fourche déjà écrite (`A-192` (2), `A-201` (2), `A-208`) : une PR de fourche ne reçoit ni verdict ni fusion. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: —

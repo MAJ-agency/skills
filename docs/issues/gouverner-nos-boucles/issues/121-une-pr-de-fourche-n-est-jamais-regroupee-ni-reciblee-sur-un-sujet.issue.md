@@ -1,6 +1,6 @@
 # Une PR de fourche n'est jamais regroupée ni reciblée sur un sujet : `file.sh`, `series` et `regrouper` la reconnaissent par le même critère que les gardes du capitaine
 
-Status: ready-for-agent
+Status: Fait — PR 185 (`b291d60`, plugin 8.9.8)
 Type: défaut
 Modèle: sonnet — une condition dans `file.sh`, un filtre dans le `jq` de `series`, une garde dans `regrouper` sur le modèle des trois gardes posées par le ticket 78, un cas de plus dans `boucle.sh`, et leurs bancs sur le faux GitHub (`fourche` y est déjà). La règle est écrite : `A-192` (2), `A-199` (4), `A-201` (2), `A-208`. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 120 commité sur la branche

@@ -1,6 +1,6 @@
 # La table des rôles de `fusionner`, la session de travail de `sujet` et le README nomment `demande.mjs`, jamais le commentaire `À relire`
 
-Status: ready-for-agent
+Status: Fait — PR 185 (`b291d60`, plugin 8.9.8)
 Type: défaut
 Modèle: sonnet — deux phrases de skill, une ligne du README et leur banc de texte, sans code ; la règle est celle du ticket 104 (`A-241` (3), confirmée par `A-242` (2)) : un texte qui fait écrire une demande nomme la commande, jamais la forme ni le commentaire. Qui veut changer une décision l'écrit à son lanceur, il ne tranche pas.
 Blocked by: 119 commité sur la branche
