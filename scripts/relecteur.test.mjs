@@ -63,7 +63,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
   const skill = lire(`${SKILL}/SKILL.md`);
   const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
   for (const code of [0, 1, 2, 3, 5, 6, 7, 9, 12]) assert.match(sorties, new RegExp(`^\\| ${code} \\| \\S`, "m"), `la sortie ${code} a sa suite`);
-  assert.match(sorties, /^\| 7 \| .*au second refus de suite, l'architecte et `--taire <n>`/m);
+  assert.match(sorties, /^\| 7 \| .*au second refus de suite, l'architecte et `--taire` avec la clé de la PR \(`<n>:<geste>:<règle>:<tête>`, recopiée de sa ligne de `passe`\)/m);
   assert.ok(!/elle a écrit qu'elle est au plafond/.test(skill), "« au plafond » ne se lit plus dans un message");
 });
 
@@ -75,7 +75,7 @@ test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le d
     "(`session_context.model` qui contient `faits.modele`, `claude-opus-…` pour `opus`, et `session_context.effort_level` égal à `faits.effort`)",
     "`plafond` : plus de 700 000 tokens de contexte (`external_metadata.context_usage.used_tokens`)",
     "(`get_session` sans argument, `external_metadata.context_usage.used_tokens`)",
-    "tant que la passe lui rend le même geste à la même règle",
+    "tant que la passe rend pour la PR la même clé, elle se tait ; un autre geste à jouer, une autre règle ou une autre tête lèvent la sourdine",
     "une erreur de `passe`, qui ne nomme aucune PR : l'architecte, et s'arrêter",
   ]);
   // R6 (troisième tour) : les phrases de R1 et R2 à leur place, la relance dans la puce `VEILLE ARRÊTÉE`, la borne du
@@ -94,6 +94,38 @@ test("contre-relecture de la PR 146 — aucun geste laissé à improviser : le d
   const sorties = skill.slice(skill.indexOf("## Les sorties de `passe`, `jouer` et `distribuer`"), skill.indexOf("## Créer ou relancer les sessions"));
   assert.match(sorties, /^\| autre, ou aucune \(l'outil a arrêté la commande\) \| \S/m, "une sortie hors de la table a sa suite");
   assert.ok(!lire(`${SKILL}/references/CONTENU.md`).includes("pour la seule règle 5"), "l'état des sessions : règles 4, 5 et 6");
+});
+
+test("ticket 94 — `noter` a sa ligne dans la table « À chaque réveil », et `jouer` dit la note de même contenu, entre la pose et le retrait", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  exigerA(ligne(texte, "## À chaque réveil", "| `noter` |"), "la ligne `noter`", ["`jouer <n>` ; aucune ligne"]);
+  exigerA(section(texte, "## À chaque réveil"), "« À chaque réveil »", ["la note de même contenu, entre la pose et le retrait"]);
+});
+
+test("ticket 95 — la veille rend ses sourdines (`SOURDINES`), la session la relance avec elles et le journal des veilles, jamais avec sa mémoire ; la puce `VEILLE ARRÊTÉE` lit la ligne qui précède", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  exigerA(ligne(texte, "## La veille", "- **`VEILLE ARRÊTÉE sortie <c>`**"), "la puce `VEILLE ARRÊTÉE`", ["avec la ligne qui précède `VEILLE ARRÊTÉE`"]);
+  assert.ok(!ligne(texte, "## La veille", "- **`VEILLE ARRÊTÉE sortie <c>`**").includes("la dernière ligne du journal"), "la dernière ligne est `SOURDINES`");
+  exigerA(section(texte, "## La veille"), "« La veille »", [
+    "`SOURDINES <clé>,…`",
+    "`SOURDINES aucune`",
+    "`cat <scratchpad>/relecteur-veille.log >> <scratchpad>/relecteur-veilles.log`",
+    "`grep '^SOURDINES ' <scratchpad>/relecteur-veilles.log | tail -n 1`",
+    "jamais avec sa mémoire",
+    "`<n>:contrat-illisible:—:*`",
+  ]);
+  exigerA(ligne(texte, "## À chaque réveil", "| `contrat-illisible` |"), "la ligne `contrat-illisible`", ["`--taire` avec la clé `<n>:contrat-illisible:—:*`"]);
+  for (const code of ["| 1 |", "| 2 |"]) exigerA(ligne(texte, "## Les sorties de `passe`, `jouer` et `distribuer`", code), `la ligne ${code}`, ["`--taire` avec la clé de la PR"]);
+  assert.ok(!texte.includes("--taire <n>"), "plus aucun `--taire <n>` : une clé, jamais un numéro");
+});
+
+test("ticket 96 — `signaler` a sa ligne dans la table « À chaque réveil », « Les lignes » dit la demande modifiée, et l'étape 5 dit qu'une demande ne se modifie jamais", () => {
+  const texte = lire(`${SKILL}/SKILL.md`);
+  exigerA(ligne(texte, "## À chaque réveil", "| `signaler` |"), "la ligne `signaler`", ["`jouer <n>`, ses lignes, puis `jouer <n>` de nouveau, et son geste"]);
+  exigerA(section(texte, "## Les lignes"), "« Les lignes »", ["une demande `À relire` modifiée ne sonne personne d'autre que par la ligne de `signaler`", "ou avec le commentaire du plafond ou la trace de `signaler` : rejoué, il n'en rend aucune"]);
+  exigerA(ligne(texte, "## À chaque réveil", "| `signaler` |"), "la ligne `signaler`", ["ou n'a pas la forme d'une demande"]);
+  exigerA(section(texte, "## À chaque réveil"), "« À chaque réveil »", ["le rejeu peut renvoyer les lignes du refus une seconde fois : un doublon toléré"]);
+  exigerA(ligne(lire("skills/chaine/socle-chaine-de-production/references/docs-agents/chaine-de-production.md"), "## 5. Session fille : les consignes communes", "5. **Demander la relecture.**"), "l'étape 5", ["la demande ne se modifie jamais ; une erreur (un sha faux) se corrige par une demande neuve"]);
 });
 
 test("les deux étiquettes neuves : labels.sh en pose neuf, dont les quatre que la décision du Relecteur lit ; plus aucun « sept labels »", () => {
@@ -197,8 +229,8 @@ test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de
   const sorties = "## Les sorties de `passe`, `jouer` et `distribuer`";
   // A-189, point 2 : la sortie 5 a sa borne, comme la sortie 7, et sa suite se lit « rejouer au réveil suivant » (ce que
   // `--attendre` suit) ; la sortie 7 et toutes les bornes disent « de suite » (A-189, point 3).
-  exigerA(ligne(texte, sorties, "| 5 |"), "la ligne de la sortie 5", ["GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire <n>`"]);
-  exigerA(ligne(texte, sorties, "| 7 |"), "la ligne de la sortie 7", ["la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire <n>`"]);
+  exigerA(ligne(texte, sorties, "| 5 |"), "la ligne de la sortie 5", ["GitHub n'a pas répondu : rejouer au réveil suivant ; `jouer <n>` sorti en 5 pour la seconde fois de suite sur la même PR : l'architecte, et `--taire` avec la clé de la PR (`<n>:<geste>:<règle>:<tête>`, recopiée de sa ligne de `passe`)"]);
+  exigerA(ligne(texte, sorties, "| 7 |"), "la ligne de la sortie 7", ["la rejouer au réveil suivant ; au second refus de suite, l'architecte et `--taire` avec la clé de la PR (`<n>:<geste>:<règle>:<tête>`, recopiée de sa ligne de `passe`)"]);
   // A-192, point 1 : la sortie 69 d'un calcul arrête le Relecteur (sortie 6), comme des calculs absents.
   exigerA(ligne(texte, sorties, "| 6 |"), "la ligne de la sortie 6", ["un calcul dit qu'un outil de la chaîne manque au poste (sa sortie 69 : git plus ancien que 2.41, `jq` absent, la grammaire des identifiants introuvable)", ": l'architecte, et s'arrêter"]);
   assert.ok(!texte.includes("à la seconde fois,"), "chaque borne dit « de suite »");
@@ -206,7 +238,7 @@ test("suites de la PR 147 et du lot 5 (ticket 77) — la borne de la sortie 5 de
   // sinon pour la seconde fois de suite) ; la recherche de « à la seconde fois, » ne la lit pas.
   exigerA(section(texte, "## La veille"), "« La veille »", ["se rejouerait aussitôt et compterait pour la seconde fois de suite."]);
   assert.ok(!texte.includes("le réveil suivant rejoue"), "la sortie 5 : « rejouer au réveil suivant »");
-  exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire <n>`."]);
+  exigerA(section(texte, "## Créer ou relancer les sessions"), "« Créer ou relancer les sessions »", ["`create_session` en échec pour une autre cause : rejouer au réveil suivant ; à la seconde fois de suite, l'architecte, et `--taire` avec la clé de la PR (`<n>:<geste>:<règle>:<tête>`, recopiée de sa ligne de `passe`)."]);
   // A-189, point 3 : `reecrire` d'une session hors service peut rendre `panne`, dont les lignes partent.
   exigerA(ligne(texte, "## À chaque réveil", "| `reecrire` |"), "la ligne de `reecrire`", ["`jouer <n> --sessions <fichier>`, qui rend `remplacer`, ou `panne` (une session déjà remplacée dans ce tour) : ses lignes (« Les lignes »)"]);
   exigerA(section(texte, "## L'état des sessions"), "« L'état des sessions »", ["il lui faut les deux champs ; un champ absent, `couple`."]);

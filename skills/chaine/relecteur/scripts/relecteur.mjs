@@ -7,7 +7,7 @@
 //   node '<dossier du skill>/scripts/relecteur.mjs' jouer <n> [--sessions <fichier>]
 //   node '<dossier du skill>/scripts/relecteur.mjs' distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>]
 //        [<session>…] [--sessions <fichier>]
-//   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>]
+//   node '<dossier du skill>/scripts/relecteur.mjs' veille [--pause <s>] [--duree <min>] [--taire <n>:<geste>:<règle>:<tête>,…] [--sondes <k>]
 //        [--attendre]
 //
 // Chaque sous-commande, sauf `veille`, prend d'abord le verrou du dossier (`flock` sur `<dossier git>/relecteur.verrou`,
@@ -40,13 +40,21 @@
 // `hors-regime` (régime 7, ou base hors de la chaîne), `contrat-illisible` (la clé `relecture` mal formée), `pause`
 // (des commentaires que la décision ne lit pas), ou le geste de `decider`. `faits` : `sensible`, `exiges`, le couple
 // `modele`/`effort` de la session à créer (A-128 : `relecture.sensible` quand le diff touche un chemin sensible ou
-// que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande.
+// que deux verdicts sont exigés, `relecture.ordinaire` sinon), et `auteur`, `conducteur`, lus sur la dernière demande
+// intacte : une demande modifiée ne les donne jamais ; elle rend `signaler` (A-227, A-228).
 // `jouer <n>` refait la décision de la PR n et joue ce qui s'écrit sur GitHub : une étiquette (la nouvelle posée avant
-// que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne ou de l'illisible ; au plafond, l'étiquette
+// que l'ancienne soit retirée, A-84), le commentaire du plafond, de la panne, de l'illisible ou de `signaler` (la trace
+// d'une demande `À relire` modifiée, `Demande écartée — commentaire <id> …`, et ses lignes à qui l'a écrite : la session
+// les envoie, puis rejoue `jouer <n>` aussitôt, et le geste qu'il rend) ; au plafond, l'étiquette
 // d'abord, puis le commentaire : un plafond à moitié écrit se rejoue entier, ses lignes avec lui. Rejoué après un retrait
 // refusé, un plafond redit « décision de plafond attendue » à l'auteur et au conducteur : son étiquette s'est posée avant
 // son commentaire, la marque la plus récente (A-189, point 1). Il écrit une ligne
-// JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Une ligne ne
+// JSON : la décision, `joue` (vrai s'il a écrit), et `lignes`, ce que le modèle envoie (`send_message`). Quand « même
+// contenu propre » garde le verdict ou le refus d'un tour au sommet d'avant, la décision porte `note` : `etiqueter` écrit
+// la note de même contenu (`Même contenu — sommet <tête> — tour <k> <validé|refusé> au sommet <sha> — <raison>`, la
+// raison étant la dernière ligne non vide de la sortie d'erreur du calcul, ou `sans raison écrite`) après la pose et
+// avant le retrait ; refusée, la ligne JSON et ses lignes partent avant la sortie 7 (A-240 (1)). `noter` (règle 2,
+// l'étiquette déjà en place) n'écrit que la note, ne touche à aucune étiquette, n'a aucune ligne. Une ligne ne
 // part qu'au changement d'étiquette (A-85, A-118), ou avec le commentaire du plafond, qui ne s'écrit qu'une fois. Une
 // étiquette déjà posée ne renvoie rien si les événements de la PR la disent posée après sa marque la plus récente (un
 // passage rejoué) ; posée avant (restée d'un tour d'avant), à la même seconde, ou sans pose lisible, ses lignes
@@ -60,9 +68,17 @@
 // `manque` ; `remplacer` : la session qui remplace ; `reecrire` : aucune (la distribution est redite, `(relance …)`).
 // `veille` lance `passe` toutes les `--pause` secondes (120) pendant `--duree` minutes (25 : l'outil Bash arrête une
 // tâche de fond à 30 minutes), sans jamais commencer une pause qui finirait après, et s'arrête dès qu'une
-// PR, hors de `--taire`, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
+// PR, hors de sa sourdine, demande un geste : `VEILLE GESTE`, puis une ligne `GESTE <n> <geste> règle <r>` par PR. Les
 // gestes `rien`, `hors-regime` et `pause` ne réveillent personne. GitHub illisible : `PAUSE`, la veille continue.
 // Au bout de la durée : `VEILLE FINIE`. Toute autre sortie de `passe` : `VEILLE ARRÊTÉE sortie <c>`, avec son code.
+// `--taire` : les sourdines, une clé `<n>:<geste>:<règle>:<tête>` par PR, recopiée de la ligne de `passe` qui a rendu
+// le geste (`—` pour une règle nulle ; `<n>:contrat-illisible:—:*`, la tête en `*`, sa cause étant la base). Tant que la
+// passe rend pour la PR la même clé, elle se tait ; un autre geste à jouer, une autre règle ou une autre tête lèvent
+// la sourdine et la PR réveille ; `rien`, `hors-regime` ou une PR que la passe ne nomme plus la lèvent sans réveil ;
+// `pause` la garde, comme une passe en `PAUSE`. Une sourdine levée ne revient pas dans la même veille (A-225, A-239 (2)).
+// Un numéro seul, une clé mal formée, `*` hors de `contrat-illisible` ou deux clés pour une PR : sortie 2, aucune passe.
+// Dernière ligne de toute fin (`VEILLE GESTE`, `VEILLE FINIE`, `VEILLE ARRÊTÉE`) : `SOURDINES <clé>,…` dans l'ordre
+// reçu, celles qui tiennent après la dernière passe lue, ou `SOURDINES aucune` : la session relance la veille avec elle.
 // La sortie d'erreur d'une passe sortie en 0 ou en 5 (une installation en échec, puis GitHub muet) passe sur celle de
 // la veille, dans son journal. `--attendre` : une pause avant la première passe aussi (une veille relancée sur une
 // sortie à rejouer, 9, 12 ou une autre, rejoue au réveil suivant, pas tout de suite).
@@ -289,13 +305,18 @@ async function decision(json, sessions) {
     const { fichiers } = lue;
     const faits = { sensible: sensible(fichiers, pr.base), exiges: exiges(fichiers, pr) };
     const memeContenu = {};
+    // La raison de chaque calcul : la dernière ligne non vide de sa sortie d'erreur (la sortie standard est le mot du
+    // verdict), pour la note de même contenu (A-224) ; la décision, pure, ne la reçoit pas.
+    const raisons = {};
     for (const s of d.sommetsDesTours(commentaires)) {
       if (s === pr.tete) continue;
       const r = jouer('bash', [join(CHAINE, 'meme-contenu.sh'), s, pr.tete, pr.base]);
       sansOutil('meme-contenu.sh', r);
       memeContenu[s] = r.status === 0 ? true : r.status === 20 ? false : 'illisible';
+      raisons[s] = (r.stderr ?? '').split('\n').map((l) => l.trim()).filter(Boolean).at(-1) ?? 'sans raison écrite';
     }
-    const geste = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+    const decide = d.decider({ ...commun, commentaires, exiges: faits.exiges, sensible: faits.sensible, memeContenu });
+    const geste = decide.note === undefined ? decide : { ...decide, note: { ...decide.note, raison: raisons[decide.note.sommet] ?? 'sans raison écrite' } };
     const marques = d.lireMarques(commentaires, { tolerant: true });
     const demande = marques.demandes.at(-1) ?? { auteur: null, conducteur: null };
     const couple = faits.sensible || faits.exiges === 'illisible' || faits.exiges >= 2 ? cle.sensible : cle.ordinaire;
@@ -367,8 +388,21 @@ async function jouerGeste(argv) {
     joue = true;
   }
   // Au plafond, après l'étiquette : un commentaire refusé laisse le plafond à décider de nouveau, ses lignes entières.
-  if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible') {
+  if (g.geste === 'plafonner' || g.geste === 'panne' || g.geste === 'illisible' || g.geste === 'signaler') {
     ecrire('commenter', String(n), g.commentaire);
+    joue = true;
+  }
+  // La note de même contenu (A-224, A-239 (1)) : après la pose, avant le retrait. Refusée, la ligne JSON part d'abord,
+  // ses lignes avec elle, puis la sortie 7 (A-240 (1)) : `à-relire` reste, le rejeu écrit la note sans renvoyer de
+  // ligne (l'étiquette est posée après la marque la plus récente, la note n'en est pas une).
+  if (g.note !== undefined) {
+    const { decision: d } = await modules();
+    try {
+      ecrire('commenter', String(n), d.ecrireNote({ tete: g.tete, ...g.note }));
+    } catch (e) {
+      if (e instanceof Arret && e.code === 7) process.stdout.write(`${JSON.stringify({ ...g, joue: true, lignes })}\n`);
+      throw e;
+    }
     joue = true;
   }
   for (const e of g.retirer ?? []) ecrire('retirer_label', String(n), e);
@@ -410,6 +444,24 @@ async function distribuer(argv) {
   process.stdout.write(`${JSON.stringify({ pr: n, geste: g.geste, tour: g.tour, sommet: g.sommet, sessions: forme.sessions, distribution: texte, faits: g.faits })}\n`);
 }
 
+// La clé d'une ligne de `passe` : `<n>:<geste>:<règle>:<tête>`, `—` pour une règle nulle, `*` pour la tête de
+// `contrat-illisible`, dont la cause est la base.
+const cleDe = (g) => `${g.pr}:${g.geste}:${g.regle ?? '—'}:${g.geste === 'contrat-illisible' ? '*' : g.tete}`;
+const FORME_CLE = /^([1-9][0-9]*):([a-z][a-z-]*):([1-9][0-9]*|—):([0-9a-f]{40}|\*)$/;
+// `--taire` : une clé par PR, dans l'ordre reçu (une table numéro → clé). Toute autre forme sort en 2 (A-225).
+function lireSourdines(texte) {
+  const taire = new Map();
+  for (const cle of texte.split(',').filter(Boolean)) {
+    const m = FORME_CLE.exec(cle);
+    if (m === null) arreter(2, `--taire : « ${cle} » n'est pas une clé <n>:<geste>:<règle>:<tête>, recopiée de la ligne de passe`);
+    if ((m[4] === '*') !== (m[2] === 'contrat-illisible')) arreter(2, `--taire : « ${cle} » : la tête \`*\` est celle de contrat-illisible, et d'elle seule`);
+    const pr = Number(m[1]);
+    if (taire.has(pr)) arreter(2, `--taire : deux clés pour la PR ${pr}`);
+    taire.set(pr, cle);
+  }
+  return taire;
+}
+
 function veille(argv) {
   const lireOption = (nom, defaut) => {
     const i = argv.indexOf(nom);
@@ -418,7 +470,8 @@ function veille(argv) {
   const pause = Number(lireOption('--pause', '120'));
   const duree = Number(lireOption('--duree', '25'));
   const sondes = Number(lireOption('--sondes', 'Infinity'));
-  const taire = new Set(String(lireOption('--taire', '')).split(',').filter(Boolean).map(Number));
+  const taire = lireSourdines(String(lireOption('--taire', '')));
+  const sourdines = () => `SOURDINES ${taire.size === 0 ? 'aucune' : [...taire.values()].join(',')}\n`;
   const differee = argv.includes('--attendre');
   if (![pause, duree].every((x) => Number.isFinite(x) && x >= 0)) arreter(2, '--pause et --duree : des nombres');
   const fin = Date.now() + duree * 60_000;
@@ -439,16 +492,23 @@ function veille(argv) {
       continue;
     }
     if (r.status !== 0) {
-      process.stdout.write(`${(r.stderr || '').trim()}\nVEILLE ARRÊTÉE sortie ${r.status}\n`);
+      process.stdout.write(`${(r.stderr || '').trim()}\nVEILLE ARRÊTÉE sortie ${r.status}\n${sourdines()}`);
       process.exit(r.status ?? 1);
     }
-    const aJouer = r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((g) => !['rien', 'hors-regime', 'pause'].includes(g.geste) && !taire.has(g.pr));
+    const lignes = r.stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    // La levée : la PR absente de la passe, à `rien` ou `hors-regime`, ou sous une autre clé ; `pause` garde.
+    for (const [pr, cle] of taire) {
+      const g = lignes.find((x) => x.pr === pr);
+      if (g === undefined || g.geste === 'rien' || g.geste === 'hors-regime') taire.delete(pr);
+      else if (g.geste !== 'pause' && cleDe(g) !== cle) taire.delete(pr);
+    }
+    const aJouer = lignes.filter((g) => !['rien', 'hors-regime', 'pause'].includes(g.geste) && !taire.has(g.pr));
     if (aJouer.length > 0) {
-      process.stdout.write(`VEILLE GESTE\n${aJouer.map((g) => `GESTE ${g.pr} ${g.geste} règle ${g.regle ?? '—'}`).join('\n')}\n`);
+      process.stdout.write(`VEILLE GESTE\n${aJouer.map((g) => `GESTE ${g.pr} ${g.geste} règle ${g.regle ?? '—'}`).join('\n')}\n${sourdines()}`);
       return;
     }
   }
-  process.stdout.write('VEILLE FINIE\n');
+  process.stdout.write(`VEILLE FINIE\n${sourdines()}`);
 }
 
 /** Vrai quand ce fichier est lancé en ligne de commande : lien symbolique, chemin à espace ou à accent, `--preserve-symlinks-main` compris. */
@@ -484,7 +544,7 @@ if (estPointEntree()) {
     else if (sous === 'jouer') await jouerGeste(reste);
     else if (sous === 'distribuer') await distribuer(reste);
     else if (sous === 'veille') veille(reste);
-    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>,…] [--sondes <k>] [--attendre]');
+    else arreter(2, 'usage : relecteur.mjs passe | jouer <n> [--sessions <fichier>] | distribuer <n> --sommet <sha> --couple <modele>/<effort> [--remplace <id>] [<session>…] [--sessions <fichier>] | veille [--pause <s>] [--duree <min>] [--taire <n>:<geste>:<règle>:<tête>,…] [--sondes <k>] [--attendre]');
   } catch (e) {
     if (!(e instanceof Arret)) throw e;
     process.stderr.write(`relecteur : ${e.message}\n`);
