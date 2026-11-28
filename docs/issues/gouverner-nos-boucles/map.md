@@ -316,6 +316,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_01BxuG2z852KsPA3QESpDMK1` | ticket   | 92 (PR 158, `6c37fe3`, 8.3.1) | 1,03 | 148 623 |
 | `session_01BxuG2zto6dZVnvyHGBJrQA` | ticket   | 91 (PR 159, `4403173`, 8.3.2) | 2,77 | 200 727 |
 | `session_012xRpgZYu68zGNEriduvkFx` | ticket   | 93     | 1,35   | 171 870           |
+| `session_012xRpgaWJ75kvDQygZXdA7p` | ticket   | 110    | 4,27   | 277 915           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1533,3 +1534,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 00 h 17 UTC. **PR #172 (« périmètre figé ») entrée** : `main` à `7e63b12`, plugin 8.6.0. #169 renvoyée pour conflit à 00 h 06 (attendu) : gestes envoyés à sa session (fusion de `7e63b12`, section de note en 8.6.1 sha256 `14914af…`, arbre attendu `503f486…`, calculés à part). Ensuite #170 (deuxième chiffre, donc 8.7.0) et #171.
 - 2026-11-28 — 00 h 19 UTC. PR #169 : sommet `86276ef` (fusion de `7e63b12`, 8.6.1), arbre `503f486` vérifié ; l'ordre attend CodeQL.
 - 2026-11-28 — 00 h 30 UTC. PR #169 : `CodeQL` et `Analyze` verts au sommet `86276ef` ; verdict, ordre et label posés ; `bancs` en cours (le capitaine l'attend).
+- 2026-11-28 — 01 h 03 UTC. **PR #169 fusionnée** (ticket 110) : `main` à `7a0af35`, parent `7e63b12`, arbre égal au sommet ordonné `86276ef`, plugin 8.6.1 ; vérifié à la source. Session du ticket 110 archivée (4,27 $, 277 915 tokens). PR #170 : gestes de remise sur `main` envoyés (section de note en 8.7.0 sha256 `84ef7cc…`, arbre attendu `c67c8c2…`, calculés à part ; seuls `plugin.json` et la note en conflit).
