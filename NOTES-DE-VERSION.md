@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.7 — 2026-11-28
+## 8.9.8 — 2026-11-28
 
 ### Ce qui change
 
@@ -15,6 +15,19 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
 - Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
+## 8.9.7 — 2026-11-28
+
+### Ce qui change
+
+En régime 8 : la décision du Relecteur (`decision-relecteur.mjs`).
+
+- **Un refus double s'annonce avec ses deux verdicts** (`A-265` (1)) : quand un tour à deux sessions est refusé par l'une et que l'autre n'a pas encore rendu, `decider` rend `rien`, raison `attente`, en règle 4 (en règle 1 au troisième tour compté), sans changer d'étiquette ni envoyer de ligne. Le refus s'annonce, ou le plafond tombe, au passage où arrive le dernier verdict : l'auteur lit tous les bloquants du tour d'un coup. Le compte des tours et `tourValide` ne changent pas ; un refus tardif sur une PR `à-fusionner` n'attend jamais (`A-270` (3)).
+- **L'attente a une échéance** (`A-269`) : `relecture.delai` depuis la distribution (ou la relance) de la session attendue, comme en règle 5 ; passée l'échéance, ou dès qu'une attendue est `morte` ou `plafond`, le refus s'annonce avec les verdicts présents, sa ligne suffixée « (sans le verdict de <id>…) ». Le skill `relecteur` lit l'état des sessions attendues en règles 1 et 4 (`A-270` (1)).
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer** `fusionner` (`/maj-skills:socle-chaine-de-production`, après `claude plugin marketplace update maj`) : `decision-relecteur.mjs` est copié dans `scripts/chaine/`. Sans repose, un refus double s'annonce encore au premier verdict. Le texte du skill `relecteur` se lit dans le marketplace.
 
 ## 8.9.6 — 2026-11-28
 
