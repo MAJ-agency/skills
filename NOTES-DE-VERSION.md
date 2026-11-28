@@ -2,6 +2,20 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.9.10 — 2026-11-28
+
+### Ce qui change
+
+- **Les livraisons vers develop passent avant la mise à jour des sujets** (skill `fusionner`, `boucle.sh`). Cas vécu sur `fedora`, une nuit : la boucle commençait chaque lancement par reporter develop dans tous les sujets sans sous-PR ouverte, une vingtaine, et chaque report rejouait le pre-push complet (7 à 15 minutes). Une livraison prête en tête de file à 03:29 n'a été prise qu'à 05:20, alors que chaque entrée dans develop remet les autres livraisons en retard.
+- **L'ordre d'un tour** : jobs rouges relancés, sous-PR dans leur sujet, sujets finis livrés, puis une livraison vers develop (`prio:haute`, puis numéro) ; les sujets au repos ne reçoivent develop qu'en dernier, dans un tour où aucune livraison vers develop n'est prête, et plus jamais en tête de lancement. La file est relue entre deux sujets en retard : une livraison devenue prête passe avant les sujets restants (`[sujets] #<n> prête vers develop : …`), repris quand la file vers develop est de nouveau vide. Une livraison prête attend au plus une mise à jour de sujet. Un sujet déjà à jour n'est plus appelé.
+- **L'arrêt et l'échéance** sont relus avant chaque mise à jour d'un sujet : passé l'échéance de la veille, plus aucun sujet n'est mis à jour (`ÉCHÉANCE`, sortie 0).
+- Le refus de `sujet.sh demarrer` sur une spec absente du sujet dit que le capitaine la reporte « dès que sa file vers develop est vide », et le skill `chantier` (§ 6, point 6) de même.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Reposer `scripts/chaine/`** (`/maj-skills:fusionner poser`, avec `sujet.sh` du skill `sujet`) et le nouveau banc `livraisons-avant-sujets.test.mjs`. La boucle se relance d'elle-même sur la version de develop dès que la PR qui la repose y est entrée.
+- Sur une file qui ne se vide jamais, un sujet au repos attend develop plus longtemps qu'avant : sa livraison (`passer.sh`) le met à jour de toute façon, et un conducteur qui attend develop dans son sujet le voit à la première file vide.
+
 ## 8.9.9 — 2026-11-28
 
 ### Ce qui change

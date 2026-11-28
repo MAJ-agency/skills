@@ -24,9 +24,12 @@
 # `traiter_sujets` regroupe d'office les séries par spec et les piles (`sujet.sh
 # regrouper-series`, REGROUPÉE), fait passer les sous-PR (squash dans le sujet, quelques secondes), recible
 # sur son sujet une PR dont le ticket en déclare un, et une PR empilée dont la parente est
-# entrée dans un sujet. Au début et à la fin, `rafraichir_sujets` fusionne develop dans chaque
-# sujet non livré SANS sous-PR ouverte : bouger la tête d'un sujet sous ses sous-PR les remettait
-# en conflit avant leur passage (cas vécu). Un sujet actif est mis à jour par sa livraison
+# entrée dans un sujet. En dernier, dans un tour où aucune livraison vers develop n'est prête, `rafraichir_sujets`
+# fusionne develop dans chaque sujet non livré SANS sous-PR ouverte : bouger la tête d'un sujet sous ses sous-PR les
+# remettait en conflit avant leur passage (cas vécu). Chaque mise à jour rejoue le pre-push (7 à 15 minutes) : la file
+# est relue entre deux sujets, et une livraison devenue prête passe avant les sujets restants (cas vécu : une
+# vingtaine de sujets rafraîchis en tête de chaque lancement, plus de deux heures d'attente pour une livraison prête
+# en tête de file). Une livraison prête attend au plus une mise à jour de sujet. Un sujet actif est mis à jour par sa livraison
 # (passer.sh) ou par `sujet.sh fusionner` quand une sous-PR apporte du develop plus récent.
 # Règle d'ascendance (skill `fusionner`) : une sous-PR en retard sur son sujet (documentation comprise), ou en
 # conflit avec lui sur des index générés seuls, n'est pas renvoyée : `sujet.sh fusionner` la met à jour, régénère,
@@ -81,7 +84,7 @@
 # qui lance un démon doit le fermer (`9>&-`), sinon le démon garde le verrou après la boucle.
 # L'arrêt passe par un fichier (`<git-common-dir>/boucle-arret`), que ni un processus d'attente
 # oublié ni `pgrep` ne contournent : la boucle le lit au démarrage, au début de chaque tour, avant
-# `livrer-prets`, avant chaque `passer` et avant le rafraîchissement de fin (sortie 10) ; une boucle
+# `livrer-prets`, avant chaque `passer` et avant chaque mise à jour d'un sujet (sortie 10) ; une boucle
 # relancée tant qu'il existe refuse de démarrer (sortie 10, message). `--arreter` interrompt aussi le
 # passage en cours (TERM, puis KILL) : la trappe remet le worktree propre (`git merge --abort` ou
 # `reset --hard`, puis `switch --detach origin/develop` ; le worktree du capitaine ne porte rien
@@ -95,15 +98,15 @@
 #
 # Passages interrompus (A-245). Un passage tué avec la machine ne laisse ni ligne `FUSIONNÉE` ni commentaire terminé :
 # `prendre_passage` écrit donc un témoin `<git-common-dir>/capitaine-passages/<n>`, que `finir_passage` retire. Au
-# démarrage, verrou pris, avant `rafraichir_sujets`, la boucle relit sur GitHub la PR de chaque témoin et dit au journal
+# démarrage, verrou pris, avant le premier tour, la boucle relit sur GitHub la PR de chaque témoin et dit au journal
 # `FUSIONNÉE (passage interrompu…)` avec le sha de fusion, ou « rien n'est entré » ; elle termine le commentaire si le
 # `CAPITAINE_ID` est le sien. Une PR illisible garde le témoin. Pas d'action manuelle pendant ce démarrage.
 #
 # Échéance. La veille (`veille.sh`) pose `BOUCLE_ECHEANCE` (secondes depuis l'époque Unix) : au-delà,
 # un passage commencé ne finirait pas avant la limite de 2 h de la tâche de fond qui la porte. La boucle
-# la vérifie en tête de tour, avant chaque `passer` et avant chaque `sujet.sh fusionner` ; passé
-# l'échéance, plus aucun passage : `ÉCHÉANCE <hh:mm> : …, file laissée`, sortie 0, sans le
-# rafraîchissement de fin des sujets. Rien n'est alors en cours, aucune PR n'est touchée. Posée mais pas
+# la vérifie en tête de tour, avant chaque `passer`, avant chaque `sujet.sh fusionner` et avant chaque mise à jour
+# d'un sujet ; passé l'échéance, plus aucun passage : `ÉCHÉANCE <hh:mm> : …, file laissée`, sortie 0, sans mettre
+# les sujets restants à jour. Rien n'est alors en cours, aucune PR n'est touchée. Posée mais pas
 # un entier positif : sortie 64, aucune lecture GitHub. Absente (boucle lancée à la main) : rien ne
 # change. L'`exec` de relance garde l'environnement, donc l'échéance.
 #
@@ -214,7 +217,7 @@ if [ "${BOUCLE_VERROU_PID:-}" != "$$" ]; then
 fi
 [ "$reprendre" = 0 ] || rm -f "$ARRET"
 
-# Fichier d'arrêt : lu au démarrage, à chaque tour, avant `livrer-prets`, avant chaque passage.
+# Fichier d'arrêt : lu au démarrage, à chaque tour, avant `livrer-prets`, avant chaque passage et chaque sujet.
 verifier_arret() {
   [ ! -e "$ARRET" ] || { echo "ARRÊT demandé ($ARRET, posé le $(cat "$ARRET" 2>/dev/null)) : '--reprendre' pour relancer" >&2; exit 10; }
 }
@@ -355,14 +358,47 @@ traiter_rouges() {
   done
 }
 
+# La prochaine livraison vers develop de la file (la sortie de file.sh, lue en entrée) : la première ligne « prête… »
+# qui ne vise pas un sujet, ni sautée ni mise de côté. Rien : aucune. file.sh range déjà `prio:haute`, puis le numéro.
+prochaine_livraison() {
+  awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }'
+}
+
 # develop dans chaque sujet ni livré (sa PR vers develop, passer.sh la tient à jour) ni actif
-# (une sous-PR ouverte : la mise à jour la remettrait en conflit avec la nouvelle tête).
+# (une sous-PR ouverte : la mise à jour la remettrait en conflit avec la nouvelle tête), en retard sur develop.
+# Appelé seulement quand aucune livraison vers develop n'est prête, en dernier dans le tour. Chaque mise à jour rejoue
+# le pre-push du projet (7 à 15 minutes sur un gros dépôt) : avant chaque sujet après le premier, la file est relue, et
+# une livraison devenue prête pendant ce temps arrête le rafraîchissement (retour 1) ; la boucle la fait passer, puis
+# reprend les sujets restants quand la file vers develop est de nouveau vide. Une livraison prête attend donc au plus
+# UNE mise à jour de sujet, jamais toutes (cas vécu : une vingtaine de sujets rafraîchis en tête de chaque lancement de
+# la boucle, plus de deux heures d'attente pour la livraison en tête de file). File illisible : retour 1 aussi, la
+# boucle la relit et décide (PAUSE ou ARRÊT). Sujet à jour (retard 0) : aucune mise à jour, aucune lecture. Retour 0 :
+# tous les sujets vus. Arrêt et échéance relus avant chaque sujet : passé l'échéance, plus aucune mise à jour.
 rafraichir_sujets() {
-  local nom sous verdict rc
-  bash "$SUJET" etat 2>/dev/null | tail -n +2 | while IFS="$(printf '\t')" read -r nom _ _ sous _ verdict; do
+  local nom retard sous verdict rc sujets liste prete un=''
+  sujets=$(bash "$SUJET" etat 2>/dev/null </dev/null | tail -n +2)
+  while IFS="$(printf '\t')" read -r nom _ retard sous _ verdict; do
+    [ -n "$nom" ] || continue
     case "$verdict" in livré*) continue ;; esac
     [ "$sous" = "—" ] || continue
-    bash "$SUJET" rafraichir "$nom" --abandon-si-conflit 2>&1 | sed "s#^#[sujet/$nom] #"
+    [ "$retard" != 0 ] || continue
+    verifier_arret
+    verifier_echeance
+    if [ -n "$un" ]; then
+      liste=$(bash "$outils/file.sh" 2>/dev/null </dev/null) || {
+        echo "[sujets] file illisible : sujets restants repris quand la file vers develop sera vide"
+        git switch -q --detach origin/develop 2>/dev/null || true
+        return 1
+      }
+      prete=$(prochaine_livraison <<<"$liste")
+      if [ -n "$prete" ]; then
+        echo "[sujets] #$prete prête vers develop : elle passe avant les sujets restants, repris quand la file vers develop sera vide"
+        git switch -q --detach origin/develop 2>/dev/null || true
+        return 1
+      fi
+    fi
+    un=1
+    bash "$SUJET" rafraichir "$nom" --abandon-si-conflit </dev/null 2>&1 | sed "s#^#[sujet/$nom] #"
     rc=${PIPESTATUS[0]}
     case "$rc" in
       0) ;;
@@ -375,7 +411,7 @@ rafraichir_sujets() {
       11) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie 11, aucun conflit) : outil du capitaine en échec, cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
       *) echo "[sujet/$nom] SUJET NON MIS À JOUR (sortie $rc, aucun conflit) : erreur de sujet.sh (69 : jq absent du poste ; 1 : erreur inattendue), cause ci-dessus : à corriger chez le capitaine, rien à faire par une session" ;;
     esac
-  done
+  done <<<"$sujets"
   git switch -q --detach origin/develop 2>/dev/null || true
 }
 
@@ -678,7 +714,9 @@ relire_passages_interrompus() {
   done < <(ls "$dossier" 2>/dev/null | grep -E '^[0-9]+$' | sort -n)
 }
 relire_passages_interrompus
-rafraichir_sujets
+# Ordre d'un tour : jobs rouges relancés, sous-PR (quelques secondes chacune), puis UNE livraison vers develop ; les
+# sujets ne reçoivent develop que dans un tour où aucune livraison n'est prête (`rafraichir_sujets`, interrompu dès
+# qu'une le devient), jamais en tête de lancement.
 while :; do
   verifier_arret
   verifier_echeance
@@ -696,8 +734,13 @@ while :; do
     6) echo "ARRÊT : réglage du dépôt (file.sh, sortie 6, motif ci-dessus) : un admin le fait, puis le capitaine relance"; exit 6 ;;
     *) echo "ARRÊT : file.sh en échec (sortie $rc) : le capitaine traite, puis relance"; exit 6 ;;
   esac
-  n=$(printf '%s\n' "$liste" | awk -F '\t' -v s="$sautees$attente_fusion" '!t && $2 ~ /^prête/ && $2 !~ /sur sujet\// && index(s, " " $1 " ") == 0 { print $1; t = 1 }')
-  [ -n "$n" ] || break
+  n=$(prochaine_livraison <<<"$liste")
+  if [ -z "$n" ]; then
+    # Aucune livraison prête : les sujets reçoivent develop, en dernier. Une livraison devenue prête entre-temps
+    # (retour 1) passe d'abord, au tour suivant ; les sujets restants sont repris quand la file sera de nouveau vide.
+    rafraichir_sujets && break
+    continue
+  fi
   echo "[#$n] DÉBUT $(date +%H:%M)"
   passer "$n"
   rc=$?
@@ -753,8 +796,6 @@ while :; do
     *) echo "ARRÊT sur #$n (sortie $rc)"; exit "$rc" ;;
   esac
 done
-verifier_arret
-rafraichir_sujets
 attente=$(bash "$outils/file.sh" | awk -F '\t' '$2 ~ /CI en cours$/ { printf " #%s", $1 }')
 echo "FILE VIDE $(date +%H:%M)${attente:+ (CI en cours :$attente)}"
 # Pour le compte rendu : sujets prêts à livrer, et séries de la file à proposer au regroupement.

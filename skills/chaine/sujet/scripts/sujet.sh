@@ -255,8 +255,8 @@ verifier_ticket() {
   spec=$(fichier_sur "$ref" "${id%.*}")
   [ -n "$spec" ] || sortir 4 "la spec ${id%.*} n'est pas encore sur $base : sa PR de specs n'est pas fusionnée.
 Ne pas partir de la branche de specs. La faire fusionner dans $base d'abord (\`sujet.sh ouvrir <nom> --specs <pr>\`
-la recible sur le sujet) ; si elle est déjà dans develop, le capitaine la reporte dans le sujet de lui-même à chaque
-lancement de sa boucle (A-69) : attendre, ou l'écrire à ton conducteur (à qui t'a lancé), qui le demande au capitaine ; une session ne lance jamais \`sujet.sh rafraichir\`."
+la recible sur le sujet) ; si elle est déjà dans develop, le capitaine la reporte dans le sujet de lui-même dès que sa
+file vers develop est vide (A-69) : attendre, ou l'écrire à ton conducteur (à qui t'a lancé), qui le demande au capitaine ; une session ne lance jamais \`sujet.sh rafraichir\`."
   [[ "$id" == *.* ]] || return 0
   fichier=$(fichier_sur "$ref" "$id")
   [ -n "$fichier" ] || sortir 4 "le ticket $id n'est pas sur $base : attendre la fusion de la PR qui l'ajoute."
