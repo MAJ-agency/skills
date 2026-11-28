@@ -408,3 +408,54 @@ test("un vrai banc joué tranche par tranche : chaque test tourne une fois, ceux
     rmSync(dossier, { recursive: true, force: true });
   }
 });
+
+// Ticket 117 (A-267) : un banc jouet constant qui porte chaque forme de saut et de « todo ».
+const BANC_SAUTS = `import { describe, it, test } from "node:test";
+test("a", (t) => { t.skip("raison"); });
+test("b", { todo: "plus tard" }, () => {});
+test("b2", { todo: true }, () => { throw new Error("x"); });
+test("c", async (t) => { await t.test("sous", { skip: true }, () => {}); });
+test.skip("d", () => {});
+describe("e", () => { it.skip("f", () => {}); });
+test("g", () => {});
+`;
+
+test("`RAPPORTEUR` écrit une ligne `saute` par test sauté ou en todo, à tout niveau ; un test filtré n'en écrit aucune", () => {
+  const dossier = mkdtempSync(join(tmpdir(), "tranches-sauts-"));
+  try {
+    writeFileSync(join(dossier, "rapporteur.mjs"), RAPPORTEUR);
+    writeFileSync(join(dossier, "sauts.test.mjs"), BANC_SAUTS);
+    const jouer = (...filtres) => {
+      const sortie = join(dossier, `rapport-${filtres.length}-${filtres.join("").length}`);
+      const r = spawnSync(process.execPath, ["--test", "--test-reporter=./rapporteur.mjs", `--test-reporter-destination=${sortie}`, ...filtres, "sauts.test.mjs"], { cwd: dossier, encoding: "utf8", env: { PATH: process.env.PATH } });
+      assert.equal(r.status, 0, r.stdout + r.stderr);
+      const lignes = readFileSync(sortie, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      return { noms: lignes.filter((l) => "nom" in l).map((l) => l.nom), sautes: lignes.filter((l) => "saute" in l).map((l) => `${l.saute}:${l.sorte}`).sort() };
+    };
+    const tout = jouer();
+    assert.deepEqual(tout.sautes, ["a:skip", "b2:todo", "b:todo", "d:skip", "f:skip", "sous:skip"]);
+    assert.deepEqual(tout.noms.sort(), ["a", "b", "b2", "c", "d", "g"]);
+    assert.ok(!jouer("--test-skip-pattern=^g$").sautes.some((s) => s.startsWith("g:")));
+    assert.deepEqual(jouer("--test-name-pattern=^a$").sautes, ["a:skip"]);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+});
+
+test("`conclure` juge les sauts : hors liste, todo, entrée admise non vue (couple banc/nom, hors plafond atteint) ; sans `admis` ni `sautes`, rien de neuf", () => {
+  const liste = [{ ...t("a.test.mjs", "entier", 1, 300_000), noms: ["x"] }, { ...t("b.test.mjs", "entier", 1, 300_000), noms: ["x"] }];
+  const ok = (sautes) => ({ code: 0, signal: null, tue: false, ms: 1, sortie: "", noms: ["x"], sautes });
+  const opt = { parallele: 2, duree: 1000, plancher: 0 };
+  const fautes = (resultats, extra = {}) => conclure(liste, resultats, { ...opt, ...extra }).fautes.filter((f) => /SAUTES|todo|sauté/.test(f));
+  const sk = (saute, sorte = "skip") => ({ saute, sorte });
+  const admis = [{ banc: "a.test.mjs", nom: "s", raison: "r" }];
+  assert.deepEqual(fautes([ok([sk("s")]), ok([])], { admis }), []);
+  assert.deepEqual(fautes([ok([sk("s")]), ok([sk("z")])], { admis }), ["b.test.mjs : « z » est sauté sans être dans SAUTES (scripts/sautes-admis.mjs) : le rendre jugeable une fois posé, ou l'y déclarer avec sa raison"]);
+  assert.deepEqual(fautes([ok([sk("s"), sk("m", "todo")]), ok([])], { admis }), ["a.test.mjs : « m » est en todo : jamais jugé"]);
+  const nonVue = ["a.test.mjs : « s » est dans SAUTES mais n'a pas été sauté : retirer l'entrée"];
+  assert.deepEqual(fautes([ok([]), ok([])], { admis }), nonVue);
+  assert.deepEqual(fautes([ok([]), ok([sk("s")])], { admis }).filter((f) => f.includes("n'a pas été sauté")), nonVue);
+  assert.deepEqual(fautes([ok([sk("s", "todo")]), ok([])], { admis }).filter((f) => f.includes("n'a pas été sauté")), nonVue);
+  assert.deepEqual(fautes([ok([]), undefined], { admis, depasse: true }).filter((f) => f.includes("n'a pas été sauté")), []);
+  assert.deepEqual(fautes([{ ...ok([]), sautes: undefined }, ok([])]), []);
+});
