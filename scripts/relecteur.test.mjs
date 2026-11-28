@@ -56,7 +56,7 @@ test("A-180 — la veille sous le plafond de l'outil Bash, le couple au réemplo
     "au-delà de 500 000 tokens, l'écrire à l'architecte (« Relecteur arrêté : contexte à <k> tokens »), et s'arrêter : l'architecte l'archive, puis lance un Relecteur neuf",
     "**`passe` d'abord**, toujours",
     "**et au même couple** que celui du geste",
-    "pour les règles 4, 5 et 6 seulement",
+    "pour les règles 1, 4, 5 et 6 seulement",
     "`plafond` : plus de 700 000 tokens de contexte",
     "**Un verrou** (`flock`) tient le dossier",
   ]);
