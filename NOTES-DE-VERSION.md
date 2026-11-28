@@ -2,7 +2,7 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
-## 8.9.0 — 2026-11-28
+## 8.10.0 — 2026-11-28
 
 ### Ce qui change
 
@@ -19,6 +19,17 @@ La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque pro
 
 - **Rien à reposer** pour la relecture : le skill `relecture`, ses prompts, ses critères et `gestes.sh` se lisent dans le plugin, et le mot `suite` est déjà dans le `verdict.mjs` que la 8.8.0 fait reposer. Une session de relecture suit la version du marketplace (la ligne « Version : » de son prompt).
 - **L'ADR de la relecture indépendante** se met à jour à la prochaine repose du socle de la chaîne, comme toute ADR posée ; rien ne dépend de sa phrase neuve.
+
+## 8.9.0 — 2026-11-28
+
+### Ce qui change
+
+- **La demande `À relire` est fabriquée par un script, jamais tapée** (`A-234`, `A-235`, `A-241`) : `node scripts/chaine/demande.mjs --session <id|—> --conducteur <id|—> [--branche <nom>]` écrit la ligne `À relire — sommet <sha> — Session: <…> — Conducteur: <…>`, que la session copie telle quelle dans son commentaire. Le sommet vient de git (`HEAD` poussé, ou la tête d'`origin` de `--branche`) ; un sommet non poussé, une tête détachée ou une branche absente d'`origin` sortent en 1, un appel mal formé en 2, `origin` illisible en 12. Chaque champ est `session_<lettres et chiffres>` ou `—` : « moi » et deux identifiants égaux sont refusés, `—` aux deux champs est permis.
+- **Les messages des renvois et de `sujet.sh demarrer` nomment la commande**, jamais la forme (`DEMANDE_DE_RELECTURE` de `github.sh`). `FORME_DEMANDE` et la lecture de la demande par le Relecteur ne changent pas.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rejouer l'étape 0 de `fusionner`** : elle repose `demande.mjs` et son banc sous `scripts/chaine/`, avec `github.sh`. Les deux se posent ensemble : sans repose, les messages restent ceux d'avant et ne nomment jamais un script absent.
 
 ## 8.8.1 — 2026-11-28
 

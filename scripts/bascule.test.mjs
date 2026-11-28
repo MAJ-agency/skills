@@ -244,8 +244,10 @@ test("les documents posés sont ceux du régime 8 : la méthode, le fragment, le
   exiger(lire("skills/monorepo/socle-monorepo/references/methode/conception.md"), ["la revue d'une PR est celle d'une **session de relecture** que son auteur ne contrôle pas", "Sans cette chaîne : avant le commit qui clôt une feature"], "conception.md");
   exiger(lire(`${C}/criticite/SKILL.md`), ["la relecture de la PR le relève (axe « Règles métier », critère `D8`)"], "criticite");
   exiger(lire(`${C}/recette-humaine/SKILL.md`), ["relecture demandée par `à-relire`", "correctif, relecture demandée (`à-relire`"], "recette-humaine");
-  // La forme de la demande que les documents montrent est celle que `renvoyer.sh` et `sujet.sh demarrer` font écrire.
-  assert.ok(lire(`${C}/fusionner/scripts/github.sh`).includes("À relire — sommet <sha> — Session: <id> — Conducteur: <id>"), "github.sh : la même forme");
+  // La forme de la demande ne vit que dans `demande.mjs` : `github.sh`, dont les messages `renvoyer.sh` et `sujet.sh demarrer` font écrire la demande, nomme la commande.
+  const github = lire(`${C}/fusionner/scripts/github.sh`);
+  assert.ok(github.includes("node scripts/chaine/demande.mjs --session"), "github.sh : la commande, jamais la forme");
+  assert.ok(!github.includes("À relire — sommet <sha>"), "github.sh : la commande, jamais la forme");
 });
 
 test("le gabarit du contrat porte la clé relecture, lue par le capitaine telle quelle ; la phrase des clés du socle les compte (A-100, A-108, A-128)", async () => {
