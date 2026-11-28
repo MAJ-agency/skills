@@ -317,6 +317,7 @@ Vague 1 fusionnée le 2026-11-13 par le capitaine de `skills` (`main` à `8eb1c9
 | `session_01BxuG2zto6dZVnvyHGBJrQA` | ticket   | 91 (PR 159, `4403173`, 8.3.2) | 2,77 | 200 727 |
 | `session_012xRpgZYu68zGNEriduvkFx` | ticket   | 93     | 1,35   | 171 870           |
 | `session_012xRpgaWJ75kvDQygZXdA7p` | ticket   | 110    | 4,27   | 277 915           |
+| `session_012xRpgZQxMdGWQVpZLwjW26` | ticket   | 94-96  | 12,15  | 352 223           |
 
 La ligne de l'architecte est un relevé du 2026-11-13 à 11 h 45 UTC, session en cours (elle était à 9,20 $ et 289 647 tokens à 8 h 52) ; la cellule de coût ne porte qu'un montant, pour rester lisible par `couts.mjs`.
 
@@ -1537,3 +1538,4 @@ La session de suite fait, dans cet ordre :
 - 2026-11-28 — 01 h 03 UTC. **PR #169 fusionnée** (ticket 110) : `main` à `7a0af35`, parent `7e63b12`, arbre égal au sommet ordonné `86276ef`, plugin 8.6.1 ; vérifié à la source. Session du ticket 110 archivée (4,27 $, 277 915 tokens). PR #170 : gestes de remise sur `main` envoyés (section de note en 8.7.0 sha256 `84ef7cc…`, arbre attendu `c67c8c2…`, calculés à part ; seuls `plugin.json` et la note en conflit).
 - 2026-11-28 — 01 h 06 UTC. PR #170 : sommet `ae2bb8f` (fusion de `7a0af35`, 8.7.0), arbre `c67c8c2` vérifié ; bancs ciblés 156/156 selon sa session ; l'ordre attend CodeQL.
 - 2026-11-28 — 01 h 15 UTC. PR #170 : `CodeQL` et `Analyze` verts au sommet `ae2bb8f` ; verdict, ordre et label posés ; `bancs` en cours.
+- 2026-11-28 — 01 h 43 UTC. **PR #170 fusionnée** (tickets 94 à 96) : `main` à `6f05d71`, parent `7a0af35`, arbre égal au sommet ordonné `ae2bb8f`, plugin 8.7.0 ; vérifié à la source. Session 94-96 archivée (12,15 $, 352 223 tokens). Architecte de « périmètre figé » prévenu : son ticket 2 peut partir. PR #171 : gestes de remise sur `main` envoyés (section en 8.7.1 sha256 `c73e3c6…`, arbre attendu `9408f90…`). Mes tickets 97 et 101 attendent la fusion de son ticket 2, qui touche aussi `relecteur/SKILL.md`, `scripts/relecteur.test.mjs` et `bascule.test.mjs`.
