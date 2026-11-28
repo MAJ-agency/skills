@@ -180,6 +180,9 @@ test("l'architecte en régime 8 : le Relecteur lancé et relevé, l'arbitrage et
   const adr = lire(`${C}/socle-chaine-de-production/references/adr/ADR_ALL_ARC-N-relecture-independante.md`);
   assert.ok(!adr.includes("le produit pour une PR de l'architecte"), "l'ADR ne renvoie plus au produit le plafond d'une PR de l'architecte");
   assert.ok(adr.includes("(le contenu de sa décision : skill `architecte`, § 5)"), "l'ADR renvoie à § 5");
+  // Le périmètre figé (ticket 3, A-18) : au point 2, le Relecteur pose aussi `à-reprendre` sur un périmètre absent ou dépassé.
+  const point2 = adr.split("\n").find((l) => l.startsWith("2. **Un Relecteur par dépôt**")) ?? "";
+  assert.ok(point2.includes("Sur une PR de documentation sans déclaration de périmètre, ou qui touche un fichier hors de son périmètre, il pose aussi `à-reprendre`, sans lancer de session de relecture ni compter de tour (`Périmètre absent`, `Périmètre dépassé — <fichiers>`)."), "l'ADR, point 2 : le périmètre absent ou dépassé");
   assert.ok(suivi.indexOf("- **En régime 8, une PR livrée**") < suivi.indexOf("- **Une PR livrée, en régime 7 ou dans un dépôt sans la chaîne,**"), "le régime 8 d'abord, puis le régime 7 et le dépôt sans la chaîne");
   const repose = entre(texte, "## 8. La repose d'un dépôt au régime 8", "## Ne jamais");
   const points = repose.split("\n").filter((l) => /^\d\. /.test(l));

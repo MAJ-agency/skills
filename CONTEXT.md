@@ -88,6 +88,10 @@ _Avoid_: PR de doc, PR sans code
 Ce qu'une PR de documentation déclare contenir avant sa première demande de relecture : ses fichiers, ses décisions, ses sujets ; un commentaire `Périmètre — <objet>`, jamais modifié.
 _Avoid_: scope, portée
 
+**Suite**:
+Un commentaire `Suite — <objet> — <ticket ou PR>` où l'auteur d'une PR de documentation cite le ticket ou la PR qui reçoit ce qu'il retire ou ce qu'un constat révèle hors de son périmètre ; au tri, la session de relecture classe « renvoyé en suite » un bloquant dont la levée demande une décision, un fait ou un fichier hors du périmètre déclaré, quand une suite nomme un ticket ou une PR qui existe.
+_Avoid_: report, reliquat
+
 ### Travail
 
 **Programme**:

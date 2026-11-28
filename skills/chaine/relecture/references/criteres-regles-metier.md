@@ -1,8 +1,8 @@
 # Critères de l'axe Règles métier (liste fermée)
 
-L'axe reçoit le **diff**, et la section `## Criticité` du corps de la PR quand elle existe, et lit dans l'arbre à part les fichiers de règle touchés, les specs qui les portent, le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`) et l'index `anchorpost/anchorpost.json`. La fiche `.claude/rules/anchorpost.md`, que `M2` cite, se lit sur la base, dans le dossier de la session : l'arbre à part ne porte aucun fichier de `.claude/`. Il est joué quand le diff touche un fichier de règle (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), une criticité (`criticality`, `cases` ou `notApplicableFamilies` d'une règle, `featureCriticality` du manifeste `anchorpost/manifest.json`) ou le glossaire. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**.
+L'axe reçoit le **diff**, la section `## Criticité` du corps de la PR quand elle existe, et la déclaration de périmètre de la PR (le commentaire `Périmètre — …`) quand elle existe, et lit dans l'arbre à part les fichiers de règle touchés, les specs qui les portent, le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`) et l'index `anchorpost/anchorpost.json`. La fiche `.claude/rules/anchorpost.md`, que `M2` cite, se lit sur la base, dans le dossier de la session : l'arbre à part ne porte aucun fichier de `.claude/`. Il est joué quand le diff touche un fichier de règle (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), une criticité (`criticality`, `cases` ou `notApplicableFamilies` d'une règle, `featureCriticality` du manifeste `anchorpost/manifest.json`) ou le glossaire. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**.
 
-`M1` redit le critère `D8` de l'axe Documentation, mot pour mot (`scripts/relecture.test.mjs` le tient) : quand les deux axes sont joués sur la même PR et relèvent le même écart, le verdict n'en garde qu'un constat. Les définitions de `M2` et de `M3` sont celles du skill `criticite` (son prompt, `criticite/references/prompt.md`). L'axe ne sait pas qui a écrit une ligne : là où un critère dit « un agent » ou « une personne », il lit qui la règle ou la section « Criticité » nomme, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
+`M1` redit le critère `D8` de l'axe Documentation, mot pour mot (`scripts/relecture.test.mjs` le tient) : quand les deux axes sont joués sur la même PR et relèvent le même écart, le verdict n'en garde qu'un constat. `M5` est le critère de périmètre de l'axe, comme `D9` et `K7` le sont des deux autres ; `D1` à `D8` restent le bloc du régime 7, `D9` est propre au régime 8, et `M1` redit toujours `D8`. Les définitions de `M2` et de `M3` sont celles du skill `criticite` (son prompt, `criticite/references/prompt.md`). L'axe ne sait pas qui a écrit une ligne : là où un critère dit « un agent » ou « une personne », il lit qui la règle ou la section « Criticité » nomme, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
 
 ```text
 M1  Criticité tracée — skill criticite. Seulement si l'index commis du projet, anchorpost/anchorpost.json,
@@ -58,4 +58,10 @@ M4  Vocabulaire — glossaire du projet, ADR sur la langue des identifiants. Un 
     son entrée déconseille (« Ne pas dire », `_Avoid_`) ; une entrée du glossaire que le diff
     ajoute ou change ne contredit ni une autre entrée, ni l'énoncé d'une règle qui emploie le
     terme ; un même terme n'a pas deux entrées.
+M5  Périmètre — docs/agents/chaine-de-production.md § 5 (« Périmètre, règle 3 »). Seulement si la
+    PR porte une déclaration de périmètre (l'entrée « Déclaration de périmètre »). Une décision,
+    un fait ou une ADR que la déclaration ne nomme pas est un bloquant. Sa correction est le
+    retrait, jamais l'ajout de ce qui manque autour. Écart : une règle métier que le diff crée ou
+    réénonce, ou une décision de criticité qu'il écrit (un niveau, une validation), absente de la
+    ligne `Décisions:` de la déclaration.
 ```

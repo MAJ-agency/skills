@@ -47,6 +47,7 @@ Un verdict `incomplet` nomme sa cause sur la ligne de l'axe ou du contrôle, et 
 | 1 | La lecture des commentaires échoue (outil en erreur, page qui manque) | la rejouer une fois ; jamais « aucun commentaire », « aucun arbitrage », « aucune distribution » | encore : aucun verdict (« Sans verdict ») |
 | 1 | Un nom de branche ou de sujet porte autre chose que des lettres, des chiffres, `.`, `_`, `/` et `-` | aucune commande ne le reçoit | `incomplet`, tout « non exécuté », la cause |
 | 1 | Un arbitrage est plus ancien que tout verdict `refusé` qui porte son constat | il ne compte pas : le constat se relève s'il est juste | — |
+| 1 | Un commentaire `Suite` nomme un ticket ou une PR introuvable (la PR ne se lit pas par `pull_request_read`, le ticket n'est ni dans l'arbre à part ni sur `origin/<base>`, ou la lecture échoue) | la suite ne compte pas : aucun bloquant ne se renvoie vers elle | le constat se garde, bloquant |
 | 2 | « dossier de la session pas propre » | rien ne se joue : les scripts de la base ne sont plus sûrs | `incomplet`, tout « non exécuté », la cause |
 | 2 | `etape2` s'arrête avant « étape 2 : faite » (`fetch` impossible, sommet introuvable, nom refusé, une consigne sur le disque de l'arbre) | rejouer `etape2` une fois | encore : `incomplet`, tout « non exécuté », la cause |
 | 3 | « installation en échec » avant `a-juger` | `a-juger` se joue quand même : une sous-PR ordinaire n'a pas besoin de commitlint | sortie 4 au motif « refusé par commitlint » : `C2` « non exécuté », aucune liste, donc aucun axe |
@@ -73,6 +74,8 @@ Un verdict `incomplet` nomme sa cause sur la ligne de l'axe ou du contrôle, et 
 | 6 | L'outil Agent répond « Agent type 'maj-skills:axe-de-relecture' not found » (instantané du plugin antérieur à 8.4.0) | relancer le même message, entier, par l'agent générique, sans paramètre `model` ; ce n'est ni un échec de l'outil ni un « non exécuté » | l'axe est joué ; la ligne « Agent des axes : » du verdict nomme le repli |
 | 6 | Un sous-agent rend une sortie hors format, ou `lus` sort en 1 (un fichier non lu, pas de liste), ou l'outil échoue | un second sous-agent neuf, une fois | encore : l'axe est « non exécuté », jamais « sans objet » |
 | 7 | `tri` écrit « gardé » avec une cause (une commande en échec, un fichier hors du diff relu) | rien ne prouve que le constat vient de `develop` | le constat se garde |
+| 7 | `depuis` ne sort pas en 0, rejoué une fois, encore en échec | la borne des tours suivants ne joue pas pour ce tour : chaque constat garde sa gravité | la ligne « Relevés tardifs » le dit, avec la cause |
+| 7 | Un constat tardif de l'axe Règles métier porte sur une règle de criticité haute (`high` dans son fichier, dans l'arbre à part ; ou dans le doute) | la borne ne joue pas pour lui | il bloque, dans le tableau |
 | 8 | La commande de contrôle sort en 1 | corriger le brouillon, rejouer | rien ne se publie avant la sortie 0 |
 | 8 | La distribution nomme la session pour ce sommet, à un autre tour | corriger `Tour:` dans le brouillon, rejouer la commande de contrôle | le verdict porte le tour de la distribution |
 | 8 | La publication échoue | réessayer une fois | encore : aucun verdict, la ligne au Relecteur (« Sans verdict ») |

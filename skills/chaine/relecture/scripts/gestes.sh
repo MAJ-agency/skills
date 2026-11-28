@@ -19,6 +19,7 @@
 #   accord '<brouillons>'         la ligne `Sensibles:` du ticket, lue sur le sujet (C3)
 #   lus '<brouillons>' <i> [<lot>]  ce que l'axe <i> a lu, comparé au diff relu (<lot> : un rang, `resolution` ou `resolution-<j>`)
 #   tri '<brouillons>'            les constats de `tri.txt`, venus de develop ou non (PR de mise à jour)
+#   depuis '<brouillons>' '<sommet précédent>'  les constats de `depuis.txt` : leur ligne, modifiée ou non depuis ce sommet
 #   montrer '<brouillons>'        le fichier de `montrer.txt`, tel que le sommet l'écrit
 #   c4 '<brouillons>'             le clone de `/security-review` (C4), prêt ; son chemin dans `c4-dossier.txt`
 #   c4-verifier '<brouillons>'    depuis le clone : le diff que la commande intégrée lira est celui de la PR
@@ -694,6 +695,46 @@ tri() {
   done < "$B/tri.txt"
 }
 
+# Les tours suivants d'une PR de documentation à périmètre déclaré (périmètre figé, ticket 3) : pour chaque constat de
+# `depuis.txt` (« <ligne><TAB><fichier> », le fichier tel qu'`attendus.txt` l'écrit), sa ligne au sommet du tour est-elle
+# modifiée depuis le sommet du tour précédent ? Le sommet précédent est une donnée lue sur les distributions : il entre en
+# argument, vérifié à sa forme, jamais dans un chemin. Une ligne voisine d'un retrait compte modifiée : dans le doute, le
+# constat reste bloquant. Toute entrée qui ne se lit pas arrête le geste, sortie 12 : la borne ne joue pas.
+depuis() {
+  [ $# = 1 ] || quitter 12 "usage : depuis '<brouillons>' '<sommet précédent>'"
+  lire_pr
+  cd "$S"
+  local precedent=$1 l fichier reel n=0
+  [[ $precedent =~ ^[0-9a-f]{40}$ ]] || quitter 12 "sommet précédent hors de sa forme : 40 caractères hexadécimaux"
+  git cat-file -e "$precedent^{commit}" 2> /dev/null || quitter 12 "sommet précédent introuvable dans le clone : $precedent"
+  [ -s "$B/depuis.txt" ] || quitter 12 "depuis.txt absent : une ligne par constat bloquant gardé, « <ligne><TAB><fichier> »"
+  [ -f "$B/diff.fait" ] || quitter 12 "diff relu absent : jouer diff d'abord"
+  # Tout se vérifie avant de rien écrire : un mot par constat, ou aucun.
+  while IFS=$'\t' read -r l fichier || [ -n "$l" ]; do
+    [[ $l =~ ^[1-9][0-9]*$ ]] || quitter 12 "ligne illisible : $l"
+    grep -Fxq -- "$fichier" "$B/attendus.txt" || quitter 12 "$fichier n'est pas au diff relu"
+    chemin_reel "$fichier" > /dev/null || quitter 12 "chemin illisible : $fichier"
+  done < "$B/depuis.txt"
+  local mots=()
+  while IFS=$'\t' read -r l fichier || [ -n "$l" ]; do
+    n=$((n + 1))
+    reel=$(chemin_reel "$fichier")
+    if ! git cat-file -e "$precedent:$reel" 2> /dev/null; then mots+=("$n : modifiée, fichier absent du sommet précédent"); continue; fi
+    git diff -U0 --no-renames --no-ext-diff "$precedent" "$sommet" -- ":(literal)$reel" > "$B/depuis-$n.diff" || quitter 12 "git diff en échec : $fichier"
+    if awk -v l="$l" '
+      function bornes(x, t) { x = substr(x, 2); if (x !~ /,/) x = x ",1"; split(x, t, ","); return t[1] + 0 SUBSEP t[2] + 0 }
+      /^@@ / { split(bornes($3), w, SUBSEP)
+        if (w[2] > 0 && l >= w[1] && l <= w[1] + w[2] - 1) touche = 1
+        if (w[2] == 0 && (l == w[1] || l == w[1] + 1)) touche = 1 }
+      END { exit !touche }' "$B/depuis-$n.diff"; then
+      mots+=("$n : modifiée")
+    else
+      mots+=("$n : inchangée")
+    fi
+  done < "$B/depuis.txt"
+  printf '%s\n' "${mots[@]}"
+}
+
 montrer() {
   lire_pr
   cd "$S"
@@ -811,11 +852,12 @@ case $SOUS in
   accord) accord ;;
   lus) lus "$@" ;;
   tri) tri ;;
+  depuis) depuis "${@:3}" ;;
   montrer) montrer ;;
   c4) c4 ;;
   c4-verifier) c4_verifier ;;
   revenir) revenir ;;
   controle) controle "$@" ;;
   ranger) ranger ;;
-  *) quitter 12 "sous-commande inconnue : ${SOUS:-aucune} (etape2, liste, diff, axes, c1, garde, contexte, accord, lus, tri, montrer, c4, c4-verifier, revenir, controle, ranger)" ;;
+  *) quitter 12 "sous-commande inconnue : ${SOUS:-aucune} (etape2, liste, diff, axes, c1, garde, contexte, accord, lus, tri, depuis, montrer, c4, c4-verifier, revenir, controle, ranger)" ;;
 esac

@@ -2,6 +2,24 @@
 
 La plus récente en haut. Les scripts de la chaîne sont copiés dans chaque projet par `poser` : une version publiée ne change rien chez un projet qui ne les repose pas. Chaque note dit ce qui change, puis ce qu'un projet fait pour en profiter.
 
+## 8.10.0 — 2026-11-28
+
+### Ce qui change
+
+- **La session de relecture lit le périmètre et les suites** (skill `relecture`, étape 1) : la déclaration retenue (`Périmètre — <objet>` et ses lignes `Fichiers:`, `Décisions:`, `Sujets:`, la première, jamais modifiée, d'un compte qui compte) et chaque commentaire `Suite — <objet> — <ticket ou PR>`, comme elle lit les arbitrages. Une lecture en échec n'est jamais « aucune déclaration » ni « aucune suite ».
+- **Les règles ne jouent que sur une PR de documentation à déclaration retenue** : celle où `gestes.sh axes` écrit « revue exigée : non », ou « revue exigée : oui, un fichier qu'aucune ligne de la table ne couvre est du code : » (`revue-exigee.mjs` seul la reconnaît, pour la session comme pour le Relecteur). Sinon rien ne change.
+- **Les trois axes de documentation reçoivent la déclaration** : une entrée neuve, `<périmètre>`, dans `prompt-documentation.md`, `prompt-tickets.md` et `prompt-regles-metier.md`, telle que GitHub la rend, ou « aucune déclaration » ; l'axe Tickets la reçoit aussi, bien qu'il ne reçoive pas la section `## Criticité`. Ni les commentaires `Suite`, ni les verdicts d'avant n'entrent dans un axe.
+- **Un critère de plus par axe, « Périmètre »** : `D9`, `K7` et `M5`, qui citent `docs/agents/chaine-de-production.md` § 5 (« Périmètre, règle 3 ») : une décision, un fait ou une ADR que la déclaration ne nomme pas est un bloquant ; sa correction est le retrait. `D1` à `D8` restent le bloc du régime 7, mot pour mot ; `D9` est propre au régime 8, et `M1` redit toujours `D8`.
+- **Le renvoi en suite, au tri** : un bloquant qui remplit deux conditions (le lever demande une décision, un fait ou un fichier hors du périmètre déclaré ; un commentaire `Suite` nomme un ticket ou une PR qui existe) s'écrit sous « Écartés au tri » avec le motif `suite` et la suite nommée. Un bloquant sur le périmètre déclaré, ou de `D9`, `K7`, `M5`, ne se renvoie jamais en suite ; une suite introuvable laisse le constat bloquant.
+- **Les tours suivants sont bornés** : après un verdict refusé, un bloquant n'est admis que s'il porte sur une ligne modifiée depuis le sommet du tour précédent, ou s'il reprend un bloquant non levé du verdict précédent ; tout autre constat est ramené à un doute, sous une ligne neuve du verdict, `Relevés tardifs : <n | sans objet>.`, précédée d'une ligne vide, hors du tableau et de `Bloquants:`. Exception : un constat de l'axe Règles métier sur une règle de criticité haute bloque à tout tour. Les axes relisent toujours tout le diff ; la borne joue au tri.
+- **Une sous-commande neuve, `gestes.sh depuis '<brouillons>' '<sommet précédent>'`** : pour chaque constat de `depuis.txt`, `modifiée` ou `inchangée` depuis ce sommet (`git diff -U0`), un fichier absent du sommet précédent `modifiée` en entier ; sortie 12, la cause écrite, sur un sommet hors de sa forme ou introuvable, un fichier hors du diff relu ou `depuis.txt` absent. Deux échecs : la borne ne joue pas pour ce tour, et le verdict le dit.
+- **« Suite » entre au glossaire** (`CONTEXT.md`), et l'ADR de la relecture indépendante (point 2) dit que le Relecteur pose aussi `à-reprendre` sur un périmètre absent ou dépassé, sans session de relecture.
+
+### Ce qu'un projet fait pour en profiter
+
+- **Rien à reposer** pour la relecture : le skill `relecture`, ses prompts, ses critères et `gestes.sh` se lisent dans le plugin, et le mot `suite` est déjà dans le `verdict.mjs` que la 8.8.0 fait reposer. Une session de relecture suit la version du marketplace (la ligne « Version : » de son prompt).
+- **L'ADR de la relecture indépendante** se met à jour à la prochaine repose du socle de la chaîne, comme toute ADR posée ; rien ne dépend de sa phrase neuve.
+
 ## 8.9.0 — 2026-11-28
 
 ### Ce qui change

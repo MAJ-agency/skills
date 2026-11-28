@@ -1,8 +1,8 @@
 # Critères de l'axe Documentation (liste fermée)
 
-L'axe reçoit le **diff**, et la section `## Criticité` du corps de la PR quand elle existe, et lit la documentation du dépôt dans l'arbre à part, les fiches (`CLAUDE.md`, `.claude/rules/`) sur la base, dans le dossier de la session. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**. Les chemins sont des rôles : le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`), le registre de règles (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), les ADR (`docs/adr/` ou `docs/architecture/adr/`).
+L'axe reçoit le **diff**, la section `## Criticité` du corps de la PR quand elle existe, et la déclaration de périmètre de la PR (le commentaire `Périmètre — …`) quand elle existe (pour `D9` seul : `D1` à `D8` restent le bloc du régime 7, et `D9` est propre au régime 8), et lit la documentation du dépôt dans l'arbre à part, les fiches (`CLAUDE.md`, `.claude/rules/`) sur la base, dans le dossier de la session. Il ne rend que des écarts rattachés à l'un de ces critères. Tout écart est un constat **bloquant** ; ce que le dépôt ne permet pas de trancher est un **doute**. Les chemins sont des rôles : le glossaire du projet (`GLOSSARY.md`, ou `CONTEXT.md`), le registre de règles (`docs/metier/regles/<ctx>/RULE_<CTX>_<TRI>-<n>.md`), les ADR (`docs/adr/` ou `docs/architecture/adr/`).
 
-Ce bloc est celui du skill `revue-de-ticket` (régime 7), mot pour mot, à cinq réécritures près, que `scripts/relecture.test.mjs` tient : le sous-agent s'y nomme « l'axe », les trois endroits de `D8` qui rangeaient un écart sous une gravité disent « un écart », puisqu'un écart est toujours bloquant, et `D5` lit les fiches (`CLAUDE.md`, `.claude/rules/`) sur la base, avec ce que le diff y change : l'arbre à part ne les porte pas. `D8` dit « dans la PR d'un agent » : l'axe ne sait pas qui a écrit la PR, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
+`D1` à `D8` sont le bloc du régime 7 ; `D9` est propre au régime 8 : il juge le périmètre qu'une PR de documentation déclare, que le régime 7 ne connaît pas, et ne s'ajoute pas au bloc du skill `revue-de-ticket`. `D1` à `D8` sont celui du skill `revue-de-ticket` (régime 7), mot pour mot, à cinq réécritures près, que `scripts/relecture.test.mjs` tient : le sous-agent s'y nomme « l'axe », les trois endroits de `D8` qui rangeaient un écart sous une gravité disent « un écart », puisqu'un écart est toujours bloquant, et `D5` lit les fiches (`CLAUDE.md`, `.claude/rules/`) sur la base, avec ce que le diff y change : l'arbre à part ne les porte pas. `D8` dit « dans la PR d'un agent » : l'axe ne sait pas qui a écrit la PR, et la session, au tri, tient toute PR qu'elle relit pour celle d'un agent.
 
 ```text
 D1  Glossaire — ADR_ALL_ARC-4 / langue des identifiants. Un terme du domaine nouveau dans le code (entité,
@@ -41,4 +41,10 @@ D8  Criticité — skill criticite. Seulement si l'index commis du projet, ancho
     `docs/questions-ouvertes.md` du diff, avec la règle sur sa ligne `Bloque :` ; listée dans la
     section seule, sans entrée au registre, elle est un écart ; une famille sans cas, sans « sans
     objet » et sans question est un écart aussi.
+D9  Périmètre — docs/agents/chaine-de-production.md § 5 (« Périmètre, règle 3 »). Seulement si la
+    PR porte une déclaration de périmètre (l'entrée « Déclaration de périmètre »). Une décision,
+    un fait ou une ADR que la déclaration ne nomme pas est un bloquant. Sa correction est le
+    retrait, jamais l'ajout de ce qui manque autour. Écart : une ADR que le diff crée, ou une
+    décision qu'il écrit (au registre, dans une ADR, un README ou la méthode), dont l'identifiant
+    est absent de la ligne `Décisions:` de la déclaration.
 ```
